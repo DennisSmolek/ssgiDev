@@ -145,11 +145,26 @@ class Ssrt3Demo implements Demo {
       if (key === 'viewMode') this.updateOutputNode();
     });
 
-    const urlView = new URLSearchParams(window.location.search).get('view');
+    // URL overrides for deterministic screenshots (?view=&bitmask=1&gi=1&fallback=1&mb=1&mbao=1&denoise=0&temporal=0)
+    const q = new URLSearchParams(window.location.search);
+    const urlView = q.get('view');
     if (urlView && (VIEW_MODES as readonly string[]).includes(urlView)) {
       this.params.values.viewMode = urlView as ViewMode;
-      this.params.refresh();
     }
+    const bool = (k: string, cur: boolean): boolean => {
+      const s = q.get(k);
+      return s === null ? cur : s === '1';
+    };
+    this.params.values.useBitmask = bool('bitmask', this.params.values.useBitmask);
+    this.params.values.gatherGI = bool('gi', this.params.values.gatherGI);
+    this.params.values.fallbackEnabled = bool('fallback', this.params.values.fallbackEnabled);
+    this.params.values.temporalAccumulation = bool('temporal', this.params.values.temporalAccumulation);
+    this.params.values.denoising = bool('denoise', this.params.values.denoising);
+    this.params.values.multiBounceAO = bool('mbao', this.params.values.multiBounceAO);
+    if (q.get('mb') !== null) this.params.values.multiBounceGI = Number(q.get('mb'));
+    if (q.get('radius') !== null) this.params.values.radius = Number(q.get('radius'));
+    if (q.get('thickness') !== null) this.params.values.thickness = Number(q.get('thickness'));
+    this.params.refresh();
 
     this.updateOutputNode();
   }

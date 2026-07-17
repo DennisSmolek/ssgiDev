@@ -169,6 +169,59 @@ fn marchHorizonCos(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : ve
   return cHorizon;
 }
 
+// --- Stage (b): VBAO 32-bit visibility bitmask (SSRT3 ComputeOccludedBitfield) -
+// Marks the sector range [minHorizon, maxHorizon] (both in [0,1] hemisphere
+// fraction) as occluded in a 32-bit mask, returns the count of NEWLY occluded
+// sectors (bits that were not already set — "newly revealed" is the complement,
+// used for GI in stage c).
+fn computeOccludedBitfield(minHorizon : f32, maxHorizon : f32, globalBitfield : ptr<function, u32>) -> u32 {
+  var startHorizonInt = u32(minHorizon * f32(MAX_RAY));
+  if (startHorizonInt >= 32u) { startHorizonInt = 31u; } // guard: 1<<32 is WGSL UB
+  let angleHorizonInt = u32(ceil(clamp(maxHorizon - minHorizon, 0.0, 1.0) * f32(MAX_RAY)));
+  var angleHorizonBitfield : u32 = 0u;
+  if (angleHorizonInt > 0u) {
+    angleHorizonBitfield = 0xFFFFFFFFu >> (32u - angleHorizonInt);
+  }
+  var current = angleHorizonBitfield << startHorizonInt;
+  current = current & (~(*globalBitfield));
+  *globalBitfield = (*globalBitfield) | current;
+  return countOneBits(current);
+}
+
+// Marches one horizon direction accumulating occluded sectors into the shared
+// per-slice bitfield. Front/back horizon (thickness slab) -> sector range.
+fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec2<f32>,
+                  initialRayStep : f32, uv : vec2<f32>, viewDir : vec3<f32>, n : f32,
+                  globalBitfield : ptr<function, u32>) {
+  let stepCount = max(1u, params.stepCount);
+  var stepRadius = max((params.radius * params.halfProjScale) / posVS.z, f32(stepCount));
+  if (hasFlag(F_SCREENSPACE)) {
+    stepRadius = (params.radius * (params.resolution.x * 0.5)) / 16.0; // no double-divide
+  }
+  stepRadius = stepRadius / (f32(stepCount) + 1.0);
+  let radiusVS = max(1.0, f32(stepCount) - 1.0) * stepRadius;
+  let samplingDirection = select(-1.0, 1.0, dirIsRight);
+
+  for (var j : u32 = 0u; j < stepCount; j = j + 1u) {
+    let offset = pow(abs((stepRadius * (f32(j) + initialRayStep)) / radiusVS), params.expFactor) * radiusVS;
+    let uvOffset = slideDir_TexelSize * max(offset, f32(j) + 1.0);
+    let sampleUV = uv + uvOffset * samplingDirection;
+    if (sampleUV.x <= 0.0 || sampleUV.y <= 0.0 || sampleUV.x >= 1.0 || sampleUV.y >= 1.0) { break; }
+
+    let samplePosVS = posSSToVS(sampleUV);
+    let pixelToSample = normalize(samplePosVS - posVS);
+    let linearThicknessMultiplier = select(1.0, clamp(samplePosVS.z / params.far, 0.0, 1.0) * 100.0, hasFlag(F_LINEAR_THICKNESS));
+    let pixelToSampleBackface = normalize((samplePosVS - linearThicknessMultiplier * viewDir * params.thickness) - posVS);
+
+    var fbh = vec2<f32>(dot(pixelToSample, viewDir), dot(pixelToSampleBackface, viewDir));
+    fbh = vec2<f32>(fastAcos(fbh.x), fastAcos(fbh.y));
+    fbh = clamp(((samplingDirection * -fbh) - n + HALF_PI) / PI, vec2<f32>(0.0), vec2<f32>(1.0));
+    // Front/back swap by direction (SSRT3: directionIsRight ? .yx : .xy)
+    let ordered = select(fbh, fbh.yx, dirIsRight);
+    computeOccludedBitfield(ordered.x, ordered.y, globalBitfield);
+  }
+}
+
 // GTAO slice integral (Jimenez 2016). n = projected-normal angle within slice.
 fn gtaoSlice(cosH1 : f32, cosH2 : f32, n : f32, projLen : f32) -> f32 {
   var h1 = -fastAcos(cosH1);
@@ -209,7 +262,8 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   }
 
   let rotationCount = max(1u, params.rotationCount);
-  var ao : f32 = 0.0;
+  let useBitmask = hasFlag(F_BITMASK);
+  var visSum : f32 = 0.0; // per-slice VISIBILITY (1 = fully open)
 
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
@@ -225,14 +279,23 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
     let cos_n = clamp(dot(projectedNormalN, viewDir), -1.0, 1.0);
     let n = -sign(dot(projectedNormal, tangent)) * acos(cos_n);
 
-    let cosR = marchHorizonCos(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
-    let cosL = marchHorizonCos(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
-    // Map "no occluder found" (cos = -1) to the full open hemisphere.
-    ao = ao + gtaoSlice(cosL, cosR, n, projLen);
+    if (useBitmask) {
+      // Stage (b): VBAO. Both sweeps share one 32-bit sector mask. AO is the
+      // occluded-bit fraction; thin plates block only a few sectors (vs GTAO's
+      // full-horizon block), so they over-darken far less.
+      var bitfield : u32 = 0u;
+      horizonBitmask(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, &bitfield);
+      horizonBitmask(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, &bitfield);
+      visSum = visSum + (1.0 - f32(countOneBits(bitfield)) / f32(MAX_RAY));
+    } else {
+      // Stage (a): classic GTAO horizon-angle integration.
+      let cosR = marchHorizonCos(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
+      let cosL = marchHorizonCos(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
+      visSum = visSum + gtaoSlice(cosL, cosR, n, projLen);
+    }
   }
 
-  ao = ao / f32(rotationCount);
-  ao = clamp(ao, 0.0, 1.0);
+  var ao = clamp(visSum / f32(rotationCount), 0.0, 1.0);
   ao = clamp(pow(ao, params.aoIntensity), 0.0, 1.0);
 
   textureStore(outTex, coord, vec4<f32>(0.0, 0.0, 0.0, ao));
