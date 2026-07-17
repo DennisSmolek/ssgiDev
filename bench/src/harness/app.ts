@@ -94,6 +94,18 @@ export async function startApp(config: AppConfig): Promise<void> {
   controls.target.set(0, scene.camera.position.y, 0);
   controls.update();
 
+  // Deterministic camera override for headless lab captures (added M5/lab 07):
+  // `?cam=px,py,pz,tx,ty,tz`. Isolated, additive; other demos ignore it.
+  const camParam = params.get('cam');
+  if (camParam) {
+    const n = camParam.split(',').map(Number);
+    if (n.length === 6 && n.every((x) => Number.isFinite(x))) {
+      scene.camera.position.set(n[0], n[1], n[2]);
+      controls.target.set(n[3], n[4], n[5]);
+      controls.update();
+    }
+  }
+
   const timing = new Timing(capabilities.hasTimestampQuery);
 
   const ctx: HarnessContext = {
