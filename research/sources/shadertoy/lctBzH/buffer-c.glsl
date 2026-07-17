@@ -1,0 +1,895 @@
+// Shadertoy lctBzH — GTAO+
+// Author: TinyTexel (CC BY-NC-SA 3.0, Shadertoy default)
+// Pass: Buffer C
+// Source: https://www.shadertoy.com/view/lctBzH
+// Captured live via Chrome (gShaderToy state) on 2026-07-17
+
+/*
+    This work is licensed under a dual license, public domain and MIT, unless noted otherwise. Choose the one that best suits your needs:
+    
+    CC0 1.0 Universal https://creativecommons.org/publicdomain/zero/1.0/
+    To the extent possible under law, the author has waived all copyrights and related or neighboring rights to this work.
+    
+    or
+    
+    The MIT License
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
+    to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+    and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: 
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. 
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR 
+    THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+////////////////////////////////////////////////////////////////////////////////////// config
+//==================================================================================//
+
+/*
+    toggles:
+    
+    Tab  : toggle temporal accumulation on/off
+    Ctrl : toggle ortho cam off/on
+
+    U    : toggle UI off/on
+*/
+
+/*
+    1: uniform sampling + slice weighting
+    2: exact  importance sampling via 2 random numbers
+    3: approx importance sampling via 1 random number (default)
+*/
+#define GTAO_SLICE_SAMPLING_MODE 3
+
+//#define  GTAO_USE_WHITE_NOISE
+//#define REFAO_USE_WHITE_NOISE
+
+/*
+    1: GTAOFastAcos         : fastest; good enough
+    2: improved GTAOFastAcos: slightly slower than 1, but quite a bit better
+    3: acos                 : very slow, but very accurate (useful for testing/debugging)
+*/
+#define ACOS_QUALITY_MODE 2
+
+//#define USE_HQ_APPROX_SLICE_IMPORTANCE_SAMPLING
+//#define USE_INFINITE_THICKNESS
+
+#if 1
+    // use high quality variants for testing (so there is as little unintentional bias as possible when comparing to reference)
+    #undef  ACOS_QUALITY_MODE
+    #define ACOS_QUALITY_MODE 3
+    #define USE_HQ_APPROX_SLICE_IMPORTANCE_SAMPLING
+
+   #if 0
+    // when using mode 1 or 2 + white noise + Thickness = inf, GTAO+ converges exactly to the reference (but mode 3 is the more practical one)
+    #undef  GTAO_SLICE_SAMPLING_MODE
+    #define GTAO_SLICE_SAMPLING_MODE 2
+    #define GTAO_USE_WHITE_NOISE
+    #define USE_INFINITE_THICKNESS
+   #endif
+#endif
+
+// #define USE_ANALYTICAL_RAYCASTING
+
+const float Raymarching_SampleCount = 32.0;
+const float Raymarching_Width = 512.0;
+#ifdef USE_INFINITE_THICKNESS
+const float Thickness = 1.0/0.0;
+#else
+const float Thickness = 0.5;
+#endif
+//==================================================================================//
+////////////////////////////////////////////////////////////////////////////////////// 
+
+
+bool isLeft;// true on the left half of the screen; for debugging purposes
+
+#define KeyBoard iChannel3
+
+float ReadKey(int keyCode) {return texelFetch(KeyBoard, ivec2(keyCode, 0), 0).x;}
+float ReadKeyToggle(int keyCode) {return texelFetch(KeyBoard, ivec2(keyCode, 2), 0).x;}
+
+#define VarTex iChannel3
+#define OutCol outCol
+#define OutChannel w
+
+#define WriteVar(v, cx, cy) {if(uv.x == uint(cx) && uv.y == uint(cy)) OutCol.OutChannel = v;}
+#define WriteVar4(v, cx, cy) {WriteVar(v.x, cx, cy) WriteVar(v.y, cx, cy + 1) WriteVar(v.z, cx, cy + 2) WriteVar(v.w, cx, cy + 3)}
+
+float ReadVar(int cx, int cy) {return texelFetch(VarTex, ivec2(cx, cy), 0).OutChannel;}
+vec4 ReadVar4(int cx, int cy) {return vec4(ReadVar(cx, cy), ReadVar(cx, cy + 1), ReadVar(cx, cy + 2), ReadVar(cx, cy + 3));}
+
+
+////////////////////////////////////////////////////////////////////////////////////// atan/acos/asin approx
+//==================================================================================//
+
+float ACosPoly(float x)
+{
+#if ACOS_QUALITY_MODE == 1
+    // GTAOFastAcos
+    return 1.5707963267948966 - 0.1565827644218014 * x;
+#else    
+    // higher quality version of GTAOFastAcos (for the cost of one additional mad)
+    // minimizes max abs(ACos_Approx(cos(x)) - x)
+    return 1.5707963267948966 + (-0.20491203466059038 + 0.04832927023878897 * x) * x;
+#endif    
+}
+
+float ACos_Approx(float x)
+{
+    float u = ACosPoly(abs(x)) * sqrt(1.0 - abs(x));
+			
+    return x >= 0.0 ? u : Pi - u;
+}
+
+float ACos01_Approx(float x)// x: [0,1]
+{
+    return ACosPoly(x) * sqrt(1.0 - x);
+}
+
+
+#if ACOS_QUALITY_MODE == 1 || ACOS_QUALITY_MODE == 2
+float ACos(float x)
+{
+    return ACos_Approx(clamp(x, -1.0, 1.0));
+}
+#else
+float ACos(float x)// very slow; for debugging
+{   
+    return acos(clamp(x, -1.0, 1.0));
+}
+#endif
+
+vec2 ACos(vec2 v)
+{
+    return vec2(ACos(v.x), ACos(v.y));
+}
+
+vec3 ACos(vec3 v)
+{
+    return vec3(ACos(v.x), ACos(v.y), ACos(v.z));
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////// slice sampling
+//==================================================================================//
+
+// vvsN: view vec space normal | rnd01: [0, 1]
+vec2 SampleSliceDir(vec3 vvsN, float rnd01)
+{
+    float ang0 = rnd01 * Pi;
+
+    vec2 dir0 = vec2(cos(ang0), sin(ang0));
+            
+    float l = length(vvsN.xy);
+
+    if(l == 0.0) return dir0;
+    
+    // flip dir0 into hemi-circle of rsN.xy
+    dir0 *= dot(dir0, vvsN.xy) < 0.0 ? -1.0 : 1.0;
+    
+    vec2 n = vvsN.xy / l;
+    
+    // SampleSlice(..) inlined + optimized
+    vec2 dir;
+    {
+        float x = dir0.x * n.y - dir0.y * n.x;// dir0 x n
+        
+        float s = l;// acos stretch param; chosen to approx match ref pdf
+        {
+            // quadratic bias
+            s += (s - s * s) * 0.15;
+        }
+        
+       #ifdef USE_HQ_APPROX_SLICE_IMPORTANCE_SAMPLING
+        float y = acos(x * sin(s * Pi05)) * RcpPi05;// stretched acos
+       #else
+        // approximation (not that much faster)
+        float k = 0.21545;// asin approx param
+        
+        float xs;// inverse approx asin
+        {
+            float a = 0.5 + 0.5 / k;
+            float b = 0.5 - 0.5 / k;
+            float d = b * b;
+            float c = 4.0 / k;
+
+            xs = 0.5 - 0.5 * s;
+            xs = a - sqrt(d + c * (xs*xs));
+        }
+        
+        x *= xs;// stretch curve along x
+        
+        float y;// approx acos
+        {
+            float v = x > 0.0 ? 2.0 : 0.0;
+
+            float g = -k - 1.0;
+
+            float u = (abs(x) * k + g) * abs(x) + 1.0;
+
+            y = abs(v - sqrt(clamp(u, 0.0, 1.0)));        
+        }
+       #endif
+        
+        float ys = 1.0 / s;// remap curve along y
+        
+        dir.y = ys - ys * y;// [-1, 1]
+        dir.x = sqrt(clamp(1.0 - dir.y*dir.y, 0.0, 1.0));// [0, 1]
+    }    
+    
+    // align x-axis with n
+	return vec2(dir.x * n.x - dir.y * n.y, 
+		        dir.y * n.x + dir.x * n.y);
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////// quaternion utils
+//==================================================================================//
+
+vec4 GetQuaternion(vec3 from, vec3 to)
+{
+    vec3 xyz = cross(from, to);
+    float s  =   dot(from, to);
+
+    float u = inversesqrt(max(0.0, s * 0.5 + 0.5));// rcp(cosine half-angle formula)
+    
+    s    = 1.0 / u;
+    xyz *= u * 0.5;
+
+    return vec4(xyz, s);  
+}
+
+vec4 GetQuaternion(vec3 to)
+{
+#if 1
+    //vec3 from = vec3(0.0, 0.0,-1.0);
+
+    vec3 xyz = vec3( to.y,-to.x, 0.0);// cross(from, to);
+    float s  =                  -to.z;//   dot(from, to);
+#else
+    //vec3 from = vec3(0.0, 0.0, 1.0);
+
+    vec3 xyz = vec3(-to.y, to.x, 0.0);// cross(from, to);
+    float s  =                   to.z;//   dot(from, to);
+#endif
+
+    float u = inversesqrt(max(0.0, s * 0.5 + 0.5));// rcp(cosine half-angle formula)
+    
+    s    = 1.0 / u;
+    xyz *= u * 0.5;
+
+    return vec4(xyz, s);  
+}
+
+// transform v by unit quaternion q.xyzs
+vec3 Transform(vec3 v, vec4 q)
+{
+    vec3 k = cross(q.xyz, v);
+    
+    return v + 2.0 * vec3(dot(vec3(q.wy, -q.z), k.xzy),
+                          dot(vec3(q.wz, -q.x), k.yxz),
+                          dot(vec3(q.wx, -q.y), k.zyx));
+}
+
+// transform v by unit quaternion q.xy0s
+vec3 Transform_Qz0(vec3 v, vec4 q)
+{
+    float k = v.y * q.x - v.x * q.y;
+    float g = 2.0 * (v.z * q.w + k);
+    
+    vec3 r;
+    r.xy = v.xy + q.yx * vec2(g, -g);
+    r.z  = v.z  + 2.0 * (q.w * k - v.z * dot(q.xy, q.xy));
+    
+    return r;
+}
+
+// transform v.xy0 by unit quaternion q.xy0s
+vec3 Transform_Vz0Qz0(vec2 v, vec4 q)
+{
+    float o = q.x * v.y;
+    float c = q.y * v.x;
+    
+    vec3 b = vec3( o - c,
+                  -o + c,
+                   o - c);
+    
+    return vec3(v, 0.0) + 2.0 * (b * q.yxw);
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////// blue noise utils
+//==================================================================================//
+
+// increases bit depth of 8 bit per channel blue noise texture
+vec4 MixBlueNoiseBits(vec4 bnoise)
+{
+   const vec4 a = exp2(-vec4(0.0, 8.0, 16.0, 24.0));
+   const vec4 b = a / (a.x + a.y + a.z + a.w);
+
+   return vec4(dot(bnoise.xyzw, b), 
+               dot(bnoise.yzwx, b), 
+               dot(bnoise.zwxy, b), 
+               dot(bnoise.wxyz, b));
+}
+
+// blue noise randomized via uv jittering
+vec4 BlueNoise01x4(uvec2 uv, uint n)
+{
+    const uint res = 1024u;
+
+    ivec2 uvi = ivec2((uv + (rPhi2 * n)) & (res - 1u));
+
+    return MixBlueNoiseBits(texelFetch(iChannel1, uvi, 0));
+}
+
+// blue noise randomized via value jittering
+// -> stratifies values along the time axis
+float BlueNoise01(uvec2 uv, uint n)
+{
+    const uint res = 1024u;
+
+    ivec2 uvi = ivec2(uv & (res - 1u));
+
+    float rnd01 = MixBlueNoiseBits(texelFetch(iChannel1, uvi, 0)).r;    
+
+    return Float01(uint(rnd01 * 4294967295.0) + rPhi1 * n);// == fract(rnd01 + rPhif1 * float(n));
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////// GT-VBAO
+//==================================================================================//
+
+// returns 4 uniformly distributed rnd numbers [0,1]
+// rnd01.x/rnd01.xy -> used to sample a slice direction (exact importance sampling needs 2 rnd numbers)
+// rnd01.z -> used to jitter sample positions along ray marching direction
+// rnd01.w -> used to jitter sample positions radially around slice normal
+vec4 Rnd01x4(vec2 uv, uint n)
+{
+    uvec2 uvu = uvec2(uv);
+
+    vec4 rnd01 = vec4(0.0);
+    
+  #if GTAO_SLICE_SAMPLING_MODE == 1 || GTAO_SLICE_SAMPLING_MODE == 3
+    
+   #ifdef GTAO_USE_WHITE_NOISE
+    rnd01.xzw = Hash01x3(uvec3(uvu, n), 0x9CF617FAu);
+   #else
+    rnd01.x  = BlueNoise01  (uvu, n);
+    //rnd01.x  = IGN(floor(uv), n);
+  //rnd01.y  = unused
+    rnd01.zw = BlueNoise01x4(uvu, n).zw;
+   #endif
+    
+  #elif GTAO_SLICE_SAMPLING_MODE == 2
+        
+   #ifdef GTAO_USE_WHITE_NOISE
+    rnd01 = Hash01x4(uvec3(uvu, n), 0x9CF617FAu);
+   #else
+    rnd01   = BlueNoise01x4(uvu, n);
+    rnd01.x = BlueNoise01  (uvu, n);
+   #endif
+   
+  #endif
+    
+    return rnd01;
+}
+
+float SliceRelCDF_Cos(float x, float angN, float cosN, bool isPhiLargerThanAngN)
+{
+    if(x <= 0.0 || x >= 1.0) return x;
+    
+    float phi = x * Pi - Pi05;
+
+    bool c = isPhiLargerThanAngN;
+    
+    float n0 = c ?  3.0 : 1.0;
+    float n1 = c ? -1.0 : 1.0;
+    float n2 = c ?  4.0 : 0.0;
+    
+    float t0 = n0 * cosN + n1 * cos(angN - 2.0 * phi) + (n2 * angN + (n1 * 2.0) * phi + Pi) * sin(angN);
+    float t1 = 4.0 * (cosN + angN * sin(angN));
+
+    return t0 / t1;
+}
+
+
+float GTAOp(vec2 uv0, vec3 wpos, vec3 N, uint dirCount)
+{
+    vec3 positionVS = VPos_from_WPos(wpos);
+    vec3 normalVS   = VVec_from_WVec(N);
+    
+    vec3 V = isPerspectiveCam ? -normalize(positionVS) : vec3(0.0, 0.0, -1.0);
+    
+    vec2 rayStart = SPos_from_VPos(positionVS).xy;
+
+    uint frame = USE_TEMP_ACCU_COND ? uint(iFrame) : 0u;
+
+    float ao = 0.0;
+    for(uint i = 0u; i < dirCount; ++i)
+    {        
+        uint n = frame * dirCount + i;
+        vec4 rnd01 = Rnd01x4(uv0, n);
+        
+        ////////////////////////////////////////////////// slice direction sampling
+        vec3 smplDirVS;// view space sampling vector
+        vec2 dir;// screen space sampling vector
+        {
+           #if GTAO_SLICE_SAMPLING_MODE == 1
+            // sample partial slice dir uniformly and later compute slice_weight accordingly
+            
+            float rndAng = rnd01.x * Pi;
+            
+            dir = vec2(cos(rndAng), sin(rndAng));
+
+            smplDirVS = vec3(dir.xy, 0.0);
+
+            if(isPerspectiveCam)
+            {
+                // set up View Vec Space -> View Space mapping
+                vec4 Q_toV = GetQuaternion(V);
+            
+                smplDirVS = Transform_Vz0Qz0(dir, Q_toV);
+
+                vec3 rayStart = SPos_from_VPos(positionVS);
+                vec3 rayEnd   = SPos_from_VPos(positionVS + smplDirVS*(nearZ*0.5));
+
+                vec3 rayDir   = rayEnd - rayStart;
+
+                rayDir /= length(rayDir.xy);
+
+                dir = rayDir.xy;
+            }
+            
+           #elif GTAO_SLICE_SAMPLING_MODE == 2
+            // exact slice dir importance sampling via 2 rnd numbers
+            // sample cos lobe in world space and project dir to screen space to be used as partial slice dir
+            
+            vec2 s = rnd01.xy * 2.0 - 1.0;
+
+            vec3 cosDir;
+            {
+              #if 1
+                // align up-axis of local sampling frame with view vector
+                // -> results in better noise profile when looking straight at a surface
+                vec3 sph;// = Sample_Sphere(s); inlined here to ensure z is up
+                {
+                    float ang = Pi * s.x;
+                    float s1p = sqrt(1.0 - s.y*s.y);
+
+                    sph = vec3(vec2(cos(ang), sin(ang)) * s1p, s.y);
+                }
+
+                if(isPerspectiveCam)
+                {
+                    sph = Transform_Qz0(sph, GetQuaternion(V));
+                }
+
+                vec3 cosDirVS = normalize(sph + VVec_from_WVec(N));
+                     cosDir   = WVec_from_VVec(cosDirVS);
+
+                smplDirVS = cosDirVS;
+                
+              #else
+              
+                cosDir = normalize(Sample_Sphere(s) + N);
+
+                smplDirVS = VVec_from_WVec(cosDir);
+                
+              #endif
+            }
+            
+            vec3 rayDir = smplDirVS;
+            
+            if(isPerspectiveCam)
+            {
+                rayDir = SPos_from_WPos(wpos + cosDir * (nearZ * 0.5)) - SPos_from_WPos(wpos);
+            }
+            
+            // 1 px step size
+            rayDir /= length(rayDir.xy);
+
+            dir = rayDir.xy;
+
+            // make orthogonal to V (alternatively use sliceN = normalize(sliceN);)
+            smplDirVS = normalize(smplDirVS - V * dot(V, smplDirVS));
+
+           #elif GTAO_SLICE_SAMPLING_MODE == 3
+            // approximate slice dir importance sampling via 1 rnd number
+            
+            // set up View Vec Space <-> View Space mapping
+            vec4   Q_toV = GetQuaternion(V);
+            vec4 Q_fromV = Q_toV * vec4(vec3(-1.0), 1.0);// conjugate
+
+            vec3 normalVVS = normalVS;
+
+            if(isPerspectiveCam) normalVVS = Transform_Qz0(normalVS, Q_fromV);
+
+            dir = SampleSliceDir(normalVVS, rnd01.x);
+
+            smplDirVS = vec3(dir.xy, 0.0);
+
+            if(isPerspectiveCam)
+            {
+                smplDirVS = Transform_Vz0Qz0(dir, Q_toV);
+
+                vec3 rayStart = SPos_from_VPos(positionVS);
+                vec3 rayEnd   = SPos_from_VPos(positionVS + smplDirVS*(nearZ*0.5));
+
+                vec3 rayDir   = rayEnd - rayStart;
+
+                rayDir /= length(rayDir.xy);
+
+                dir = rayDir.xy;
+            }
+           #endif
+        }
+        //////////////////////////////////////////////////
+        
+        ////////////////////////////////////////////////// construct slice
+        float cosN, angN, projNRcpLen, VoT;
+        {
+            vec3 sliceN = cross(V, smplDirVS);
+            
+            vec3 projN = normalVS - sliceN * dot(normalVS, sliceN);
+
+            float projNSqrLen = dot(projN, projN);
+               if(projNSqrLen == 0.0) return 1.0;
+
+            projNRcpLen = inversesqrt(projNSqrLen);
+
+            cosN = dot(projN, V) * projNRcpLen;
+
+            vec3 T = cross(sliceN, projN);
+            
+            VoT = dot(V, T) * projNRcpLen;
+            
+            float sgn = VoT < 0.0 ? -1.0 : 1.0;
+            
+            angN = sgn * ACos(cosN);
+        }
+        //////////////////////////////////////////////////
+
+        // find horizons
+        float occ0 = 0.0;
+        for(float d = -1.0; d <= 1.0; d += 2.0)
+        {
+            VoT = -VoT;
+            
+            float  min_horCos = 1.0;
+            float  max_horCos = VoT;
+            float max2_horCos = VoT;
+                
+            vec2 rayDir = dir.xy * d;
+            
+            const float count = Raymarching_SampleCount;
+            
+            const float s = pow(Raymarching_Width, 1.0/count);
+            
+            float t = pow(s, rnd01.z);// init t: [1, s]
+            
+            rnd01.z = 1.0 - rnd01.z;
+
+            for (float i = 0.0; i < count; ++i)
+            {
+                vec2 samplePos = rayStart + rayDir * t;
+                
+                t *= s;
+                
+                // handle oob
+                if(samplePos.x < 0.0 || samplePos.x >= iResolution.x || samplePos.y < 0.0 || samplePos.y >= iResolution.y) break;
+                
+                float sampleDepth = textureLod(iChannel2, samplePos / Resolution.xy, 0.0).w;
+                
+                vec3 samplePosVS = VPos_from_SPos(vec3(samplePos, sampleDepth));
+
+                vec3 deltaPosFront = samplePosVS - positionVS;
+                vec3 deltaPosBack  = deltaPosFront - V * Thickness;
+                
+               #if 1
+                // required for correctness, but probably not worth to keep active in a practical application:
+                if(isPerspectiveCam)
+                {
+                   #if 1
+                    deltaPosBack = VPos_from_SPos(vec3(samplePos, sampleDepth + Thickness)) - positionVS;
+                   #else
+                    // also valid, but not consistent with reference ray marcher
+                    deltaPosBack = deltaPosFront + normalize(samplePosVS) * Thickness;
+                   #endif
+                }
+               #endif
+
+                // project samples onto unit circle and compute angles relative to V
+                vec2 horCos = vec2(dot(normalize(deltaPosFront), V), 
+                                   dot(normalize(deltaPosBack ), V));
+                                   
+                horCos = max(horCos, VoT);
+                
+                if(horCos.x != horCos.y)
+                {
+                    if(horCos.y <= max2_horCos)
+                    {
+                        // update horizon
+                        max2_horCos = max(max2_horCos, horCos.x);
+                    }
+                    else
+                    {
+                        // update interval
+                        max_horCos = max(max_horCos, horCos.x);
+                        min_horCos = min(min_horCos, horCos.y);
+                    }
+                    
+                    if(min_horCos <= max2_horCos)
+                    {
+                        // merge interval into horizon
+                        max2_horCos = max_horCos;
+
+                        // reset horizon
+                        max_horCos = VoT;
+                        min_horCos = 1.0;
+                    }
+                }
+            }
+
+            vec3 horAng = ACos(vec3(min_horCos, max_horCos, max2_horCos)) * d;
+            
+            // shift relative angles from V to N + map to [0,1]
+            float angOff = angN * RcpPi + 0.5;
+            vec4 hor01 = vec4(clamp(horAng * RcpPi + angOff, 0.0, 1.0), d * 0.5 + 0.5);
+            
+            // map to slice relative distribution
+            hor01.x = SliceRelCDF_Cos(hor01.x, angN, cosN, d > 0.0);
+            hor01.y = SliceRelCDF_Cos(hor01.y, angN, cosN, d > 0.0);
+            hor01.z = SliceRelCDF_Cos(hor01.z, angN, cosN, d > 0.0);
+            
+            // sampling direction flips min/max angles
+            hor01 = d >= 0.0 ? hor01 : hor01.yxwz;
+            
+            // compute AO contribution
+            {
+                occ0 += clamp(hor01.x - hor01.y, 0.0, 1.0);// interval
+                occ0 += clamp(hor01.w - hor01.z, 0.0, 1.0);// horizon
+            }
+        }
+        
+        // accumulate AO contribution
+        {
+            float slice_weight = 1.0;
+
+           #if GTAO_SLICE_SAMPLING_MODE == 1
+            // if we sample the partial slice dir from a uniform distribution we need to account for that here
+            slice_weight = max(0.0, 1.0/projNRcpLen * (cosN + angN * sin(angN)));
+           #endif
+
+            ao += slice_weight - slice_weight * occ0;
+        }
+    }
+    
+    ao /= float(dirCount);
+    
+    return ao;
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////// reference AO
+//==================================================================================//
+
+float ReferenceAO(vec2 uv0, vec3 wpos, vec3 N, uint dirCount)
+{
+    uvec2 uvu = uvec2(uv0);
+
+   #ifndef REFAO_USE_WHITE_NOISE
+    // randomly shift noise pattern around
+    if(USE_TEMP_ACCU_COND) uvu += Hash(uvec2(iFrame, 0u), 0xBD1E0BB0u).xy;
+
+    // linearize uv in a locality preserving way
+    uint pxId = EvalHilbertCurve(uvu, 9u);
+   #endif
+
+    vec3 positionVS = VPos_from_WPos(wpos);
+
+    uint frame = USE_TEMP_ACCU_COND ? uint(iFrame) : 0u;
+
+    float occ = 0.0;
+    
+    for(uint i = 0u; i < dirCount; ++i)
+    {
+        uint n = frame * dirCount + i;
+        
+      #ifdef REFAO_USE_WHITE_NOISE
+        vec2 s = Hash11x2(uvec3(uvu, n), 0x3579A945u);
+      #else
+        uint h = pxId * dirCount + i;
+        vec2 s = Float11(shuffled_scrambled_sobol_2d(h, 0xCC925D21u));
+      #endif
+        
+        // cosine weighted hemisphere
+        vec3 rayDir = normalize(Sample_Sphere(s) + N); 
+        
+       #ifdef USE_ANALYTICAL_RAYCASTING
+        {
+            float t; vec3 n; vec3 a;
+            occ += Intersect_Scene(wpos, rayDir, /*out:*/ t, n, a) > 0.0 ? 1.0 : 0.0;
+        }
+       #else
+        // ray march in screen space
+        if(isPerspectiveCam)
+        {
+            vec4 rayStart = PPos_from_WPos(wpos);
+            vec4 rayEnd   = PPos_from_WPos(wpos + rayDir * (nearZ * 0.5));
+            
+            float rwStart = 1.0 / rayStart.w;
+            float rwEnd   = 1.0 / rayEnd.w;
+            
+            vec2 tcStart = rayStart.xy * rwStart * 0.5 + 0.5;
+            vec2 tcEnd   = rayEnd.xy   * rwEnd   * 0.5 + 0.5;
+            
+            vec2  tcDelta0 = tcEnd - tcStart;
+            float rwDelta0 = rwEnd - rwStart;
+            
+            vec2  uvDelta0       = tcDelta0 * iResolution.xy;
+            float uvDelta0RcpLen = inversesqrt(dot(uvDelta0, uvDelta0));
+
+            // 1 px step size
+            vec2  tcDelta = tcDelta0 * uvDelta0RcpLen;
+            float rwDelta = rwDelta0 * uvDelta0RcpLen;
+            
+            float rnd01 = Hash01(uvec3(uvu, n), 0x2D56DA3Bu);
+
+            const float count = Raymarching_SampleCount;
+            
+            const float s = pow(Raymarching_Width, 1.0/count);
+            
+            float t = pow(s, rnd01);// init t: [1, s]
+
+            for (float i = 0.0; i < count; ++i)
+            {
+                vec2  tc = tcStart + tcDelta * t;
+                float rw = rwStart + rwDelta * t;
+
+                t *= s;
+
+                float depth = 1.0 / rw;
+
+                // handle oob
+                if(tc.x < 0.0 || tc.x >= 1.0 || tc.y < 0.0 || tc.y >= 1.0) break;
+                
+                float sampleDepth = textureLod(iChannel2, tc.xy, 0.0).w;
+
+                if(depth > sampleDepth && depth < sampleDepth + Thickness)
+                {
+                    occ += 1.0;
+                    
+                    break;
+                }
+             }
+        }
+        else
+        {
+            vec3 rayStart = SPos_from_WPos(wpos);
+            vec3 rayDir   = SVec_from_VVec_Ortho(VVec_from_WVec(rayDir));
+            
+            // 1 px step size
+            rayDir /= length(rayDir.xy);
+
+            float rnd01 = Hash01(uvec3(uvu, n), 0x2D56DA3Bu);
+
+            const float count = Raymarching_SampleCount;
+                        
+            const float s = pow(Raymarching_Width, 1.0/count);
+            
+            float t = pow(s, rnd01);// init t: [1, s]
+            
+            for (float i = 0.0; i < count; ++i)
+            {
+                vec3 samplePos = rayStart + rayDir * t;
+                
+                t *= s;
+
+                vec2 tc = samplePos.xy / iResolution.xy;
+
+                // handle oob
+                if(tc.x < 0.0 || tc.x >= 1.0 || tc.y < 0.0 || tc.y >= 1.0) break;
+                
+                float sampleDepth = textureLod(iChannel2, tc.xy, 0.0).w;
+
+                if(samplePos.z > sampleDepth && samplePos.z < sampleDepth + Thickness)
+                {
+                    occ += 1.0;
+                    
+                    break;
+                }
+            }
+        }
+       #endif
+    }
+    
+    occ /= float(dirCount);
+    
+    return 1.0 - occ;
+}
+
+//==================================================================================//
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+void mainImage(out vec4 outCol, in vec2 uv0)
+{     
+    Resolution = iResolution.xy;
+    isLeft = uv0.x < iResolution.x * 0.5;
+    
+    vec4 mouseAccu  = ReadVar4(1, VAR_ROW);
+    float frameAccu = ReadVar (3, VAR_ROW);
+    
+    PrepareCam(mouseAccu, USE_PERSPECTIVE_CAM_COND);
+    
+    vec4 gbuffer = textureLod(iChannel2, uv0 / iResolution.xy, 0.0);
+    vec3  N     = gbuffer.xyz;
+    float depth = gbuffer.w;
+    
+    if(depth >= exp2(10.0))
+    {
+        outCol = vec4(0.0);
+        
+        return;
+    }
+    
+    vec3 spos = vec3(uv0, depth);
+    
+    vec3 wpos = WPos_from_SPos(spos);
+         wpos+= N * (1.0/1024.0);
+
+    
+    vec3 col = vec3(0.0);
+
+    float refao;
+    {
+        uint count = 2u;
+        
+        refao = ReferenceAO(uv0, wpos, N, count);
+    }
+    
+    float ssao;
+    {
+        uint count = 1u;
+        
+        ssao = GTAOp(uv0, wpos, N, count);
+    }
+    
+    col = vec3(refao, ssao, 0.0);
+    
+    // accumulate frames
+    if(USE_TEMP_ACCU_COND)
+    {
+        vec2 tc = uv0.xy / iResolution.xy;
+    
+        vec4 colLast = textureLod(iChannel0, tc, 0.0);
+
+        col = mix(colLast.rgb, col, 1.0 / (frameAccu));
+        
+        frameAccu += 1.0;
+        
+        outCol = vec4(col.rgb, frameAccu);
+        
+        return;
+    }
+   
+    outCol = vec4(col, 0.0);
+}
