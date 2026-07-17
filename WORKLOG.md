@@ -265,3 +265,39 @@ every stage.
 
 **Open bugs:** none. **Branch:** `m3-demo-03-ssrt3` (7 stage commits, a→g).
 **Next:** M4 — demos 04–06 (GT family + Mathis SSHGI).
+
+---
+
+## 2026-07-18 — M4 merged: demos 04 GT-VBAO, 05 GT-VBGI, 06 SSHGI (Mathis)
+
+Two parallel worktree agents (M4a: 04+05 on `m4-gt-family`; M4b: 06), merged into
+main by the orchestrator after M3 landed (conflicts: registry lines only).
+Combined typecheck/build re-verified post-merge. Full detail in the per-demo READMEs.
+
+- **Demo 04 GT-VBAO**: Salm XXGSDd (LIVE semantics incl. GetQuaternion fix,
+  mirrored for three's opposite view-space z). **Converged AO diffs seamlessly
+  vs demo 02 reference** (8× amplified diff = uncorrelated MC noise, no bias
+  regions) — the founding "converges to reference" claim holds in our port.
+- **Demo 05 GT-VBGI**: one demo, variant switch — bidirectional (cleanest),
+  unidirectional (half samples, noisier per-frame as designed), uniform-weighted
+  (no acos, slightly flatter). All converge to reference GI; honest caveat:
+  slightly less near-field bounce on short-box top vs brute-force (screen-space
+  limitation, documented). wcsXDN slice-relative mapping deferred to labs 07/08
+  (it's distant-light sampling, doesn't compose into beauty-buffer bounce).
+- **Demo 06 SSHGI**: Mathis dsGBzW 5-pass graph ported 1:1 (source/march/accum/
+  gcopy/compose). Preserved his divergent estimator verbatim: 4 single-sided
+  horizons @90°, 32-vs-64 bin/weight divisor mismatch, sqrt emitter-facing
+  weight with no receiver N·L. Multibounce plateaus (no runaway); added explicit
+  feedback damping (default 0.5; 1.0 = his original). Added optional velocity
+  reprojection (toggle; off = his static accumulate) — fixes his documented
+  dynamic-scene ghosting.
+- **Traps found**: unidirectional march must start d=+1 (not −1) or near-black
+  frame; esbuild binary needs pnpm onlyBuiltDependencies on fresh installs
+  (workaround note in M4a report).
+
+**Validated:** all three demos headless-screenshot on cornell (+sponza/zoo for
+04/05); typecheck + build green on merged main (7 demos registered).
+**Open:** three raw-pass classes (RawFragmentPass/RawRenderPass/RawComputePass)
+to reconcile in polish; live cross-demo pixel-diff needs demo 02's marcher
+promoted to a shared harness pass.
+**Next:** M5 — labs 07–11, five parallel worktrees.
