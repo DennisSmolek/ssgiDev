@@ -83,6 +83,36 @@ per-pass GPU timings.
 
 ---
 
+## 2026-07-18 — M2: demo 02 reference marcher + A/B comparator (worktree merge)
+
+Built in a parallel worktree (Opus agent), merged into main by the orchestrator
+(one conflict, `demos/index.ts` registry lines). Full detail in
+`bench/src/demos/02-reference/README.md`.
+
+- **Demo 02**: brute-force screen-space ray-march reference, semantics from
+  Salm's XXGSDd reference (cosine weighting via `normalize(uniformSphere + N)`;
+  finite-slab thickness `surfZ < rayZ < surfZ + t`, default 0.5 on Cornell's
+  5.5-unit scale; view-space march; miss = sky). Additive-blend accumulation
+  (rgb=GI sum, a=AO sum, display divides by count) — deliberate deviation from
+  HistoryTarget ping-pong, logged for review. Converges by 512 frames; verified
+  screenshots `02-*.png`.
+- **A/B comparator**: `harness/compare.ts` + `compare.wgsl` — generic
+  two-texture split/abs-diff raw pass with per-input scale + channel select.
+- **New harness class `RawRenderPass`** (`harness/raw-pass.ts`): generalized
+  declarative-bindings raw fragment pass; demo 00's `RawFragmentPass` is now
+  the narrow ancestor. **Decision for review:** M3 (in flight, branched
+  pre-merge) builds its own `RawComputePass`; reconcile the three raw-pass
+  classes in the polish pass.
+- **New traps found:** WGSL needs parens mixing `*`/`^`; Float32Array pose
+  snapshots quantize (~0.004) and self-reset accumulation — use Float64Array +
+  2e-4 move threshold.
+
+**Validated:** typecheck/build (re-run post-merge by orchestrator) + headless
+screenshots on Cornell. **Open:** Cornell-only so far; thickness/radius need
+per-scene retune on Sponza/zoo.
+
+---
+
 ## 2026-07-18 — M1: demo 01 (stock pipeline + SSR), Sponza + artifact zoo
 
 Built the shipped-baseline demo (demo 01), the Sponza scene, and the procedural
