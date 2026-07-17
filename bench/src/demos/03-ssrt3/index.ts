@@ -1,6 +1,7 @@
 import {
   HalfFloatType,
   MathUtils,
+  Matrix4,
   NoColorSpace,
   RGBAFormat,
   RenderPipeline,
@@ -28,11 +29,13 @@ import { ensureTexture } from '../../harness/three-internals';
 import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
 import mainWgsl from './ssrt-main.wgsl?raw';
+import temporalWgsl from './ssrt-temporal.wgsl?raw';
+import denoiseWgsl from './ssrt-denoise.wgsl?raw';
 
 // Demo 03 — SSRT3 complete WebGPU compute port. See README for lineage/stages.
-// Built in stages a-g; stage (a) = GTAO plumbing (this file grows per stage).
+// Built in stages a-g; a=GTAO, b=bitmask, c=GI, d=temporal+denoise.
 
-const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty'] as const;
+const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
 
 // flags bits mirror ssrt-main.wgsl.
@@ -59,26 +62,45 @@ function sceneDefaults(sceneId: string): { radius: number; thickness: number } {
 const TEMPORAL_ROTATIONS = [60, 300, 180, 240, 120, 0];
 const SPATIAL_OFFSETS = [0.0, 0.5, 0.25, 0.75];
 
-// Uniform: 3 mat4 (48f) + 6 vec4 blocks (24f) = 72 floats = 288 bytes.
+// Main uniform: 3 mat4 (48f) + 6 vec4 blocks (24f) = 72 floats = 288 bytes.
 const U_FLOATS = 72;
+// Temporal uniform: 2 mat4 (32f) + 2 vec4 (8f) = 40 floats.
+const T_FLOATS = 40;
+// Denoise uniform: 2 vec4 = 8 floats.
+const D_FLOATS = 8;
 
 class Ssrt3Demo implements Demo {
   private beautyTex!: Texture;
   private albedoTex!: Texture;
   private normalTex!: Texture;
+  private velocityTex!: Texture;
   private depthTex!: DepthTexture;
 
   private scenePass!: ReturnType<typeof pass>;
   private gbufferPipeline!: RenderPipeline;
   private displayPipeline!: RenderPipeline;
 
-  // GI+AO output (rgb=GI, a=AO), three StorageTexture so it stays a TSL texture().
-  private giAoTex = this.makeStorage();
+  // GI+AO buffers (rgb=GI, a=AO), three StorageTextures (stay TSL texture()s).
+  private giAoTex = this.makeStorage();   // (a-c) raw main-march output
+  private histA = this.makeStorage();     // (d) temporal ping-pong
+  private histB = this.makeStorage();
+  private finalTex = this.makeStorage();  // (d) denoised final -> composite
 
   private main!: RawComputePass;
+  private temporal!: RawComputePass;
+  private denoise!: RawComputePass;
   private envSampler!: GPUSampler;
   private mainData = new Float32Array(U_FLOATS);
   private mainU32 = new Uint32Array(this.mainData.buffer);
+  private tData = new Float32Array(T_FLOATS);
+  private tU32 = new Uint32Array(this.tData.buffer);
+  private dData = new Float32Array(D_FLOATS);
+  private dU32 = new Uint32Array(this.dData.buffer);
+
+  private invViewProj = new Matrix4();
+  private prevInvViewProj = new Matrix4();
+  private histPing = true; // true: write histA / read histB
+  private resetTemporal = true;
 
   private uGiExposure = uniform(1);
 
@@ -104,6 +126,7 @@ class Ssrt3Demo implements Demo {
     this.beautyTex = this.scenePass.getTexture('output');
     this.albedoTex = this.scenePass.getTexture('albedo');
     this.normalTex = this.scenePass.getTexture('normal');
+    this.velocityTex = this.scenePass.getTexture('velocity');
     this.scenePass.getTexture('albedo').type = UnsignedByteType;
     this.depthTex = this.scenePass.renderTarget.depthTexture!;
 
@@ -131,8 +154,32 @@ class Ssrt3Demo implements Demo {
       ],
     });
 
+    // Temporal reprojection: current + history + velocity + depth -> resolved.
+    this.temporal = new RawComputePass(ctx.renderer, 'ssrt-temporal', temporalWgsl, {
+      bindings: [
+        { kind: 'tex' },
+        { kind: 'tex' },
+        { kind: 'tex' },
+        { kind: 'depth' },
+        { kind: 'storage', format: 'rgba16float' },
+        { kind: 'uniform' },
+      ],
+    });
+    // Bilateral denoise: resolved + depth + normal -> final.
+    this.denoise = new RawComputePass(ctx.renderer, 'ssrt-denoise', denoiseWgsl, {
+      bindings: [
+        { kind: 'tex' },
+        { kind: 'depth' },
+        { kind: 'tex' },
+        { kind: 'storage', format: 'rgba16float' },
+        { kind: 'uniform' },
+      ],
+    });
+
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
+    this.temporal.configure(this.tData.byteLength);
+    this.denoise.configure(this.dData.byteLength);
 
     const folder = ctx.pane.addFolder({ title: 'Demo 03 — SSRT3 (WebGPU compute)' });
     const d = sceneDefaults(this.sceneId);
@@ -175,14 +222,20 @@ class Ssrt3Demo implements Demo {
 
   private buildViewNode(mode: ViewMode) {
     const uv = screenUV;
-    const giao = texture(this.giAoTex, uv);
-    const ao = giao.a;
-    const gi = giao.rgb.mul(this.uGiExposure);
+    // Denoised final for the main views; raw main-march output for *-raw views.
+    const finalGiao = texture(this.finalTex, uv);
+    const rawGiao = texture(this.giAoTex, uv);
+    const ao = finalGiao.a;
+    const gi = finalGiao.rgb.mul(this.uGiExposure);
     switch (mode) {
       case 'ao':
         return vec4(vec3(ao), float(1));
       case 'gi':
         return vec4(gi, float(1));
+      case 'ao-raw':
+        return vec4(vec3(rawGiao.a), float(1));
+      case 'gi-raw':
+        return vec4(rawGiao.rgb.mul(this.uGiExposure), float(1));
       case 'combined': {
         const beauty = texture(this.beautyTex, uv).rgb;
         const albedo = texture(this.albedoTex, uv).rgb;
@@ -259,21 +312,80 @@ class Ssrt3Demo implements Demo {
       height,
     );
 
-    // 3. Display.
+    // 3. Temporal reprojection (d): current + prev-resolved -> resolved (histCur).
+    // invViewProj = matrixWorld * projInverse (world from WebGPU clip).
+    this.invViewProj.multiplyMatrices(cam.matrixWorld, cam.projectionMatrixInverse);
+    const histWrite = this.histPing ? this.histA : this.histB;
+    const histRead = this.histPing ? this.histB : this.histA;
+    const v = this.params.values;
+    this.fillTemporal(cam, width, height, v);
+    this.temporal.execute(
+      [this.giAoTex, histRead, this.velocityTex, this.depthTex, histWrite, this.tData],
+      width,
+      height,
+    );
+
+    // 4. Bilateral denoise (d): resolved -> finalTex (display samples this).
+    this.fillDenoise(cam, width, height, v);
+    this.denoise.execute([histWrite, this.depthTex, this.normalTex, this.finalTex, this.dData], width, height);
+
+    // 5. Display.
     this.displayPipeline.render();
     ctx.timing.sampleGPU(ctx.renderer);
+
+    // Advance temporal state.
+    this.prevInvViewProj.copy(this.invViewProj);
+    this.histPing = !this.histPing;
+    this.resetTemporal = false;
+  }
+
+  private fillTemporal(cam: PerspectiveCamera, width: number, height: number, v: ParamGroup<typeof schema>['values']): void {
+    const d = this.tData;
+    const u = this.tU32;
+    d.set(this.invViewProj.elements, 0);
+    d.set(this.prevInvViewProj.elements, 16);
+    d[32] = width;
+    d[33] = height;
+    d[34] = cam.near;
+    d[35] = cam.far;
+    d[36] = v.temporalResponse;
+    let flags = 0;
+    if (v.temporalAccumulation) flags |= 1;
+    if (this.resetTemporal || this.frameCounter < 2) flags |= 2;
+    u[37] = flags;
+    d[38] = 0;
+    d[39] = 0;
+  }
+
+  private fillDenoise(cam: PerspectiveCamera, width: number, height: number, v: ParamGroup<typeof schema>['values']): void {
+    const d = this.dData;
+    const u = this.dU32;
+    d[0] = width;
+    d[1] = height;
+    d[2] = cam.near;
+    d[3] = cam.far;
+    d[4] = v.denoisingRadius;
+    u[5] = v.denoising ? 1 : 0;
+    d[6] = 0;
+    d[7] = 0;
   }
 
   resize(ctx: HarnessContext): void {
     const { width, height } = ctx.renderSize();
     this.scenePass.setSize(width, height);
-    this.giAoTex.image = { width, height };
-    this.giAoTex.dispose();
-    ensureTexture(ctx.renderer, this.giAoTex);
+    for (const t of [this.giAoTex, this.histA, this.histB, this.finalTex]) {
+      t.image = { width, height };
+      t.dispose(); // drop the old GPU texture so ensureTexture reallocates at the new size
+      ensureTexture(ctx.renderer, t);
+    }
+    this.resetTemporal = true; // history invalid at the new resolution
   }
 
   dispose(): void {
     this.giAoTex.dispose();
+    this.histA.dispose();
+    this.histB.dispose();
+    this.finalTex.dispose();
   }
 }
 
