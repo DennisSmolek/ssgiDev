@@ -28,6 +28,9 @@ export interface SceneDef {
 export interface SceneContext {
   aspect: number;
   pane: Pane;
+  // Renderer is needed by scenes that load compressed textures (KTX2Loader
+  // requires `.detectSupport(renderer)`). Procedural scenes may ignore it.
+  renderer: WebGPURenderer;
 }
 
 // The shared services every demo receives. The demo owns its render loop body

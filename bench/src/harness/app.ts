@@ -87,6 +87,7 @@ export async function startApp(config: AppConfig): Promise<void> {
   const scene: SceneHandle = sceneDef.create({
     aspect: window.innerWidth / window.innerHeight,
     pane,
+    renderer,
   });
   const controls = new OrbitControls(scene.camera, renderer.domElement);
   controls.enableDamping = true;

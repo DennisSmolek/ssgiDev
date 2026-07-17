@@ -80,3 +80,81 @@ timestamps live (gpu ~0.79 ms, timestamp-query present). No page errors.
 **Open bugs:** none. **Not committed** (left for review).
 **Next:** M1 — demo 01 (stock SSGINode + SSR + GTAO), Sponza fetch/compress,
 per-pass GPU timings.
+
+---
+
+## 2026-07-18 — M1: demo 01 (stock pipeline + SSR), Sponza + artifact zoo
+
+Built the shipped-baseline demo (demo 01), the Sponza scene, and the procedural
+artifact-zoo scene. All three scenes render in demo 00 and demo 01, headless-
+verified, no page errors.
+
+- **Asset pipeline** (`bench/scripts/fetch-assets.sh`, `pnpm assets`): idempotent
+  curl of toji `Sponza-KTX-Draco.glb` (9.3 MB) → `bench/assets/` (gitignored) +
+  copies the Draco/Basis decoders **out of the pinned three package**
+  (`node_modules/three/examples/jsm/libs/{draco,basis}`) into
+  `bench/public/decoders/` (also gitignored). Chose copy-from-node_modules over
+  CDN so transcoder/three versions can't drift (a mismatch corrupts textures) and
+  the app has no external runtime dep. Ran it; Sponza + decoders present.
+- **Sponza scene** (`scenes/sponza.ts`): GLTFLoader + DRACOLoader
+  (`/decoders/draco/gltf/`) + KTX2Loader (`/decoders/basis/`,
+  `.detectSupport(renderer)`). glb referenced via Vite `?url` (emits the gitignored
+  asset, self-contained — KTX2 embedded). Async load, populates scene on ready.
+  Added `renderer` to `SceneContext` (KTX2Loader needs it). Lighting: angled
+  directional sun through the atrium + low hemisphere + faint ambient.
+  **WORLD SCALE (measured): size (29.8 X, 12.4 Y, 18.3 Z), longest edge ≈ 29.8
+  units, atrium floor y≈0** — ~5.4× the Cornell box; logged fresh each load,
+  recorded in a comment. Thickness params are world-space → retune per scene.
+- **Artifact-zoo scene** (`scenes/artifact-zoo.ts`): procedural, ~metre scale to
+  match Cornell. Four VBAO cases (dims in comments): graded thin plates
+  (0.02/0.06/0.14/0.30/0.50 units thick), a 10-post fence + rail (posts 0.05),
+  a 4-thin-leg chair (leg r=0.04) on the ground for contact-point AO, and a
+  camera-facing wall + concave return corner.
+- **Demo 01** (`demos/01-stock-three/`): one `pass()` MRT →
+  SSGINode composited per three's `webgpu_postprocessing_ssgi` example
+  (**`output.rgb*ao.r + diffuseColor.rgb*gi.rgb`** — GI modulated by albedo, the
+  PR #31839 requirement). Toggles: AO mode SSGI↔GTAO (GTAONode control), **SSR
+  added** (SSRNode, additive over composite, default off), post stage
+  TRAA/DenoiseNode/none. Debug views final/ao/gi (SSGINode `getAONode()`/
+  `getGINode()`). Full SSGI param set exposed (sliceCount…backfaceLighting) as live
+  uniforms; mode/view changes rebuild the graph. URL overrides
+  `?aoMode=&post=&ssr=1&view=` for deterministic captures. rg11b10 capability
+  checked → on-page ERROR blade + console + GTAO fallback if missing.
+- **Timing**: reused harness `trackTimestamp` (`ctx.timing.sampleGPU`); no custom
+  query sets.
+
+**Validated:** `pnpm typecheck` + `pnpm build` pass. Headless Playwright (cached
+chromium, `--enable-unsafe-webgpu`): demo 01 on **cornell + sponza + artifact-zoo**,
+views beauty/ao/gi, plus mode variants (gtao / ssr / denoise / post=none) — all
+render, **zero page errors**. Screenshots in `bench/screenshots/01-*.png`. Cornell
+GI shows correct red/green color bleed; GTAO mode shows clean AO w/o bleed; Sponza
+loads with correct KTX2 textures + Draco geometry (classic atrium corridor).
+
+**SSR outcome:** **IN.** three@0.185.1 ships `SSRNode.js` (`ssr()`); wired as a
+toggleable additive stage. First-gen (blur-based) since a `roughnessNode` is passed.
+
+### Decisions for review
+- **MRT byte budget**: a 5th color attachment (separate metal/rough for SSR)
+  overflows Dawn's `maxColorAttachmentBytesPerSample=32` on this adapter (40>32,
+  pipeline creation fails). **Packed metalness→velocity.z, roughness→velocity.w**
+  (velocity is a vec2 motion vector in RGBA16F; TRAANode reads only `.xy`, verified
+  `TRAANode.js:664`). Stays at 4 attachments / 24 bytes. Alternative if this bites
+  later: request a higher `maxColorAttachmentBytesPerSample` limit at device init
+  (adapter supports 128) — but that's a harness/three-init change, deferred.
+- **Graph rebuild on mode/view change** (dispose old post wrapper each time) rather
+  than a static graph with uniform-driven branches — so an un-toggled effect
+  (e.g. SSGI while in GTAO mode) costs zero GPU (its `updateBefore` only fires when
+  referenced). Right call for a perf bench; sliders stay uniform-only (no rebuild).
+- **`SceneContext` gained `renderer`** (additive; KTX2Loader.detectSupport needs
+  it). Procedural scenes ignore it.
+- **glb via Vite `?url`** (not `public/`) so `bench/assets/` stays gitignored and
+  the fetch script owns it; Vite emits it on build (confirmed in `dist/`).
+- **Decoders in `public/decoders/`** served at `/decoders/…` (gitignored, staged by
+  the fetch script). DRACOLoader uses the `draco/gltf/` subdir.
+- Sponza default camera: harness `OrbitControls` retargets to `(0, camY, 0)` after
+  scene create, so the scene's `lookAt` only sets initial orientation — fine here
+  (target lands mid-atrium).
+
+**Open bugs:** none. **Not committed** (left for review).
+**Next:** M2 — demo 02 (reference + accumulation) + A/B comparator (owned by
+another agent).

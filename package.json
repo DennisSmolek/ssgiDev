@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter bench dev",
     "build": "pnpm --filter bench build",
-    "typecheck": "pnpm --filter bench typecheck"
+    "typecheck": "pnpm --filter bench typecheck",
+    "assets": "pnpm --filter bench assets"
   }
 }

@@ -170,6 +170,18 @@ Opus/Sonnet subagents → Fable reviews the result (against trap list + validati
   (a–g each get a commit once validated). Broken exploration happens on branches; `main` stays
   demo-runnable at every commit.
 
+**Run-to-completion directive (Dennis, 2026-07-18)** — execute ALL milestones without pausing
+for approval between phases. Best-guess decisions are allowed and expected: make the call, log it
+in WORKLOG under a "Decisions for review" heading, keep moving. A critical fault pauses ONLY the
+affected demo (logged, revisited in the final review pass) — it never blocks the other demos.
+9 finished demos beat getting stuck polishing demo 3. Final review/polish of everything happens
+at the end, together.
+
+**Timing policy** — use three's built-in timestamp mechanism (`renderer.trackTimestamp` +
+`resolveTimestampsAsync`) as the primary meter; raw passes CPU-timed is acceptable. The three.js
+Inspector can visualize per-pass timings when needed but adds load — diagnostic only, not the
+default HUD.
+
 **Context hygiene** — the repo, not the chat, is the source of truth:
 - Each work packet starts fresh (new session or compaction); no marathon contexts dragging
   full file histories through every call.

@@ -1,15 +1,23 @@
-# Asset fetch (placeholder)
+# Asset fetch
 
-`bench/assets/` is gitignored. No assets are needed for M0 (Cornell box is fully procedural).
+Assets live in `bench/assets/` (gitignored) and decoders in
+`bench/public/decoders/` (gitignored). Both are populated by the fetch script:
 
-## M1 — Sponza
+```
+pnpm assets              # from repo root
+# or: bench/scripts/fetch-assets.sh
+```
 
-The web-optimized "new Sponza" scene arrives in M1. Candidates (see PLAN.md):
+`scripts/fetch-assets.sh` is idempotent (skips anything already present) and:
 
-- **toji/sponza-optimized** — https://github.com/toji/sponza-optimized (KTX2 + meshopt, built for WebGPU).
-- **Castaño's updated Sponza glTF** — https://www.ludicon.com/castano/blog/2026/02/an-updated-sponza-gltf/
-  (base repo https://github.com/ludicon/sponza-gltf).
+1. Downloads toji/sponza-optimized **`Sponza-KTX-Draco.glb`** (~9.3 MB, standard
+   glTF: `KHR_draco_mesh_compression` + `KHR_texture_basisu`/KTX2) into
+   `bench/assets/`. Asset decision + URL: `research/sponza-asset-comparison.md`.
+2. Copies the **Draco + Basis/KTX2 decoders** out of the installed
+   `three@0.185.1` package (`node_modules/three/examples/jsm/libs/{draco,basis}`)
+   into `bench/public/decoders/`. We copy from node_modules rather than a CDN so
+   the transcoder version always matches the pinned three (a mismatch silently
+   corrupts textures), and so the app has no external runtime dependency.
 
-M1 will replace this file with a real `pnpm assets` fetch script that downloads the chosen
-candidate into `bench/assets/sponza/` and, if needed, runs it through
-`gltf-transform` → KTX2 + meshopt.
+The Cornell box and the artifact-zoo scene are fully procedural — no assets needed.
+Only the Sponza scene consumes the downloaded glb + decoders.
