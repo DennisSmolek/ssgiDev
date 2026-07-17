@@ -188,3 +188,80 @@ toggleable additive stage. First-gen (blur-based) since a `roughnessNode` is pas
 **Open bugs:** none. **Not committed** (left for review).
 **Next:** M2 — demo 02 (reference + accumulation) + A/B comparator (owned by
 another agent).
+
+---
+
+## 2026-07-18 — M3: demo 03 SSRT3-complete WebGPU compute port (staged a–g)
+
+The biggest single lift: a full WebGPU **compute** port of cdrinmatane/SSRT3,
+restoring everything three's TSL `SSGINode` dropped. Built in a worktree branch
+`m3-demo-03-ssrt3` off `main` (which already carried M0–M2; the requested
+`git merge main` was a no-op). Committed per validated stage. Full lineage,
+wiring, params, and validation evidence in `bench/src/demos/03-ssrt3/README.md`.
+
+- **New harness class `RawComputePass`** (`harness/raw-compute-pass.ts`):
+  declarative-binding sibling of M2's `RawRenderPass`, dispatches 8×8-workgroup
+  WGSL (matching SSRT3 `[numthreads(8,8,1)]`). Bind kinds: depth / tex /
+  sampledTex / sampler / storage / uniform; `execute()` gained an optional
+  `storageMip` for the pyramid downsample. `three-internals.ts` gained
+  `ensureTexture()` (`renderer.initTexture`) to force-allocate standalone
+  StorageTextures. Compute outputs are three `StorageTexture`s (STORAGE_BINDING |
+  TEXTURE_BINDING) — interop rule holds, outputs stay TSL `texture()` nodes.
+- **Pipeline** (6 compute passes/frame): gbuffer → lightmask(f) → depth-pyramid(g)
+  → main march(a-c,e,g) → temporal(d) → bilateral denoise(d) → TSL composite(f).
+- **All 23 SSRT3 tunables** exposed via the harness schema (SSRT3 defaults),
+  firefly clamp as a **param** not hardcoded, plus `mbDamping`. Debug views
+  combined/ao/gi/beauty + ao-raw/gi-raw (raw-vs-denoised). Per-scene world-space
+  radius/thickness (cornell 5/0.5, sponza 8/2, zoo 3/0.3).
+
+### Per-stage status — ALL VALIDATED (headless Playwright, cached chromium-1228,
+`--enable-unsafe-webgpu`; screenshots `bench/screenshots/03*`):
+- **(a) GTAO plumbing** — Jimenez-2016 slice integral; AO structure matches demo
+  01 GTAO on cornell.
+- **(b) VBAO bitmask** — 32-bit sector mask; thin plates over-darken far less than
+  GTAO on artifact-zoo (occlusion at true contact lines).
+- **(c) GI gather** — newly-revealed-sector radiance; red/green bleed on cornell
+  like demo 01/02.
+- **(d) temporal + bilateral denoise** — world-pos-reject reprojection + 16-tap
+  depth/normal bilateral; converged still-camera GI far cleaner than raw, camera
+  orbit clean with no ghosting.
+- **(e) probe fallback §3.2** — the headline missing feature; per-slice bitmask
+  split into K ranges, directional equirect ambient weighted by unoccluded
+  fraction. With fallback the ceiling/camera-facing surfaces that go BLACK
+  without it hold a dim ambient floor. Both weightings + cone→mip toggles wired.
+- **(f) multibounce** — GI feedback via a lightmask pass (damped, convergent:
+  mean luminance 99.7→103.8, early==late so it plateaus) + Activision analytic
+  multibounce AO at composite.
+- **(g) bandwidth opts** — depth mip pyramid + `mipOptimization`,
+  `normalApproximation`. No visual regression; compute-only GPU timing (sponza,
+  1280×800, rc4/sc32, `onSubmittedWorkDone` fence): baseline 15.61 ms →
+  mipOpt 8.85 (−43%) → normalApprox 13.59 (−13%) → both 8.21 (−47%).
+
+Also verified: works on **cornell + sponza + artifact-zoo** and at **renderScale
+0.5** (`03-cornell-halfres.png`), zero page errors, typecheck + build green after
+every stage.
+
+### Decisions for review
+- **Fallback ambient = equirect, not three's cube-uv PMREM.** three's PMREM atlas
+  packing is impractical to sample from raw WGSL, so I sample a procedural
+  per-scene equirect radiance texture directionally at the cone LOD (option A
+  adapted). Not wired to `scene.environment` (keeps beauty unchanged, isolates
+  the fallback term). The paper-vs-SSRT3 normalization divergence and cone-mip vs
+  mip-3 are shipped as toggles (future experiments, per the packet).
+- **Temporal prev-depth proxy** (current depth at reprojected coord; no prev-depth
+  copy pass) — world-delta reject still catches disocclusion.
+- **Standard-three view space reconstructed then flipped** to SSRT3's convention
+  so the horizon/bitmask/fallback math ports verbatim. Perspective-only
+  (`halfProjScale`), documented.
+- **Trap list honoured:** UV top-left, view-space flip bridge, PI (not PI2) slice
+  rotation, NO stepRadius double-divide (matched SSGINode's fix), albedo
+  modulation at composite, firefly clamp as a param, multibounce damped.
+- **Three raw-pass classes now coexist** (`RawFragmentPass`/`RawRenderPass`/
+  `RawComputePass`) — reconcile in the polish pass (flagged since M2).
+- **Timing method:** a `queue.onSubmittedWorkDone()` fence around N compute
+  iterations (exposed on `window.__ssrt3bench`), NOT a custom timestamp-query set
+  — the vsync-locked rAF loop couldn't reveal sub-8ms compute cost, and the
+  harness three-side timestamp doesn't cover raw compute submissions.
+
+**Open bugs:** none. **Branch:** `m3-demo-03-ssrt3` (7 stage commits, a→g).
+**Next:** M4 — demos 04–06 (GT family + Mathis SSHGI).
