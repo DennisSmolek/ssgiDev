@@ -1,10 +1,14 @@
 import {
+  DataTexture,
   HalfFloatType,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   MathUtils,
   Matrix4,
   NoColorSpace,
   RGBAFormat,
   RenderPipeline,
+  RepeatWrapping,
   StorageTexture,
   UnsignedByteType,
 } from 'three/webgpu';
@@ -62,6 +66,46 @@ function sceneDefaults(sceneId: string): { radius: number; thickness: number } {
 const TEMPORAL_ROTATIONS = [60, 300, 180, 240, 120, 0];
 const SPATIAL_OFFSETS = [0.0, 0.5, 0.25, 0.75];
 
+// Fallback ambient source (stage e): a procedural EQUIRECTANGULAR radiance
+// texture, per scene. Cornell gets a neutral dim env (so the feature is testable
+// there); sponza/zoo get a sky gradient. RGBA8 + mip chain so the compute pass
+// can sample it directionally at a cone-derived LOD. (Decision logged in README:
+// equirect not three's cube-uv PMREM — the atlas packing is impractical to
+// sample from raw WGSL; this is option A "directional env" adapted.)
+const ENV_W = 64;
+const ENV_H = 32;
+function makeEnv(sceneId: string): DataTexture {
+  const data = new Uint8Array(ENV_W * ENV_H * 4);
+  for (let y = 0; y < ENV_H; y++) {
+    const vy = y / (ENV_H - 1); // 0 = top (sky), 1 = bottom (ground)
+    for (let x = 0; x < ENV_W; x++) {
+      let r: number, g: number, b: number;
+      if (sceneId === 'cornell') {
+        r = 0.10; g = 0.11; b = 0.14; // dim neutral, slightly cool
+      } else {
+        const t = 1 - vy; // 0 bottom, 1 top
+        r = 0.30 * t + 0.45 * (1 - t);
+        g = 0.42 * t + 0.40 * (1 - t);
+        b = 0.72 * t + 0.34 * (1 - t);
+      }
+      const i = (y * ENV_W + x) * 4;
+      data[i] = Math.round(r * 255);
+      data[i + 1] = Math.round(g * 255);
+      data[i + 2] = Math.round(b * 255);
+      data[i + 3] = 255;
+    }
+  }
+  const tex = new DataTexture(data, ENV_W, ENV_H, RGBAFormat, UnsignedByteType);
+  tex.colorSpace = NoColorSpace;
+  tex.wrapS = RepeatWrapping; // equirect longitude wraps
+  tex.minFilter = LinearMipmapLinearFilter;
+  tex.magFilter = LinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
+const ENV_MIPS = Math.floor(Math.log2(Math.max(ENV_W, ENV_H))) + 1;
+
 // Main uniform: 3 mat4 (48f) + 6 vec4 blocks (24f) = 72 floats = 288 bytes.
 const U_FLOATS = 72;
 // Temporal uniform: 2 mat4 (32f) + 2 vec4 (8f) = 40 floats.
@@ -90,6 +134,7 @@ class Ssrt3Demo implements Demo {
   private temporal!: RawComputePass;
   private denoise!: RawComputePass;
   private envSampler!: GPUSampler;
+  private envTex!: DataTexture;
   private mainData = new Float32Array(U_FLOATS);
   private mainU32 = new Uint32Array(this.mainData.buffer);
   private tData = new Float32Array(T_FLOATS);
@@ -137,9 +182,11 @@ class Ssrt3Demo implements Demo {
       magFilter: 'linear',
       minFilter: 'linear',
       mipmapFilter: 'linear',
-      addressModeU: 'clamp-to-edge',
+      addressModeU: 'repeat', // equirect longitude wraps
       addressModeV: 'clamp-to-edge',
     });
+    this.envTex = makeEnv(this.sceneId);
+    ensureTexture(ctx.renderer, this.envTex); // build GPU texture + mip chain
 
     // Bindings: depth, view-normal, light(beauty), env(placeholder=beauty), sampler, out, uniform.
     this.main = new RawComputePass(ctx.renderer, 'ssrt-main', mainWgsl, {
@@ -291,7 +338,7 @@ class Ssrt3Demo implements Demo {
     d[67] = v.fallbackPower;
     d[68] = v.fallbackIntensity;
     d[69] = v.multiBounceGI;
-    u[70] = 1; // mipCount (stage g)
+    u[70] = ENV_MIPS; // env mip count (fallback cone->mip); depth pyramid at stage g
     d[71] = 0;
   }
 
@@ -307,7 +354,7 @@ class Ssrt3Demo implements Demo {
     const { width, height } = ctx.renderSize();
     this.fillUniform(cam, width, height);
     this.main.execute(
-      [this.depthTex, this.normalTex, this.beautyTex, this.beautyTex, this.envSampler, this.giAoTex, this.mainData],
+      [this.depthTex, this.normalTex, this.beautyTex, this.envTex, this.envSampler, this.giAoTex, this.mainData],
       width,
       height,
     );
@@ -386,6 +433,7 @@ class Ssrt3Demo implements Demo {
     this.histA.dispose();
     this.histB.dispose();
     this.finalTex.dispose();
+    this.envTex.dispose();
   }
 }
 

@@ -92,6 +92,26 @@ fn rand(co : vec2<f32>) -> f32 {
   return fract(sin(sn) * 43758.5453);
 }
 
+// Cone-angle -> mip (patapom.com/blog/BRDF/PreIntegration). SSRT3 has this but
+// ships hardcoded mip 3; we expose both (F_CONE_MIP toggle).
+fn mipFromConeAngle(theta : f32, envSize : f32) -> f32 {
+  let nMip = log2(envSize);
+  let u = cos(theta * 0.5);
+  return nMip + 0.5 * log2(1.0 / (u * u) - 1.0);
+}
+
+// Sample the equirectangular ambient source in a world-space direction at an
+// explicit LOD (cone blur). Equirect UV: longitude atan2(z,x), latitude acos(y).
+// (Deviation logged in README: SSRT3 samples a cube PMREM; we use an equirect
+// radiance texture because three's cube-uv PMREM atlas packing is impractical to
+// sample from a hand-written compute shader. Same "directional env at cone mip".)
+fn sampleEnv(dirWS : vec3<f32>, lod : f32) -> vec3<f32> {
+  let d = normalize(dirWS);
+  let u = atan2(d.z, d.x) / (2.0 * PI) + 0.5;
+  let v = acos(clamp(d.y, -1.0, 1.0)) / PI;
+  return textureSampleLevel(envTex, envSampler, vec2<f32>(u, v), lod).rgb;
+}
+
 // GTAO fast acos (SSRT3 GTAOFastAcos)
 fn fastAcos(xIn : f32) -> f32 {
   let x = clamp(xIn, -1.0, 1.0);
@@ -305,8 +325,14 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   let rotationCount = max(1u, params.rotationCount);
   // GI gather needs the bitmask (numOccludedZones), so GI implies bitmask.
   let useBitmask = hasFlag(F_BITMASK) || hasFlag(F_GI);
+  let doFallback = hasFlag(F_FALLBACK);
+  let fbCount = max(2u, params.fallbackSampleCount);
+  // Cone->mip (F_CONE_MIP) or hardcoded mip 3 (SSRT3 shipped).
+  let ambientMip = select(3.0, clamp(mipFromConeAngle(PI / f32(fbCount), f32(1u << (params.mipCount - 1u))), 0.0, f32(params.mipCount - 1u)), hasFlag(F_CONE_MIP));
+
   var visSum : f32 = 0.0; // per-slice VISIBILITY (1 = fully open)
   var col : vec3<f32> = vec3<f32>(0.0);
+  var fallbackColor : vec3<f32> = vec3<f32>(0.0);
 
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
@@ -318,16 +344,17 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
     let projectedNormal = normalVS - planeNormal * dot(normalVS, planeNormal);
     let projLen = length(projectedNormal);
     let projectedNormalN = projectedNormal / max(projLen, 1e-5);
+    let realTangent = cross(projectedNormalN, planeNormal);
 
     let cos_n = clamp(dot(projectedNormalN, viewDir), -1.0, 1.0);
     let n = -sign(dot(projectedNormal, tangent)) * acos(cos_n);
 
+    var bitfield : u32 = 0u;
     if (useBitmask) {
       // Stages (b/c): VBAO. Both sweeps share one 32-bit sector mask. AO is the
       // occluded-bit fraction; thin plates block only a few sectors (vs GTAO's
       // full-horizon block), so they over-darken far less. GI is gathered per
       // sample inside the sweeps (SSRT3 newly-revealed-sector radiance).
-      var bitfield : u32 = 0u;
       horizonBitmask(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, normalVS, planeNormal, &bitfield, &col);
       horizonBitmask(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, normalVS, planeNormal, &bitfield, &col);
       visSum = visSum + (1.0 - f32(countOneBits(bitfield)) / f32(MAX_RAY));
@@ -336,6 +363,39 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
       let cosR = marchHorizonCos(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
       let cosL = marchHorizonCos(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
       visSum = visSum + gtaoSlice(cosL, cosR, n, projLen);
+    }
+
+    // Stage (e): probe fallback (§3.2). Split the same 32-bit mask into fbCount
+    // contiguous ranges; per range fire one ambient sample weighted by that
+    // range's UNOCCLUDED fraction. Directions stratify across the slice arc
+    // (SSRT3 realTangent/normal construction, Fig 8 of the paper).
+    if (doFallback) {
+      let maskSize = MAX_RAY / fbCount;
+      let mask = 0xFFFFFFFFu >> (MAX_RAY - maskSize);
+      var bfCopy = bitfield;
+      for (var jf : u32 = 0u; jf < fbCount; jf = jf + 1u) {
+        let hitCount = countOneBits(bfCopy & mask);
+        let cosine = (1.0 - ((f32(jf) + 0.5) / f32(fbCount))) * 2.0 - 1.0;
+        let angleCosine = fastAcos(cosine);
+        var rayDir = normalize(realTangent * cos(angleCosine) + normalVS * sin(angleCosine));
+        rayDir = normalize(rayDir - planeNormal * dot(rayDir, planeNormal));
+        // flipped view -> std view (flip z) -> world (camToWorld rotation).
+        let rayDirWS = normalize((params.camToWorld * vec4<f32>(rayDir.x, rayDir.y, -rayDir.z, 0.0)).xyz);
+        let ambient = sampleEnv(rayDirWS, ambientMip);
+
+        let unoccluded = f32(maskSize - hitCount);
+        // F_FB_NORMALIZE: SSRT3 shipped (unoccluded/MAX_RAY -> each range caps at
+        // 1/fbCount, sums <=1). Else: paper per-subregion (unoccluded/maskSize
+        // capped at 1, averaged by /fbCount). See probes/ssrt3-fallback.md §5.
+        var weight : f32;
+        if (hasFlag(F_FB_NORMALIZE)) {
+          weight = unoccluded / f32(MAX_RAY);
+        } else {
+          weight = (unoccluded / f32(maskSize)) / f32(fbCount);
+        }
+        fallbackColor = fallbackColor + ambient * clamp(weight, 0.0, 1.0);
+        bfCopy = bfCopy >> maskSize;
+      }
     }
   }
 
@@ -347,6 +407,13 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   // (firefly clamp as a param) and additionally clamp the summed value here.
   col = col / f32(rotationCount);
   col = col * params.giIntensity;
+
+  // Fallback: average, gamma (fallbackPower) + intensity, add to bounced GI
+  // (SSRT3: col = fallbackColor + col*GIIntensity; GIIntensity already applied).
+  fallbackColor = fallbackColor / f32(rotationCount);
+  fallbackColor = clamp(pow(abs(fallbackColor), vec3<f32>(params.fallbackPower)) * params.fallbackIntensity, vec3<f32>(0.0), vec3<f32>(1.0));
+  col = col + fallbackColor;
+
   let vmax = max(max(col.r, col.g), col.b);
   if (vmax > params.maxLuminance) { col = col * (params.maxLuminance / vmax); }
 
