@@ -15,6 +15,7 @@ import {
 import {
   diffuseColor,
   float,
+  max,
   mrt,
   normalView,
   output,
@@ -35,6 +36,7 @@ import type { ParamGroup } from '../../harness/params';
 import mainWgsl from './ssrt-main.wgsl?raw';
 import temporalWgsl from './ssrt-temporal.wgsl?raw';
 import denoiseWgsl from './ssrt-denoise.wgsl?raw';
+import lightmaskWgsl from './ssrt-lightmask.wgsl?raw';
 
 // Demo 03 — SSRT3 complete WebGPU compute port. See README for lineage/stages.
 // Built in stages a-g; a=GTAO, b=bitmask, c=GI, d=temporal+denoise.
@@ -106,12 +108,26 @@ function makeEnv(sceneId: string): DataTexture {
 }
 const ENV_MIPS = Math.floor(Math.log2(Math.max(ENV_W, ENV_H))) + 1;
 
+// GTAO analytic multibounce AO (Activision GTAO / SSRT3 MultiBounceAO): turns a
+// scalar visibility into a per-channel visibility that lifts AO in colored
+// regions (colored multibounce). x = visibility (scalar node), albedo = vec3.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function multiBounceAO(x: any, albedo: any): any {
+  const a = albedo.mul(2.0404).sub(0.3324);
+  const b = albedo.mul(-4.7951).add(0.6417);
+  const c = albedo.mul(2.7552).add(0.6903);
+  return max(vec3(x), x.mul(a).add(b).mul(x).add(c).mul(x));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 // Main uniform: 3 mat4 (48f) + 6 vec4 blocks (24f) = 72 floats = 288 bytes.
 const U_FLOATS = 72;
 // Temporal uniform: 2 mat4 (32f) + 2 vec4 (8f) = 40 floats.
 const T_FLOATS = 40;
 // Denoise uniform: 2 vec4 = 8 floats.
 const D_FLOATS = 8;
+// Lightmask uniform: 1 vec4 = 4 floats.
+const L_FLOATS = 4;
 
 class Ssrt3Demo implements Demo {
   private beautyTex!: Texture;
@@ -129,10 +145,12 @@ class Ssrt3Demo implements Demo {
   private histA = this.makeStorage();     // (d) temporal ping-pong
   private histB = this.makeStorage();
   private finalTex = this.makeStorage();  // (d) denoised final -> composite
+  private lightTex = this.makeStorage();  // (f) beauty + prevGI feedback -> march light source
 
   private main!: RawComputePass;
   private temporal!: RawComputePass;
   private denoise!: RawComputePass;
+  private lightmask!: RawComputePass;
   private envSampler!: GPUSampler;
   private envTex!: DataTexture;
   private mainData = new Float32Array(U_FLOATS);
@@ -141,6 +159,7 @@ class Ssrt3Demo implements Demo {
   private tU32 = new Uint32Array(this.tData.buffer);
   private dData = new Float32Array(D_FLOATS);
   private dU32 = new Uint32Array(this.dData.buffer);
+  private lData = new Float32Array(L_FLOATS);
 
   private invViewProj = new Matrix4();
   private prevInvViewProj = new Matrix4();
@@ -223,10 +242,22 @@ class Ssrt3Demo implements Demo {
       ],
     });
 
+    // Multibounce light buffer (f): beauty + reproject(prev GI) * weight.
+    this.lightmask = new RawComputePass(ctx.renderer, 'ssrt-lightmask', lightmaskWgsl, {
+      bindings: [
+        { kind: 'tex' },
+        { kind: 'tex' },
+        { kind: 'tex' },
+        { kind: 'storage', format: 'rgba16float' },
+        { kind: 'uniform' },
+      ],
+    });
+
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
     this.temporal.configure(this.tData.byteLength);
     this.denoise.configure(this.dData.byteLength);
+    this.lightmask.configure(this.lData.byteLength);
 
     const folder = ctx.pane.addFolder({ title: 'Demo 03 — SSRT3 (WebGPU compute)' });
     const d = sceneDefaults(this.sceneId);
@@ -236,7 +267,8 @@ class Ssrt3Demo implements Demo {
     this.params.values.thickness = d.thickness;
     this.params.refresh();
     this.params.onChange((key) => {
-      if (key === 'viewMode') this.updateOutputNode();
+      // viewMode + multiBounceAO change the display graph; rebuild it.
+      if (key === 'viewMode' || key === 'multiBounceAO') this.updateOutputNode();
     });
 
     // URL overrides for deterministic screenshots (?view=&bitmask=1&gi=1&fallback=1&mb=1&mbao=1&denoise=0&temporal=0)
@@ -286,7 +318,11 @@ class Ssrt3Demo implements Demo {
       case 'combined': {
         const beauty = texture(this.beautyTex, uv).rgb;
         const albedo = texture(this.albedoTex, uv).rgb;
-        return vec4(beauty.mul(ao).add(albedo.mul(gi)), float(1));
+        // multiBounceAO (f): GTAO analytic colored-multibounce AO approximation
+        // (Activision GTAO). Replaces scalar AO with a per-channel visibility that
+        // brightens AO in colored regions. Applied at composite (SSRT.shader).
+        const aoTerm = this.params.values.multiBounceAO ? multiBounceAO(ao, albedo) : vec3(ao);
+        return vec4(beauty.mul(aoTerm).add(albedo.mul(gi)), float(1));
       }
       case 'beauty':
         return vec4(texture(this.beautyTex, uv).rgb, float(1));
@@ -350,11 +386,22 @@ class Ssrt3Demo implements Demo {
     // 1. G-buffer.
     this.gbufferPipeline.render();
 
-    // 2. Main SSRT compute march.
     const { width, height } = ctx.renderSize();
+    const vals = this.params.values;
+
+    // 2. Multibounce light buffer (f): beauty + reproject(prev denoised GI) *
+    //    (multiBounceGI * mbDamping). finalTex still holds last frame's result
+    //    here (denoise below overwrites it). weight 0 -> lightTex == beauty.
+    this.lData[0] = width;
+    this.lData[1] = height;
+    this.lData[2] = vals.multiBounceGI * vals.mbDamping;
+    this.lData[3] = 0;
+    this.lightmask.execute([this.beautyTex, this.finalTex, this.velocityTex, this.lightTex, this.lData], width, height);
+
+    // 3. Main SSRT compute march (samples the multibounce light buffer).
     this.fillUniform(cam, width, height);
     this.main.execute(
-      [this.depthTex, this.normalTex, this.beautyTex, this.envTex, this.envSampler, this.giAoTex, this.mainData],
+      [this.depthTex, this.normalTex, this.lightTex, this.envTex, this.envSampler, this.giAoTex, this.mainData],
       width,
       height,
     );
@@ -420,7 +467,7 @@ class Ssrt3Demo implements Demo {
   resize(ctx: HarnessContext): void {
     const { width, height } = ctx.renderSize();
     this.scenePass.setSize(width, height);
-    for (const t of [this.giAoTex, this.histA, this.histB, this.finalTex]) {
+    for (const t of [this.giAoTex, this.histA, this.histB, this.finalTex, this.lightTex]) {
       t.image = { width, height };
       t.dispose(); // drop the old GPU texture so ensureTexture reallocates at the new size
       ensureTexture(ctx.renderer, t);
@@ -433,6 +480,7 @@ class Ssrt3Demo implements Demo {
     this.histA.dispose();
     this.histB.dispose();
     this.finalTex.dispose();
+    this.lightTex.dispose();
     this.envTex.dispose();
   }
 }
@@ -452,6 +500,7 @@ const schema = {
   gatherGI: { type: 'boolean', value: false, label: 'gather GI (c)' },
   giIntensity: { type: 'number', value: 10, min: 0, max: 100, step: 0.5, label: 'GIIntensity' },
   multiBounceGI: { type: 'number', value: 0, min: 0, max: 1, step: 0.01, label: 'multiBounceGI (f)' },
+  mbDamping: { type: 'number', value: 0.5, min: 0, max: 1, step: 0.05, label: 'mb feedback damping (f)' },
   normalApproximation: { type: 'boolean', value: false, label: 'normalApproximation (g)' },
   backfaceLighting: { type: 'number', value: 0, min: 0, max: 1, step: 0.01, label: 'backfaceLighting' },
   maxLuminance: { type: 'number', value: 7, min: 1, max: 30, step: 0.5, label: 'firefly clamp' },
