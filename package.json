@@ -1,0 +1,10 @@
+{
+  "name": "ssgi-dev",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "pnpm --filter bench dev",
+    "build": "pnpm --filter bench build",
+    "typecheck": "pnpm --filter bench typecheck"
+  }
+}

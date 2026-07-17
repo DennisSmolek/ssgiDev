@@ -55,6 +55,8 @@ PLAN.md                    # this file
   - Con: we own the glue, and reaching three's internal GPU textures (`renderer.backend.get()`)
     is semi-private API — acceptable for a research bench pinned to one three version.
   - Escape hatch: `wgslFn` TSL wrappers if a pass needs to sit inside three's post chain.
+  - Node-graph demos build on `RenderPipeline` (r185's post-processing entry; `PostProcessing`
+    was deprecated in r183). Addon paths confirmed: `three/addons/tsl/display/*.js`.
   - **Interop rule (both directions):** raw passes never allocate their own inter-pass textures —
     they write into three-allocated targets (`RenderTarget`/`StorageTexture`), reached via
     `backend.get()`. This keeps every raw output consumable as a plain TSL `texture()` node
