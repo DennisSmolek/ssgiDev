@@ -8,6 +8,7 @@ import { gtVbaoDemo } from './04-gt-vbao/index';
 import { gtVbgiDemo } from './05-gt-vbgi/index';
 import { sshgiDemo } from './06-sshgi-mathis/index';
 import { distantLightDemo } from './08-distant-light/index';
+import { bandwidthDemo } from './09-bandwidth/index';
 import { denoiseLabDemo } from './10-denoise/index';
 
 export const demoRegistry = new Registry<DemoDef>();
@@ -19,4 +20,5 @@ demoRegistry.register(gtVbaoDemo);
 demoRegistry.register(gtVbgiDemo);
 demoRegistry.register(sshgiDemo);
 demoRegistry.register(distantLightDemo);
+demoRegistry.register(bandwidthDemo);
 demoRegistry.register(denoiseLabDemo);
