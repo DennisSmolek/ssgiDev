@@ -1,11 +1,13 @@
 import {
   DataTexture,
+  FloatType,
   HalfFloatType,
   LinearFilter,
   LinearMipmapLinearFilter,
   MathUtils,
   Matrix4,
   NoColorSpace,
+  RedFormat,
   RGBAFormat,
   RenderPipeline,
   RepeatWrapping,
@@ -37,6 +39,7 @@ import mainWgsl from './ssrt-main.wgsl?raw';
 import temporalWgsl from './ssrt-temporal.wgsl?raw';
 import denoiseWgsl from './ssrt-denoise.wgsl?raw';
 import lightmaskWgsl from './ssrt-lightmask.wgsl?raw';
+import pyramidWgsl from './ssrt-depth-pyramid.wgsl?raw';
 
 // Demo 03 — SSRT3 complete WebGPU compute port. See README for lineage/stages.
 // Built in stages a-g; a=GTAO, b=bitmask, c=GI, d=temporal+denoise.
@@ -128,6 +131,10 @@ const T_FLOATS = 40;
 const D_FLOATS = 8;
 // Lightmask uniform: 1 vec4 = 4 floats.
 const L_FLOATS = 4;
+// Pyramid uniform: 1 vec4 = 4 floats.
+const P_FLOATS = 4;
+// Depth-pyramid mip levels we fill + read (SSRT3 caps mipLevelOffset at 4).
+const PYRAMID_LEVELS = 5;
 
 class Ssrt3Demo implements Demo {
   private beautyTex!: Texture;
@@ -146,11 +153,13 @@ class Ssrt3Demo implements Demo {
   private histB = this.makeStorage();
   private finalTex = this.makeStorage();  // (d) denoised final -> composite
   private lightTex = this.makeStorage();  // (f) beauty + prevGI feedback -> march light source
+  private depthPyramid = this.makePyramid(); // (g) raw-depth mip pyramid
 
   private main!: RawComputePass;
   private temporal!: RawComputePass;
   private denoise!: RawComputePass;
   private lightmask!: RawComputePass;
+  private pyramid!: RawComputePass;
   private envSampler!: GPUSampler;
   private envTex!: DataTexture;
   private mainData = new Float32Array(U_FLOATS);
@@ -160,11 +169,16 @@ class Ssrt3Demo implements Demo {
   private dData = new Float32Array(D_FLOATS);
   private dU32 = new Uint32Array(this.dData.buffer);
   private lData = new Float32Array(L_FLOATS);
+  private pData = new Float32Array(P_FLOATS);
+  private pU32 = new Uint32Array(this.pData.buffer);
 
   private invViewProj = new Matrix4();
   private prevInvViewProj = new Matrix4();
   private histPing = true; // true: write histA / read histB
   private resetTemporal = true;
+  private device!: GPUDevice;
+  private lastW = 1;
+  private lastH = 1;
 
   private uGiExposure = uniform(1);
 
@@ -181,8 +195,22 @@ class Ssrt3Demo implements Demo {
     return t;
   }
 
+  // Depth pyramid (g): r32float StorageTexture with a full mip chain
+  // (generateMipmaps => three allocates floor(log2(max))+1 levels), so the
+  // downsample chain can write mips 0..4 via per-mip storage views and the march
+  // reads them with textureLoad(coord, level). r32float keeps depth precision.
+  private makePyramid(): StorageTexture {
+    const t = new StorageTexture(1, 1);
+    t.type = FloatType;
+    t.format = RedFormat;
+    t.colorSpace = NoColorSpace;
+    t.generateMipmaps = true;
+    return t;
+  }
+
   init(ctx: HarnessContext): void {
     this.sceneId = new URLSearchParams(window.location.search).get('scene') ?? 'cornell';
+    this.device = ctx.device;
     const cam = ctx.scene.camera;
 
     this.scenePass = pass(ctx.scene.scene, cam);
@@ -207,7 +235,7 @@ class Ssrt3Demo implements Demo {
     this.envTex = makeEnv(this.sceneId);
     ensureTexture(ctx.renderer, this.envTex); // build GPU texture + mip chain
 
-    // Bindings: depth, view-normal, light(beauty), env(placeholder=beauty), sampler, out, uniform.
+    // Bindings: depth, view-normal, light, env, sampler, depth-pyramid, out, uniform.
     this.main = new RawComputePass(ctx.renderer, 'ssrt-main', mainWgsl, {
       bindings: [
         { kind: 'depth' },
@@ -215,6 +243,7 @@ class Ssrt3Demo implements Demo {
         { kind: 'tex' },
         { kind: 'sampledTex' },
         { kind: 'sampler', filtering: true },
+        { kind: 'tex' },
         { kind: 'storage', format: 'rgba16float' },
         { kind: 'uniform' },
       ],
@@ -253,11 +282,17 @@ class Ssrt3Demo implements Demo {
       ],
     });
 
+    // Depth pyramid downsample (g): depth buffer -> pyramid mip k (box-min).
+    this.pyramid = new RawComputePass(ctx.renderer, 'ssrt-pyramid', pyramidWgsl, {
+      bindings: [{ kind: 'depth' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
+    });
+
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
     this.temporal.configure(this.tData.byteLength);
     this.denoise.configure(this.dData.byteLength);
     this.lightmask.configure(this.lData.byteLength);
+    this.pyramid.configure(this.pData.byteLength);
 
     const folder = ctx.pane.addFolder({ title: 'Demo 03 — SSRT3 (WebGPU compute)' });
     const d = sceneDefaults(this.sceneId);
@@ -287,12 +322,20 @@ class Ssrt3Demo implements Demo {
     this.params.values.temporalAccumulation = bool('temporal', this.params.values.temporalAccumulation);
     this.params.values.denoising = bool('denoise', this.params.values.denoising);
     this.params.values.multiBounceAO = bool('mbao', this.params.values.multiBounceAO);
+    this.params.values.mipOptimization = bool('mip', this.params.values.mipOptimization);
+    this.params.values.normalApproximation = bool('na', this.params.values.normalApproximation);
     if (q.get('mb') !== null) this.params.values.multiBounceGI = Number(q.get('mb'));
+    if (q.get('sc') !== null) this.params.values.stepCount = Number(q.get('sc'));
+    if (q.get('rc') !== null) this.params.values.rotationCount = Number(q.get('rc'));
     if (q.get('radius') !== null) this.params.values.radius = Number(q.get('radius'));
     if (q.get('thickness') !== null) this.params.values.thickness = Number(q.get('thickness'));
     this.params.refresh();
 
     this.updateOutputNode();
+
+    // Expose the compute-only GPU benchmark for the timing harness (stage g).
+    (window as unknown as { __ssrt3bench?: (n: number) => Promise<number> }).__ssrt3bench = (n: number) =>
+      this.runComputeBench(n);
   }
 
   private updateOutputNode(): void {
@@ -398,10 +441,25 @@ class Ssrt3Demo implements Demo {
     this.lData[3] = 0;
     this.lightmask.execute([this.beautyTex, this.finalTex, this.velocityTex, this.lightTex, this.lData], width, height);
 
-    // 3. Main SSRT compute march (samples the multibounce light buffer).
+    // 3. Depth pyramid (g): downsample the depth buffer into mips 0..4 (box-min).
+    //    Only when mipOptimization is on (otherwise the march reads mip 0 = the
+    //    raw depth buffer directly and the pyramid is unused).
+    if (vals.mipOptimization) {
+      for (let mip = 0; mip < PYRAMID_LEVELS; mip++) {
+        this.pData[0] = width;
+        this.pData[1] = height;
+        this.pU32[2] = mip;
+        this.pData[3] = 0;
+        const mw = Math.max(1, width >> mip);
+        const mh = Math.max(1, height >> mip);
+        this.pyramid.execute([this.depthTex, this.depthPyramid, this.pData], mw, mh, { storageMip: mip });
+      }
+    }
+
+    // 4. Main SSRT compute march (samples the multibounce light buffer + pyramid).
     this.fillUniform(cam, width, height);
     this.main.execute(
-      [this.depthTex, this.normalTex, this.lightTex, this.envTex, this.envSampler, this.giAoTex, this.mainData],
+      [this.depthTex, this.normalTex, this.lightTex, this.envTex, this.envSampler, this.depthPyramid, this.giAoTex, this.mainData],
       width,
       height,
     );
@@ -431,6 +489,39 @@ class Ssrt3Demo implements Demo {
     this.prevInvViewProj.copy(this.invViewProj);
     this.histPing = !this.histPing;
     this.resetTemporal = false;
+    this.lastW = width;
+    this.lastH = height;
+  }
+
+  // Compute-only GPU benchmark (stage g): runs the SSRT compute chain n times
+  // (reusing the current frame's filled uniforms) and fences on
+  // queue.onSubmittedWorkDone() — a queue completion fence, NOT a custom
+  // timestamp-query set — to measure per-iteration GPU compute time in isolation
+  // from the vsync-limited display loop. Exposed on window.__ssrt3bench for the
+  // timing harness. Returns average ms/iteration.
+  async runComputeBench(n: number): Promise<number> {
+    const w = this.lastW;
+    const h = this.lastH;
+    const mip = this.params.values.mipOptimization;
+    await this.device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      this.lightmask.execute([this.beautyTex, this.finalTex, this.velocityTex, this.lightTex, this.lData], w, h);
+      if (mip) {
+        for (let m = 0; m < PYRAMID_LEVELS; m++) {
+          this.pU32[2] = m;
+          this.pyramid.execute([this.depthTex, this.depthPyramid, this.pData], Math.max(1, w >> m), Math.max(1, h >> m), { storageMip: m });
+        }
+      }
+      this.main.execute(
+        [this.depthTex, this.normalTex, this.lightTex, this.envTex, this.envSampler, this.depthPyramid, this.giAoTex, this.mainData],
+        w, h,
+      );
+      this.temporal.execute([this.giAoTex, this.histB, this.velocityTex, this.depthTex, this.histA, this.tData], w, h);
+      this.denoise.execute([this.histA, this.depthTex, this.normalTex, this.finalTex, this.dData], w, h);
+    }
+    await this.device.queue.onSubmittedWorkDone();
+    return (performance.now() - t0) / n;
   }
 
   private fillTemporal(cam: PerspectiveCamera, width: number, height: number, v: ParamGroup<typeof schema>['values']): void {
@@ -472,6 +563,10 @@ class Ssrt3Demo implements Demo {
       t.dispose(); // drop the old GPU texture so ensureTexture reallocates at the new size
       ensureTexture(ctx.renderer, t);
     }
+    // Depth pyramid (mip-capable r32float) sized to the render target.
+    this.depthPyramid.image = { width, height };
+    this.depthPyramid.dispose();
+    ensureTexture(ctx.renderer, this.depthPyramid);
     this.resetTemporal = true; // history invalid at the new resolution
   }
 
@@ -481,6 +576,7 @@ class Ssrt3Demo implements Demo {
     this.histB.dispose();
     this.finalTex.dispose();
     this.lightTex.dispose();
+    this.depthPyramid.dispose();
     this.envTex.dispose();
   }
 }

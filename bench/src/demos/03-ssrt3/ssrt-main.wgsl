@@ -72,10 +72,11 @@ const F_GI : u32 = 512u;            // bit9: gather GI (c+)
 @group(0) @binding(0) var depthTex : texture_depth_2d;
 @group(0) @binding(1) var normalTex : texture_2d<f32>;   // three normalView (view-space, [-1,1])
 @group(0) @binding(2) var lightTex : texture_2d<f32>;    // radiance source (beauty, or lightmask at f)
-@group(0) @binding(3) var envTex : texture_2d<f32>;      // PMREM cube-uv atlas (fallback, e); dummy otherwise
+@group(0) @binding(3) var envTex : texture_2d<f32>;      // equirect ambient source (fallback, e)
 @group(0) @binding(4) var envSampler : sampler;          // filtering sampler for envTex
-@group(0) @binding(5) var outTex : texture_storage_2d<rgba16float, write>;
-@group(0) @binding(6) var<uniform> params : Params;
+@group(0) @binding(5) var depthPyramid : texture_2d<f32>;// raw-depth mip pyramid (g, mipOptimization)
+@group(0) @binding(6) var outTex : texture_storage_2d<rgba16float, write>;
+@group(0) @binding(7) var<uniform> params : Params;
 
 fn hasFlag(f : u32) -> bool { return (params.flags & f) != 0u; }
 
@@ -140,12 +141,22 @@ fn viewPosStd(uv : vec2<f32>, d : f32) -> vec3<f32> {
   let vp = params.invProj * clip;
   return vp.xyz / vp.w;
 }
-// SSRT3 flipped posVS (z positive forward) at a uv, sampling depth at that uv.
-fn posSSToVS(uv : vec2<f32>) -> vec3<f32> {
-  let coord = vec2<i32>(floor(uv * params.resolution));
-  let d = rawDepthAt(coord);
+// SSRT3 flipped posVS (z positive forward) at a uv, sampling depth at `mip` of
+// the depth pyramid (g, mipOptimization). mip 0 uses the full-res depth buffer.
+fn posSSToVSMip(uv : vec2<f32>, mip : u32) -> vec3<f32> {
+  var d : f32;
+  if (mip == 0u) {
+    d = rawDepthAt(vec2<i32>(floor(uv * params.resolution)));
+  } else {
+    let mipDim = vec2<f32>(params.resolution / f32(1u << mip));
+    let c = vec2<i32>(floor(uv * mipDim));
+    d = textureLoad(depthPyramid, c, i32(mip)).r;
+  }
   let stdP = viewPosStd(uv, d);
   return vec3<f32>(stdP.x, stdP.y, -stdP.z);
+}
+fn posSSToVS(uv : vec2<f32>) -> vec3<f32> {
+  return posSSToVSMip(uv, 0u);
 }
 
 fn projectToUV(posVS : vec3<f32>) -> vec2<f32> {
@@ -233,6 +244,7 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
   let radiusVS = max(1.0, f32(stepCount) - 1.0) * stepRadius;
   let samplingDirection = select(-1.0, 1.0, dirIsRight);
   let gatherGI = hasFlag(F_GI);
+  let mipOpt = hasFlag(F_MIPOPT);
   var lastSamplePosVS = posVS;
 
   for (var j : u32 = 0u; j < stepCount; j = j + 1u) {
@@ -241,7 +253,10 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
     let sampleUV = uv + uvOffset * samplingDirection;
     if (sampleUV.x <= 0.0 || sampleUV.y <= 0.0 || sampleUV.x >= 1.0 || sampleUV.y >= 1.0) { break; }
 
-    let samplePosVS = posSSToVS(sampleUV);
+    // SSRT3: coarser mip over distance, capped at 4 (the pyramid always has >=5
+    // mips at any render scale). params.mipCount is the ENV mip count, not this.
+    let mipOffset = select(0u, min((j + 1u) / 2u, 4u), mipOpt);
+    let samplePosVS = posSSToVSMip(sampleUV, mipOffset);
     let pixelToSample = normalize(samplePosVS - posVS);
     let linearThicknessMultiplier = select(1.0, clamp(samplePosVS.z / params.far, 0.0, 1.0) * 100.0, hasFlag(F_LINEAR_THICKNESS));
     let pixelToSampleBackface = normalize((samplePosVS - linearThicknessMultiplier * viewDir * params.thickness) - posVS);

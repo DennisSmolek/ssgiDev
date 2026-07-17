@@ -141,10 +141,15 @@ export class RawComputePass {
   // Encodes + submits the dispatch. Command ordering on three's queue preserves
   // read-after-write relative to three's render() submissions, exactly like the
   // RawRenderPass pattern (demo 00 README).
+  // opts.storageMip: base mip level for 'storage' bindings' views (default 0) —
+  // lets one pass write successive mip levels of a mip-capable StorageTexture
+  // (the depth-pyramid downsample chain, demo 03 stage g). The source is read
+  // from a DIFFERENT texture (the depth buffer), so no same-texture read/write.
   execute(
     resources: RawComputeResource[],
     dispatchWidth: number,
     dispatchHeight: number,
+    opts: { storageMip?: number } = {},
   ): void {
     if (!this.pipeline) {
       throw new Error(`RawComputePass(${this.label}): configure() must run before execute().`);
@@ -174,7 +179,10 @@ export class RawComputePass {
       }
       if (b.kind === 'storage') {
         // Storage bindings must view a single mip level (WebGPU rule).
-        return { binding: i, resource: gpu.createView({ baseMipLevel: 0, mipLevelCount: 1 }) };
+        return {
+          binding: i,
+          resource: gpu.createView({ baseMipLevel: opts.storageMip ?? 0, mipLevelCount: 1 }),
+        };
       }
       return { binding: i, resource: gpu.createView() };
     });

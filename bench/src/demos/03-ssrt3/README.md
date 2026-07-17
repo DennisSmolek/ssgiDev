@@ -39,42 +39,133 @@ so every raw output stays a plain TSL `texture()` node downstream (interop rule)
 - **Perspective-only** (`halfProjScale` assumes a perspective camera) — documented
   limitation, acceptable per PLAN.
 
-## Stages
+## Pipeline (per frame)
+
+`gbuffer → lightmask(f) → depth-pyramid(g) → main march(a-c,e,g) → temporal(d) →
+bilateral denoise(d) → composite(f)`. Six compute passes (five `RawComputePass`
++ the pyramid downsample chain) between three's G-buffer render and the TSL
+display. All inter-pass buffers are three `StorageTexture`s (interop rule).
+
+## Stages — all validated
 
 | Stage | What | Status |
 |---|---|---|
 | a | GTAO plumbing (depth linearize, view reconstruct, slice rotation + jitter, horizon march, classic GTAO integration) | **validated** |
-| b | Visibility bitmask (VBAO 32-bit sector mask) | pending |
-| c | GI gather (newly-revealed-sector radiance) | pending |
-| d | Temporal reprojection + bilateral denoise | pending |
-| e | Probe fallback (§3.2) | pending |
-| f | Multibounce GI + analytic multibounce AO | pending |
-| g | Bandwidth opts (depth mip pyramid, normalApproximation) | pending |
+| b | Visibility bitmask (VBAO 32-bit sector mask) | **validated** |
+| c | GI gather (newly-revealed-sector radiance) | **validated** |
+| d | Temporal reprojection + bilateral denoise | **validated** |
+| e | Probe fallback (§3.2) | **validated** |
+| f | Multibounce GI + analytic multibounce AO | **validated** |
+| g | Bandwidth opts (depth mip pyramid + mipOptimization, normalApproximation) | **validated** |
 
 ### Stage (a) — GTAO plumbing
-
 `ssrt-main.wgsl` reconstructs view position/normal, rotates `rotationCount`
-slices (per-pixel `SpatialOffsets` + `GradientNoise` rotation, optional
-`jitterSamples`), marches both horizon directions (`stepCount` geometric steps,
-`expFactor`), and integrates a classic **Jimenez-2016 GTAO** slice (max-horizon
-angle). Thin occluders fully block the horizon here — the exact over-darkening
-the bitmask fixes in stage (b). Output: `giAoTex` rgba16float, `a`=AO (rgb=0
-until stage c).
+slices (per-pixel `SpatialOffsets` + `GradientNoise`, optional `jitterSamples`),
+marches both horizon directions (`stepCount` geometric steps, `expFactor`), and
+integrates a classic **Jimenez-2016 GTAO** slice. Thin occluders fully block the
+horizon here — the over-darkening the bitmask fixes next. **Validation:**
+`03a-cornell-ao.png` vs demo 01 GTAO `03a-cornell-gtao-ref-demo01.png` — same AO
+structure; stronger because `radius` is 5 world units (≈ Cornell's 5.5) vs demo
+01's 0.5.
 
-**Validation (cornell):** `screenshots/03a-cornell-ao.png` vs demo 01 GTAO
-`screenshots/03a-cornell-gtao-ref-demo01.png`. Same AO structure — corner
-creases, box contact shadows, grazing-face darkening. Stronger than demo 01
-because `radius` defaults to 5 (world units, ≈ Cornell's 5.5-unit interior) vs
-demo 01's GTAO radius 0.5; noise is single-frame (temporal lands stage d).
+### Stage (b) — VBAO visibility bitmask
+Both hemisphere sweeps share one 32-bit sector mask (`computeOccludedBitfield`);
+front/back horizon comes from the world-space `thickness` slab (+ `linearThickness`).
+AO = occluded-bit fraction. **Validation:** `03b-zoo-bitmask.png` vs
+`03b-zoo-gtao.png` — thin plates over-darken far less; occlusion concentrates at
+true contact lines instead of smearing across plate faces.
+
+### Stage (c) — GI gather
+Per sample inside the bitmask sweeps, radiance from the light buffer is weighted
+by `numOccludedZones` (newly-occluded sectors = the ones this sample is the
+closest occluder for) × N·L × lightNormal·L, with `backfaceLighting` and a
+per-sample firefly clamp **as a param** (`maxLuminance`, SSGINode hardcodes 7).
+**Validation:** `03c-cornell-gi.png` — red bleed from the red wall, green from the
+green wall, matching demo 01's GI.
+
+### Stage (d) — temporal + bilateral denoise
+`ssrt-temporal.wgsl` reprojects prev-resolved GI/AO along three's velocity
+(`prevUV = uv − vel·vec2(0.5,−0.5)`), rejects on world-position delta
+(`blendWeight = mix(1, temporalResponse, posSimilarity)`), 4-neighbour history
+clamp; ping-pong history. `ssrt-denoise.wgsl` (distilled DiffuseDenoiser) is a
+16-tap disk bilateral with depth+normal edge stops scaled by `denoisingRadius`.
+**Validation:** `03d-cornell-gi-denoised.png` vs `03d-cornell-gi-raw.png` —
+converged still-camera result far cleaner; `03d-cornell-moving.png` — camera
+orbit stays clean, no ghosting trails.
+
+### Stage (e) — probe fallback (§3.2), the headline restored feature
+Per slice, the same 32-bit mask is split into `fallbackSampleCount` contiguous
+ranges; each fires one ambient sample in a direction stratified across the slice
+arc (paper Fig 8), weighted by that range's **unoccluded** fraction. Toggles:
+`fallbackNormalization` (SSRT3 shipped `unoccluded/MAX_RAY` vs paper
+per-subregion `unoccluded/maskSize /K` — the two diverge, a future experiment),
+`coneMip` (`MipLevelFromConeAngle` formula vs hardcoded mip 3). Ambient source:
+a procedural per-scene **equirect** radiance texture (cornell dim neutral,
+sponza/zoo sky gradient), sampled directionally at the cone LOD — see Decisions.
+**Validation:** `03e-cornell-gi-fb.png` vs `03e-cornell-gi-nofb.png` — with
+fallback the ceiling + camera-facing box front (pure black without it) hold a dim
+ambient floor; bleed preserved.
+
+### Stage (f) — multibounce
+`ssrt-lightmask.wgsl` builds the march's light source = `beauty +
+reproject(prev denoised GI) · (multiBounceGI · mbDamping)`, so second+ bounces
+feed back; damping (default 0.5, exposed) keeps the loop convergent. `multiBounceAO`
+= the Activision GTAO analytic colored-multibounce AO, at composite (TSL toggle).
+**Validation:** `03f-cornell-mb1.png` — mean scene luminance 99.7 (off) → 103.8
+(on); early(1.5s) 103.84 vs late(10s) 103.85 → brightness plateaus, no runaway.
+
+### Stage (g) — bandwidth opts
+Depth mip pyramid (`ssrt-depth-pyramid.wgsl`, box-min raw depth into mips 0-4 of
+a mip-capable r32float StorageTexture) + `mipOptimization` (march samples coarser
+mips over distance, SSRT3 `min((j+1)/2, 4)`); `normalApproximation` (reconstruct
+the sample normal from position deltas instead of fetching). **Validation:**
+`03g-sponza-{mipoff,mipon,naon}.png` — no gross visual regression. Compute-only
+GPU timing (sponza, 1280×800, rotationCount 4, stepCount 32, measured via a
+`queue.onSubmittedWorkDone()` fence over 60 iterations — not a custom timestamp
+set):
+
+| config | compute GPU ms/frame | vs baseline |
+|---|---|---|
+| baseline (both off) | 15.61 | — |
+| mipOptimization on | 8.85 | **−43%** |
+| normalApproximation on | 13.59 | −13% |
+| both on | 8.21 | **−47%** |
 
 ## Params (all 23 SSRT3 tunables + display)
 
 Exposed via the harness param schema with SSRT3 defaults where sensible
-(`rotationCount` 2, `stepCount` 12, `radius` per-scene, `expFactor` 1,
-`GIIntensity` 10, `AOIntensity` 1, `thickness` per-scene, `temporalResponse`
-0.35, `denoisingRadius` 0.5, `fallbackSampleCount` 4, firefly clamp **7 as a
-param** — SSGINode hardcodes it). Per-scene world-space defaults:
+(`rotationCount` 2, `stepCount` 12, `radius`/`thickness` per-scene, `expFactor` 1,
+`jitterSamples`, `screenSpaceSampling`, `mipOptimization`, `GIIntensity` 10,
+`multiBounceGI` 0, `normalApproximation`, `backfaceLighting` 0, `AOIntensity` 1,
+`linearThickness`, `multiBounceAO`, fallback (`fallbackPower`/`Intensity`/
+`SampleCount`/normalization/coneMip), `temporalAccumulation`, `temporalResponse`
+0.35, `denoising`, `denoisingRadius` 0.5). Firefly clamp is **`maxLuminance` 7 as a
+param** (SSGINode hardcodes it). Extra harness param exposed by the packet:
+`mbDamping` (multibounce feedback damping). Per-scene world-space defaults:
 cornell `radius 5 / thickness 0.5`, sponza `8 / 2`, artifact-zoo `3 / 0.3`.
 
-Debug views: `combined`, `ao`, `gi`, `beauty` (raw-vs-denoised split added at
-stage d). URL: `?demo=03-ssrt3&scene=&view=`.
+Debug views: `combined`, `ao`, `gi`, `beauty`, plus `ao-raw` / `gi-raw`
+(pre-denoise signal — the raw-vs-denoised comparison). URL overrides for
+deterministic captures: `?demo=03-ssrt3&scene=&view=&bitmask=&gi=&fallback=&
+temporal=&denoise=&mb=&mbao=&mip=&na=&rc=&sc=&radius=&thickness=`.
+
+Works on cornell + sponza + artifact-zoo and at `renderScale` 0.5 (`?scale=0.5`).
+
+## Decisions for review (this port)
+
+- **Fallback ambient source is an equirect texture, not three's cube-uv PMREM.**
+  three's PMREM atlas packing (`textureCubeUV` face/seam logic) is impractical to
+  sample from a hand-written compute shader, so the fallback samples a procedural
+  per-scene equirectangular radiance texture (RGBA8 + mip chain) directionally at
+  the cone LOD. Same "directional env at cone mip" as SSRT3's reflection-probe
+  fallback (option A in `threejs-probe-options.md`), minus parallax/positional
+  correction. Not wired to `scene.environment` — keeps beauty unchanged and
+  isolates the fallback term for validation.
+- **Temporal prev-depth proxy.** Reprojection reconstructs the previous world
+  position using the *current* depth at the reprojected coord (no prev-depth copy
+  pass); the world-position-delta reject still catches disocclusions.
+- **View-space bridge.** Reconstruct standard three view space, then flip to
+  SSRT3's convention so its horizon/bitmask/fallback math ports verbatim.
+- **Perspective-only** (`halfProjScale`) — documented, acceptable per PLAN.
+- **Three raw-pass classes now exist** (`RawFragmentPass`, `RawRenderPass`,
+  `RawComputePass`) — reconcile in the polish pass (flagged since M2).
