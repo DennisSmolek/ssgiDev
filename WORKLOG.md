@@ -301,3 +301,58 @@ Combined typecheck/build re-verified post-merge. Full detail in the per-demo REA
 to reconcile in polish; live cross-demo pixel-diff needs demo 02's marcher
 promoted to a shared harness pass.
 **Next:** M5 — labs 07–11, five parallel worktrees.
+
+---
+
+## 2026-07-18 — M5 merged: labs 07–11 (five parallel worktrees)
+
+All five labs delivered with Findings sections (see per-demo READMEs — they are
+the primary record; this is the digest). Two agents (08, 09) died at launch and
+were restarted into hand-provisioned worktrees (m5-lab08/m5-lab09).
+
+- **07 ambient-lab**: §3.2 source comparison. **SSRT3's shipped normalization
+  beats the paper-literal reading** (paper version blows out up to K×);
+  **hardcoded mip 3 beats cone→mip** (which over-blurs). Default: equirect
+  source (A). LightProbeGrid is WebGL-only in 0.185.1 (WebGPU PR #33913 not in
+  release) — hand-rolled SH grid used instead; revisit on a future three bump.
+  Physics split found: directional-occlusion sources tint away from the near
+  wall; positional probes tint toward it. Fallback ≈ +1.2–1.6 ms at heavy
+  settings. Harness gained `?cam=` pose override.
+- **08 distant-light**: per-pixel thickness problem reproduced on graded plates
+  (constant t fails across 20→500 mm; crossover ≈ mid-plate). **Winner:
+  Ottosson 3clGWB occluder-size heuristic** (~+40% cost, holds full range);
+  wcBGRz adds crisper contact +2%. **Distant light: Salm caps default** (matches
+  per-bin at 15–26% cheaper). wcsXDN slice-relative mapping integrated here.
+  RawRenderPass gained sampledTex/sampler binding kinds.
+- **09 bandwidth**: **half-res + joint bilateral upsample = ship it** (4.1–6.3×
+  chain speedup, <0.5 ms fixed overhead, no silhouette halos; quarter-res 21×
+  usable for previews). **LSAO shared-memory caching: honest negative**
+  (0.87–1.06×; bitmask needs full-sector occupancy, exponential far steps miss
+  the tile). **Fragment vs compute: no speed difference** (bandwidth-bound);
+  compute's value is capability only.
+- **10 denoise**: fixed noisy producer (demo 03 @ rc1/sc8) + 5 stacks.
+  **Default: SSRT3 temporal+bilateral (A/A−/1.43 ms); Mathis close second, ~7%
+  cheaper.** TRAA headline: rewards low-variance temporally-stable input;
+  spatial-only stacks + TRAA over-smear; none+TRAA leaves unclippable speckle.
+  Found: demo 03's producer jitter is FRAME-STATIC (rand(uv) never advances) —
+  temporal mean can't converge it; polish-pass fix queued.
+- **11 sampling**: quantitative (readback MSE). **Both Salm claims held**
+  (Hilbert more isotropic raw; IGN denoises best). **Default: IGN when
+  denoising; blue-noise texture when not.** STBN-approx (16 tiles) plateaus
+  under deep accumulation. Blue-noise atlas generated offline
+  (bench/scripts/gen-bluenoise.mjs, committed PNG). pnpm-workspace gained
+  onlyBuiltDependencies: esbuild (fixes fresh-install builds).
+
+**State: all 12 demos (00–11) on main, typecheck/build green after every merge.**
+
+**Consolidated polish-pass queue (from all Decisions-for-review):**
+1. Reconcile RawFragmentPass / RawRenderPass / RawComputePass into one family.
+2. Fix demo 03 frame-static jitter (rand(uv) → per-frame advance); re-run lab
+   10's reference after.
+3. Promote demo 02's marcher to a shared harness pass (live cross-demo diffs).
+4. Demo 01 velocity.zw metal/rough packing — revisit vs raising
+   maxColorAttachmentBytesPerSample at device init.
+5. Demo 03 temporal uses current-depth proxy for prev-depth — consider real
+   prev-depth copy.
+6. three bump watch: LightProbeGrid WebGPU (lab 07 Source B), SSGINode updates.
+7. Wasted beauty blit in demo 00's pass ordering (minor).
