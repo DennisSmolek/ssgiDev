@@ -25,13 +25,16 @@ import {
 
 export type RawBinding =
   | { kind: 'depth' } // texture_depth_2d, aspect depth-only
-  | { kind: 'tex'; sampleType?: GPUTextureSampleType } // default 'unfilterable-float'
+  | { kind: 'tex'; sampleType?: GPUTextureSampleType } // textureLoad, default 'unfilterable-float'
+  | { kind: 'sampledTex'; sampleType?: GPUTextureSampleType } // textureSampleLevel (needs a 'sampler')
+  | { kind: 'sampler'; filtering?: boolean } // default non-filtering
   | { kind: 'uniform' };
 
 // A resource supplied at execute() time, positionally matching a binding:
-//   'depth' | 'tex'  -> a three Texture
-//   'uniform'        -> a Float32Array (written into the pass's uniform buffer)
-export type RawResource = Texture | Float32Array;
+//   'depth' | 'tex' | 'sampledTex' -> a three Texture
+//   'sampler'                      -> a GPUSampler
+//   'uniform'                      -> a Float32Array (written into the pass's uniform buffer)
+export type RawResource = Texture | Float32Array | GPUSampler;
 
 export interface RawRenderPassOptions {
   bindings: RawBinding[];
@@ -78,6 +81,20 @@ export class RawRenderPass {
           binding: i,
           visibility: GPUShaderStage.FRAGMENT,
           texture: { sampleType: b.sampleType ?? 'unfilterable-float', viewDimension: '2d' },
+        };
+      }
+      if (b.kind === 'sampledTex') {
+        return {
+          binding: i,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: b.sampleType ?? 'float', viewDimension: '2d' },
+        };
+      }
+      if (b.kind === 'sampler') {
+        return {
+          binding: i,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: b.filtering ? 'filtering' : 'non-filtering' },
         };
       }
       return {
@@ -154,6 +171,9 @@ export class RawRenderPass {
           data.byteLength,
         );
         return { binding: i, resource: { buffer: this.uniformBuffer } };
+      }
+      if (b.kind === 'sampler') {
+        return { binding: i, resource: res as GPUSampler };
       }
       const gpu = getGPUTexture(this.renderer, res as Texture);
       const view = b.kind === 'depth' ? gpu.createView({ aspect: 'depth-only' }) : gpu.createView();

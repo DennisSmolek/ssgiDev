@@ -7,6 +7,7 @@ import { ssrt3Demo } from './03-ssrt3/index';
 import { gtVbaoDemo } from './04-gt-vbao/index';
 import { gtVbgiDemo } from './05-gt-vbgi/index';
 import { sshgiDemo } from './06-sshgi-mathis/index';
+import { distantLightDemo } from './08-distant-light/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -16,3 +17,4 @@ demoRegistry.register(ssrt3Demo);
 demoRegistry.register(gtVbaoDemo);
 demoRegistry.register(gtVbgiDemo);
 demoRegistry.register(sshgiDemo);
+demoRegistry.register(distantLightDemo);
