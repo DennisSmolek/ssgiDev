@@ -68,3 +68,14 @@ export function getGPUTextureFormat(renderer: WebGPURenderer, texture: Texture):
 export function ensureRenderTarget(renderer: WebGPURenderer, rt: RenderTarget): void {
   renderer.initRenderTarget(rt);
 }
+
+// Force allocation of a standalone Texture (e.g. a StorageTexture used as a
+// compute-pass output). three's Renderer.initTexture() routes to
+// textureUtils.createTexture, giving the texture its GPUTexture + descriptor so
+// a raw compute pass can bind it as a storage/sampled target the same frame.
+// Added for M3 (demo 03): compute passes write into three-allocated
+// StorageTextures (STORAGE_BINDING | TEXTURE_BINDING), keeping the interop rule
+// (raw outputs remain samplable downstream as plain TSL texture() nodes).
+export function ensureTexture(renderer: WebGPURenderer, texture: Texture): void {
+  (renderer as unknown as { initTexture(t: Texture): void }).initTexture(texture);
+}
