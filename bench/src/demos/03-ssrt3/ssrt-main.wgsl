@@ -188,11 +188,22 @@ fn computeOccludedBitfield(minHorizon : f32, maxHorizon : f32, globalBitfield : 
   return countOneBits(current);
 }
 
+// Sample view-space normal (SSRT3 flipped convention) from three's normalView.
+fn sampleNormalVS(sampleUV : vec2<f32>) -> vec3<f32> {
+  let c = vec2<i32>(floor(sampleUV * params.resolution));
+  let n = normalize(textureLoad(normalTex, c, 0).xyz);
+  return vec3<f32>(n.x, n.y, -n.z);
+}
+
 // Marches one horizon direction accumulating occluded sectors into the shared
-// per-slice bitfield. Front/back horizon (thickness slab) -> sector range.
+// per-slice bitfield. When F_GI is set, per sample it also gathers radiance from
+// the light buffer weighted by the number of NEWLY occluded sectors (SSRT3
+// HorizonSampling GI term) — those sectors are ones this sample is the closest
+// occluder for, i.e. its surface is visible from the shading point.
 fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec2<f32>,
                   initialRayStep : f32, uv : vec2<f32>, viewDir : vec3<f32>, n : f32,
-                  globalBitfield : ptr<function, u32>) {
+                  normalVS : vec3<f32>, planeNormal : vec3<f32>,
+                  globalBitfield : ptr<function, u32>, col : ptr<function, vec3<f32>>) {
   let stepCount = max(1u, params.stepCount);
   var stepRadius = max((params.radius * params.halfProjScale) / posVS.z, f32(stepCount));
   if (hasFlag(F_SCREENSPACE)) {
@@ -201,6 +212,8 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
   stepRadius = stepRadius / (f32(stepCount) + 1.0);
   let radiusVS = max(1.0, f32(stepCount) - 1.0) * stepRadius;
   let samplingDirection = select(-1.0, 1.0, dirIsRight);
+  let gatherGI = hasFlag(F_GI);
+  var lastSamplePosVS = posVS;
 
   for (var j : u32 = 0u; j < stepCount; j = j + 1u) {
     let offset = pow(abs((stepRadius * (f32(j) + initialRayStep)) / radiusVS), params.expFactor) * radiusVS;
@@ -218,7 +231,35 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
     fbh = clamp(((samplingDirection * -fbh) - n + HALF_PI) / PI, vec2<f32>(0.0), vec2<f32>(1.0));
     // Front/back swap by direction (SSRT3: directionIsRight ? .yx : .xy)
     let ordered = select(fbh, fbh.yx, dirIsRight);
-    computeOccludedBitfield(ordered.x, ordered.y, globalBitfield);
+    let numOccludedZones = computeOccludedBitfield(ordered.x, ordered.y, globalBitfield);
+
+    if (gatherGI && numOccludedZones > 0u) {
+      let c = vec2<i32>(floor(sampleUV * params.resolution));
+      var lightColor = textureLoad(lightTex, c, 0).rgb;
+      // Firefly clamp as a PARAM (SSGINode hardcodes maxLuminance=7).
+      let lum = dot(lightColor, vec3<f32>(0.2126, 0.7152, 0.0722));
+      if (lum > params.maxLuminance) { lightColor = lightColor * (params.maxLuminance / lum); }
+      if (dot(lightColor, vec3<f32>(1.0)) > 0.001) {
+        let lightDirectionVS = pixelToSample;
+        let ndl = clamp(dot(normalVS, lightDirectionVS), 0.0, 1.0);
+        if (ndl > 0.001) {
+          var lightNormalVS : vec3<f32>;
+          if (hasFlag(F_NORMALAPPROX)) {
+            lightNormalVS = -samplingDirection * cross(normalize(samplePosVS - lastSamplePosVS), planeNormal);
+          } else {
+            lightNormalVS = sampleNormalVS(sampleUV);
+          }
+          var lndl = dot(lightNormalVS, -lightDirectionVS);
+          if (params.backfaceLighting > 0.0 && dot(lightNormalVS, viewDir) > 0.0) {
+            lndl = select(abs(lndl), abs(lndl) * params.backfaceLighting, sign(lndl) < 0.0);
+          } else {
+            lndl = clamp(lndl, 0.0, 1.0);
+          }
+          *col = *col + (f32(numOccludedZones) / f32(MAX_RAY)) * lightColor * ndl * lndl;
+        }
+      }
+    }
+    lastSamplePosVS = samplePosVS;
   }
 }
 
@@ -262,8 +303,10 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   }
 
   let rotationCount = max(1u, params.rotationCount);
-  let useBitmask = hasFlag(F_BITMASK);
+  // GI gather needs the bitmask (numOccludedZones), so GI implies bitmask.
+  let useBitmask = hasFlag(F_BITMASK) || hasFlag(F_GI);
   var visSum : f32 = 0.0; // per-slice VISIBILITY (1 = fully open)
+  var col : vec3<f32> = vec3<f32>(0.0);
 
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
@@ -280,12 +323,13 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
     let n = -sign(dot(projectedNormal, tangent)) * acos(cos_n);
 
     if (useBitmask) {
-      // Stage (b): VBAO. Both sweeps share one 32-bit sector mask. AO is the
+      // Stages (b/c): VBAO. Both sweeps share one 32-bit sector mask. AO is the
       // occluded-bit fraction; thin plates block only a few sectors (vs GTAO's
-      // full-horizon block), so they over-darken far less.
+      // full-horizon block), so they over-darken far less. GI is gathered per
+      // sample inside the sweeps (SSRT3 newly-revealed-sector radiance).
       var bitfield : u32 = 0u;
-      horizonBitmask(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, &bitfield);
-      horizonBitmask(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, &bitfield);
+      horizonBitmask(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, normalVS, planeNormal, &bitfield, &col);
+      horizonBitmask(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir, n, normalVS, planeNormal, &bitfield, &col);
       visSum = visSum + (1.0 - f32(countOneBits(bitfield)) / f32(MAX_RAY));
     } else {
       // Stage (a): classic GTAO horizon-angle integration.
@@ -298,5 +342,13 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   var ao = clamp(visSum / f32(rotationCount), 0.0, 1.0);
   ao = clamp(pow(ao, params.aoIntensity), 0.0, 1.0);
 
-  textureStore(outTex, coord, vec4<f32>(0.0, 0.0, 0.0, ao));
+  // GI: average slices, apply GIIntensity. SSRT3 clamps the final value channel
+  // (HSV) to 7 to kill fireflies; we keep the per-sample luminance clamp above
+  // (firefly clamp as a param) and additionally clamp the summed value here.
+  col = col / f32(rotationCount);
+  col = col * params.giIntensity;
+  let vmax = max(max(col.r, col.g), col.b);
+  if (vmax > params.maxLuminance) { col = col * (params.maxLuminance / vmax); }
+
+  textureStore(outTex, coord, vec4<f32>(col, ao));
 }
