@@ -1,2 +1,4 @@
 packages:
   - bench
+onlyBuiltDependencies:
+  - esbuild
