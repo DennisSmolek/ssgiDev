@@ -391,3 +391,30 @@ TRAA/Denoise/none; "BYO" only describes upstream three, not our demo.
 **Verification note for future sessions:** headless chromium here falls back
 to software WebGPU (black canvas, ~200 ms GPU) — use `headless: false` for
 render verification; `--enable-unsafe-webgpu` alone, no Vulkan flag.
+
+---
+
+## 2026-07-18 — Shadow maps enabled across all scenes (Dennis's catch)
+
+No scene except cornell3 cast shadows: renderer.shadowMap was only enabled
+inside cornell3, and cornell/sponza/artifact-zoo had no castShadow flags at
+all. This is not cosmetic: SSGI gathers from the beauty buffer — direct-light
+shadows come from shadow maps, never from screen-space GI, so a shadowless
+beauty hands every technique (including demo 02's combined view) a physically
+wrong input. Sponza's "arcades fall into shadow" scene comment was
+aspirational until now.
+
+- Harness: `renderer.shadowMap.enabled = true` at bootstrap (app.ts).
+- cornell: point light casts (1024²), walls receive, boxes cast+receive
+  (emissive panel excluded, like the official example's fixture).
+- artifact-zoo: sun casts (2048², bounds ±10), all objects cast+receive —
+  thin-geometry contact shadows are half the scene's purpose.
+- sponza: sun casts (2048², bounds ±20, normalBias 0.03), all glTF meshes
+  cast+receive. Corridor now properly dark with sunlit atrium beyond — the
+  GI/fallback test environment the scene was designed to be.
+
+Verified headed on all four scenes (cornell shows the official demo's two box
+shadows; fps reads 165 on the 165 Hz display). NOTE: all pre-shadow
+screenshots in bench/screenshots/ are historical — lab quality comparisons
+against a shadowless beauty remain valid A/B-internally but don't represent
+current beauty output.

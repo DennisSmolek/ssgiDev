@@ -24,7 +24,9 @@ function wall(
   rough = 1,
 ): Mesh {
   const m = new MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
-  return new Mesh(geo, m);
+  const mesh = new Mesh(geo, m);
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 export const cornellScene: SceneDef = {
@@ -66,6 +68,7 @@ export const cornellScene: SceneDef = {
     short.position.set(0.95, 0.825, 0.7);
     short.rotation.y = -0.3;
 
+    tall.castShadow = short.castShadow = true;
     scene.add(tall, short);
 
     // --- Ceiling area light: emissive panel + matching THREE light ---
@@ -83,6 +86,8 @@ export const cornellScene: SceneDef = {
     // beauty pass is lit. An area light is a later realism concern.
     const light = new PointLight(0xffffff, 40, 0, 2);
     light.position.set(0, S - 0.4, 0);
+    light.castShadow = true;
+    light.shadow.mapSize.set(1024, 1024);
     scene.add(light);
     scene.add(new AmbientLight(0xffffff, 0.15));
 

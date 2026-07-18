@@ -47,6 +47,16 @@ export const sponzaScene: SceneDef = {
     const sun = new DirectionalLight(0xfff4e0, 3.0);
     sun.position.set(6, 14, 3); // high, angled across the atrium
     sun.target.position.set(-4, 0, -1);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    // Bounds cover the whole ~30x18x12 atrium from the sun's angle.
+    sun.shadow.camera.left = -20;
+    sun.shadow.camera.right = 20;
+    sun.shadow.camera.top = 20;
+    sun.shadow.camera.bottom = -20;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 45;
+    sun.shadow.normalBias = 0.03;
     scene.add(sun);
     scene.add(sun.target);
 
@@ -72,6 +82,10 @@ export const sponzaScene: SceneDef = {
       sponzaUrl,
       (result) => {
         const model = result.scene;
+        model.traverse((o) => {
+          const mesh = o as Mesh;
+          if (mesh.isMesh) mesh.castShadow = mesh.receiveShadow = true;
+        });
         scene.add(model);
         loaded = true;
 

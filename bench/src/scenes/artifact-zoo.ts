@@ -130,9 +130,25 @@ export const artifactZooScene: SceneDef = {
     const sun = new DirectionalLight(0xfff2e0, 3.2);
     sun.position.set(4, 8, 6);
     sun.target.position.set(0, 0, -1);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -10;
+    sun.shadow.camera.right = 10;
+    sun.shadow.camera.top = 10;
+    sun.shadow.camera.bottom = -10;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 30;
+    sun.shadow.normalBias = 0.02;
     scene.add(sun, sun.target);
     scene.add(new HemisphereLight(0xcdd8ff, 0x2a2620, 0.3));
     scene.add(new AmbientLight(0xffffff, 0.06));
+
+    // Every zoo object both casts and receives — the thin-geometry contact
+    // shadows are half the point of this scene.
+    scene.traverse((o) => {
+      const mesh = o as Mesh;
+      if (mesh.isMesh) mesh.castShadow = mesh.receiveShadow = true;
+    });
 
     // --- Camera ---------------------------------------------------------------
     const camera = new PerspectiveCamera(50, ctx.aspect, 0.1, 100);

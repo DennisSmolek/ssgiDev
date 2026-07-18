@@ -41,6 +41,9 @@ export async function startApp(config: AppConfig): Promise<void> {
 
   const mount = document.getElementById('app')!;
   const renderer = new WebGPURenderer({ antialias: false, trackTimestamp: true });
+  // Shadow maps on for every scene: SSGI gathers from the beauty buffer, so a
+  // shadowless beauty hands every GI technique a physically wrong input.
+  renderer.shadowMap.enabled = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.setSize(window.innerWidth, window.innerHeight);
   mount.appendChild(renderer.domElement);
