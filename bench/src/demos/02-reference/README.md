@@ -69,6 +69,17 @@ These match `ReferenceAO()` so results are directly comparable to the paper fami
 | `beauty`   | raw lit beauty (sanity passthrough)                                  |
 | `split`    | A/B comparator: 1-sample **live** vs **converged** accumulation      |
 
+## Shared ReferencePass (`src/harness/reference-pass.ts`)
+
+The brute-force marcher (`src/harness/reference-marcher.wgsl` — the ONE copy,
+moved out of this demo) and its accumulation/pose-reset logic now live in a
+shared harness class, `ReferencePass`, so any demo can show a ground-truth
+comparison. Demo 02 consumes it: `update()` advances the converged accumulation
+(its primary output) every frame, `outputTexture` is sampled by the display
+nodes, and `renderSingle()` renders the 1-sample **live** buffer for the split
+view. Demos 04/05 use the same class as a lazy validation oracle. Demo 02's
+behaviour is unchanged by the extraction.
+
 ## Accumulation & reset
 
 - The marcher writes into an **additive-blend** accumulation target (`rgb` = GI
@@ -121,6 +132,9 @@ copy/paste-able as JSON (screenshot-embeddable presets).
   accumulate). Same interop rules: writes into three-allocated targets, reads
   everything with `textureLoad` at render resolution.
 - `src/harness/compare.ts` + `compare.wgsl` — the comparator above.
+- `src/harness/reference-pass.ts` + `reference-marcher.wgsl` — the shared
+  `ReferencePass` (marcher + accumulation + pose-reset), promoted out of this
+  demo so demos 04/05 (and later 03) can validate against ground truth.
 
 ## Validation (headless, cached Playwright chromium-1228, `--enable-unsafe-webgpu`)
 

@@ -20,7 +20,7 @@ import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
 import samplingWgsl from './sampling.wgsl?raw';
 import bilateralWgsl from './bilateral.wgsl?raw';
-import marcherWgsl from '../02-reference/reference-marcher.wgsl?raw';
+import marcherWgsl from '../../harness/reference-marcher.wgsl?raw';
 import atlasUrl from './stbn-atlas.png?url';
 
 const VIEW_MODES = ['ao', 'reference', 'combined', 'denoised', 'split'] as const;
