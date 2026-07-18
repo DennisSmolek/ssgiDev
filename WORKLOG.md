@@ -747,3 +747,27 @@ the testing phase):
   on open surfaces (uniform sector visibility vs cosine-weighted MC AO);
   lower diff amp to ~2 to see structure. Same class as 04/05's
   "diff not pitch-black by design".
+
+## 2026-07-19 — Phase docs: TESTING.md, NEXTGEN.md, FSR3-BRIEF.md
+
+Wrote the three phase documents Dennis requested:
+- TESTING.md — testing-phase plan: measurement grid (scenes × cameras),
+  test matrix (quality-vs-oracle, perf budget map, temporal behavior,
+  cross-demo bake-off), and CRITICALLY a lab re-validation pass FIRST: labs
+  07/09/10/11 recorded findings before the y-mirror fix + jitter advance
+  (lab 09 perf ratios safe; lab 10's frame-static-rand finding now stale;
+  lab 11 MSE table needs re-running on the fixed marcher).
+- NEXTGEN.md — distillation plan + Dennis's dictated principles: faithfulness
+  boundary (demos/labs stay source-faithful FOREVER, our own work goes in
+  new demos 12+ AFTER testing), optimization principles as perf GOALS not
+  hard rules (IQ noacos-style trig avoidance, branch/loop/precision hygiene,
+  bandwidth-before-ALU per lab 09, adaptive-over-uniform), success measures
+  (targets pinned after Phase T baselines), measurement-or-no-merge rule.
+- FSR3-BRIEF.md — decomposition contract for Dennis's separate FSR3 port:
+  4 pass boundaries (reconstruct&dilate / locks&reactivity / accumulate+
+  upsample / RCAS), temporal-guides texture bundle contract, r185/WebGPU
+  trap list (needsUpdate, velocity convention, y-mirror seam, RCAS must be
+  tonemap-agnostic re: the known ACES-in-RCAS bug), acceptance = bench lab
+  A/B-ing guides-fed temporal vs private logic.
+PLAN.md got a phase pointer at the top. advantagous-concepts.md (Dennis's
+paste of the improvement inventory) is referenced as the concept backlog.

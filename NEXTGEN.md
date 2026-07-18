@@ -1,0 +1,106 @@
+# NEXTGEN.md — distilling the bench into our own SSGI
+
+The plan, rules, and success measures for turning bench learnings into a new,
+original implementation. Written 2026-07-19; principles dictated by Dennis,
+phasing agreed. Concept backlog: `advantagous-concepts.md`. Test methodology:
+`TESTING.md`.
+
+## The faithfulness boundary (hard rule)
+
+- **Demos 00–11 and the labs stay faithful to their sources. No optimizations
+  land there — ever.** They are the measuring instruments; optimizing them
+  destroys the baseline. Bug fixes that restore faithfulness (y-mirror class)
+  are allowed with a WORKLOG entry + re-baseline.
+- **Our own work happens in NEW demos (12+), created only AFTER the testing
+  phase** — distillations and conceptual expansions that combine the measured
+  winners and then experiment with optimizations ON that combined base.
+- Improvements inside existing demos remain toggles, default = faithful
+  (the demo 03 `accumMode` pattern).
+
+## Phasing
+
+1. **Phase T — testing** (current): run TESTING.md. Output: bake-off table,
+   budget map, lab re-validation, algorithm-base decision.
+2. **Phase D — distillation (demo 12, "our SSGI v0")**: combine measured
+   winners UNOPTIMIZED first — same academic-style code as its parents — and
+   verify it reproduces their quality vs the oracle. This is the control.
+   Expected ingredients (subject to Phase T): bitmask march + probe fallback,
+   frame-count accumulation, per-frame jitter (IGN per lab 11), half-res +
+   joint-bilateral chain, temporal+bilateral denoise, Ottosson thickness,
+   spherical-caps distant light. Bent normals/spec occlusion + temporal guides
+   enter here as new capability (they're additive, not optimizations).
+3. **Phase O — optimization passes (demo 12 variants / demo 13)**: apply the
+   optimization principles below, one family at a time, each landing with a
+   paired measurement: fenced ms delta + diff-vs-oracle delta + stability
+   delta at the TESTING.md grid. A change that wins ms but loses quality gets
+   a documented judgment call, not a silent merge.
+4. **Phase I — integration**: package as consumable three.js node(s); wire the
+   FSR3 temporal-guides contract (FSR3-BRIEF.md); upscaler/AA resolve last.
+
+## Optimization principles (Phase O). Perf goals, NOT hard rules.
+
+None of these are dogma. There is always a legitimate reason for a costly
+construct; the discipline is that cost is *chosen and measured*, not inherited
+from academic reference code. Every principle below yields to a measurement.
+
+1. **Trig avoidance as a goal** (IQ's "avoiding trigonometry" series,
+   https://iquilezles.org/articles/noacos/): academic shaders reach for
+   acos/atan2/sin/cos where vector identities (dot/cross/normalize/rsqrt,
+   half-angle forms, Chebyshev recurrences for stepped angles) compute the
+   same quantity. Our marchers are full of this (fastAcos per sample, sin/cos
+   per slice). Replace where the identity is exact or the approximation error
+   is measured below the noise floor; keep the trig where clarity or accuracy
+   genuinely needs it.
+2. **Branch hygiene**: academic ports carry per-sample conditionals (flag
+   checks, mode switches) inside hot loops. Prefer specialization (compile-time
+   WGSL variants per flag-set — we already generate shader text in TS),
+   `select()` over divergent `if` for cheap both-sides, and moving uniform
+   branches outside loops. But: a coherent branch that skips real work
+   (early-out on sky pixels) is a WIN, not a smell — measure.
+3. **Precision discipline**: stop defaulting to f32 everywhere. f16 storage is
+   already used (rgba16float, r16float); extend to arithmetic where WGSL/
+   hardware allows and the value range is proven (AO in [0,1], normalized
+   directions, sector counts). Pack booleans/enums into existing u32 flags.
+   Depth stays f32 (reconstruction precision is load-bearing — measured on the
+   prev-depth pass).
+4. **Loop hygiene**: hoist invariants — compute the base term once before the
+   loop and advance incrementally (`value = base + i * step`, rotation by
+   angle-sum recurrence) instead of re-evaluating pow/divide/trig of `i` per
+   iteration. The SSRT3 march recomputes `pow(abs(...), expFactor)` per step;
+   the slice loop recomputes sin/cos per rotation. Classic strength-reduction
+   targets — verify the incremental form doesn't accumulate error across 32
+   steps before shipping.
+5. **Bandwidth before ALU**: lab 09's thesis, proven — the march is fetch-bound
+   (resolution lever 4.5×, ALU rearrangement ~0×). Rank any optimization that
+   reduces/coheres fetches (mips for light+normal, half-res, checkerboard,
+   guides-driven adaptive effort) above any pure-ALU cleverness. Corollary: an
+   ALU optimization that adds a fetch is almost certainly a loss.
+6. **Adaptive over uniform**: per-pixel effort steered by history length /
+   variance (temporal guides) beats globally lowering quality. Converged
+   pixels coast; disoccluded pixels get the full budget.
+
+## Measures of success (targets finalized after Phase T baselines)
+
+Recorded per TESTING.md grid; v1.0 of demo 12 must hit, vs the Phase T table:
+
+- **Quality**: MSE vs oracle ≤ best faithful demo's MSE (AO and GI separately),
+  and no NEW artifact-zoo failure at graded diff amp 2.
+- **Performance**: ≥ 2× faster than the best faithful demo at equal-or-better
+  MSE on C-wide and S-hall (the half-res chain alone banks most of this;
+  adaptive effort is upside).
+- **Stability**: still-camera stability metric ≤ frame-count-mode demo 03;
+  post-motion reconvergence ≤ 0.5 s at 60 fps equivalent.
+- **Realism**: bent-normal/spec-occlusion on, verified against the oracle's
+  directional visibility (new comparison view to be added in Phase D).
+- **Consumability**: runs as a three.js node with zero bench dependencies;
+  temporal-guides contract implemented (produce or consume per FSR3-BRIEF.md).
+
+## Standing rules (all phases)
+
+- Every optimization/change lands with: fenced ms, diff-vs-oracle, stability
+  metric, config JSON, commit hash. No measurement, no merge.
+- Negative results get WORKLOG entries with the same rigor as wins.
+- Best-guess decisions made without Dennis get logged under "Decisions for
+  review" — never silently.
+- The bench (00–11 + labs + oracle) is the permanent regression harness for
+  everything Phase D onward.

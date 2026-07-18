@@ -1,5 +1,13 @@
 # SSGI Bench — Build Plan
 
+> **Phase pointer (2026-07-19):** the build phase this plan describes is
+> COMPLETE (all 12 demos + labs merged and live-test hardened). The active
+> phase is documented in **TESTING.md**; the distillation/optimization phases
+> and their rules live in **NEXTGEN.md**; the FSR3-port decomposition contract
+> is **FSR3-BRIEF.md**; the improvement-concept backlog is
+> **advantagous-concepts.md**.
+
+
 The "make a bunch of SSGI setups" pass. Goal: a three.js WebGPU test bench with many
 independent-but-layered SSGI implementations, built on the `research/` base, ready for a later
 benchmark/review pass. Priorities: **Performance → Quality → Realism**.
