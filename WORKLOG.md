@@ -580,3 +580,20 @@ NOT the cure. Stage-(a) "edges super dark" residual likely shared this cause;
 re-check before treating it as a separate bug.
 Also: subpixel AA jitter now defaults OFF in all demos (02/04/05/06/10/11) —
 without a reprojecting TRAA/FSR resolve it never settles (Dennis request).
+
+## 2026-07-18 — Stage-(a) re-verify after y-mirror fix; polish pass launched
+
+Stage (a) (classic GTAO path: bitmask OFF, GI OFF) re-checked post y-fix on
+box-top + wide cameras. The broad grazing over-darkening reported earlier is
+GONE (shared the y-mirror root cause, as suspected). Remaining stage-(a)
+character: dark noisy silhouette halos (classic GTAO thin-occluder full-horizon
+blocking — exactly the failure the bitmask exists to fix) and a noisy dark
+frame at screen borders. Verified NOT mip-pyramid related (identical with
+mipOptimization off). Root cause of the border frame not chased — stage (a) is
+validation scaffolding, not a shipping path; bitmask path on the same cameras
+is clean. Logged under Decisions for review.
+Polish pass in flight (two Opus worktree agents): (A) demo 03 real prev-depth
+pass + frame-count accumulation toggle (default off, SSRT3-faithful default) +
+per-frame jitterSamples advance; (B) demo 02 reference marcher promoted to a
+shared harness ReferencePass + reference/split/diff views in demos 04/05.
+Demo 03 reference-view wiring happens at merge (avoids worktree conflict).
