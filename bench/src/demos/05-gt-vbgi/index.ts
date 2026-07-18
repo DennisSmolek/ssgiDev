@@ -16,6 +16,7 @@ import { RenderPipeline } from 'three/webgpu';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawRenderPass } from '../../harness/raw-pass';
+import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { Comparator } from '../../harness/compare';
 import type { CompareChannel, CompareMode } from '../../harness/compare';
 import { ensureRenderTarget } from '../../harness/three-internals';
@@ -53,6 +54,7 @@ const schema = {
   backfaceReject: { type: 'boolean', value: true, label: 'backface reject' },
   thicknessNormalize: { type: 'boolean', value: false, label: 'thickness: normalize' },
   accumulate: { type: 'boolean', value: true, label: 'accumulate' },
+  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter' },
   maxAccumFrames: { type: 'number', value: 512, min: 1, max: 4096, step: 1, label: 'max frames' },
   refRays: { type: 'number', value: 4, min: 1, max: 16, step: 1, label: 'ref rays/frame' },
   refSteps: { type: 'number', value: 32, min: 4, max: 64, step: 1, label: 'ref steps' },
@@ -119,6 +121,9 @@ class GtVbgiDemo implements Demo {
 
   private sampleCount = 0;
   private frameCounter = 0;
+  private jitterIndex = 0;
+  private jitterActive = false;
+  private cam!: PerspectiveCamera;
   private resetRequested = true;
   private lastPose = new Float64Array(8);
 
@@ -128,6 +133,7 @@ class GtVbgiDemo implements Demo {
 
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
+    this.cam = cam;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(mrt({ output: output, albedo: diffuseColor, normal: normalView }));
@@ -176,6 +182,10 @@ class GtVbgiDemo implements Demo {
       this.params.values.compareMode = urlCmp;
       this.compareState.mode = urlCmp;
     }
+    const urlJitter = search.get('jitter'); // ?jitter=0/1 AA override
+    if (urlJitter === '0' || urlJitter === '1') {
+      this.params.values.jitterAA = urlJitter === '1';
+    }
     this.params.refresh();
 
     this.installDividerDrag(ctx);
@@ -211,6 +221,20 @@ class GtVbgiDemo implements Demo {
     }
   }
 
+  // Advance/apply Halton jitter, or clear it once when disabled. Jitters the
+  // projection only; cameraMoved() hashes pose/fov/aspect so it never trips.
+  private applyJitter(cam: PerspectiveCamera, w: number, h: number, enabled: boolean): void {
+    if (enabled) {
+      const [jx, jy] = HALTON_JITTER[this.jitterIndex];
+      this.jitterIndex = (this.jitterIndex + 1) % HALTON_JITTER.length;
+      applyCameraJitter(cam, w, h, jx, jy);
+      this.jitterActive = true;
+    } else if (this.jitterActive) {
+      clearCameraJitter(cam);
+      this.jitterActive = false;
+    }
+  }
+
   private cameraMoved(cam: PerspectiveCamera): boolean {
     const EPS = 2e-4;
     const p = cam.position;
@@ -233,6 +257,11 @@ class GtVbgiDemo implements Demo {
     const cam = ctx.scene.camera;
     const v = this.params.values;
     this.frameCounter++;
+    const { width, height } = ctx.renderSize();
+
+    // Jitter before the G-buffer; the VBGI + reference marchers below read
+    // cam.projectionMatrix and share the same jittered projection.
+    this.applyJitter(cam, width, height, v.jitterAA);
 
     this.gbufferPipeline.render();
 
@@ -241,7 +270,6 @@ class GtVbgiDemo implements Demo {
       this.resetRequested = false;
     }
 
-    const { width, height } = ctx.renderSize();
     if (this.sampleCount < v.maxAccumFrames) {
       const loadOp: GPULoadOp = this.sampleCount === 0 ? 'clear' : 'load';
       const clearValue = { r: 0, g: 0, b: 0, a: 0 };
@@ -397,6 +425,7 @@ class GtVbgiDemo implements Demo {
       if (type === 'pointerdown') el?.removeEventListener(type, fn);
       else window.removeEventListener(type, fn);
     }
+    if (this.jitterActive && this.cam) clearCameraJitter(this.cam);
     this.vbgiRT.dispose();
     this.refRT.dispose();
     this.compareRT.dispose();

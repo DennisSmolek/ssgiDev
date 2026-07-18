@@ -34,6 +34,7 @@ import { denoise } from 'three/addons/tsl/display/DenoiseNode.js';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawComputePass } from '../../harness/raw-compute-pass';
+import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { ensureTexture, ensureRenderTarget } from '../../harness/three-internals';
 import { Comparator } from '../../harness/compare';
 import type { CompareMode } from '../../harness/compare';
@@ -132,6 +133,9 @@ const schema = {
   stack: { type: 'enum', value: 'ssrt3' as Stack, options: STACKS, label: 'denoiser stack' },
   viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   traa: { type: 'boolean', value: false, label: 'TRAA after (combined)' },
+  // Forced OFF when TRAA is on: traa() drives its OWN Halton view-offset jitter,
+  // so ours would double-jitter. See applyJitter() / updateOutputNode().
+  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter (off under TRAA)' },
   giExposure: { type: 'number', value: 1, min: 0.1, max: 8, step: 0.05, label: 'GI display gain' },
   // --- SSRT3 stack ---
   temporalResponse: { type: 'number', value: 0.35, min: 0, max: 1, step: 0.01, label: 'ssrt temporalResponse' },
@@ -228,6 +232,8 @@ class DenoiseLabDemo implements Demo {
   private device!: GPUDevice;
   private frameCounter = 0;
   private accumCount = 0;
+  private jitterIndex = 0;
+  private jitterActive = false;
   private reset = true;
   private lastPose = new Float64Array(8);
   private lastW = 1;
@@ -379,6 +385,9 @@ class DenoiseLabDemo implements Demo {
     this.params = buildParams(folder, schema);
     this.params.onChange((key) => {
       if (REBUILD_KEYS.has(key as string)) this.updateOutputNode();
+      // Toggling jitter (or TRAA, which forces jitter off) changes what the
+      // camera rasterizes with, so restart the converged accumulate reference.
+      if (key === 'jitterAA' || key === 'traa') this.reset = true;
     });
 
     // URL overrides for deterministic captures.
@@ -388,6 +397,8 @@ class DenoiseLabDemo implements Demo {
     const urlView = q.get('view');
     if (urlView && (VIEW_MODES as readonly string[]).includes(urlView)) this.params.values.viewMode = urlView as ViewMode;
     if (q.get('traa') === '1') this.params.values.traa = true;
+    const urlJitter = q.get('jitter'); // ?jitter=0/1 AA override
+    if (urlJitter === '0' || urlJitter === '1') this.params.values.jitterAA = urlJitter === '1';
     this.params.refresh();
 
     this.updateOutputNode();
@@ -472,6 +483,23 @@ class DenoiseLabDemo implements Demo {
     }
   }
 
+  // Advance/apply Halton jitter, or clear it once when disabled. GUARD: forced
+  // off when TRAA is on — traa() registers its own onBeforeRenderPipeline
+  // view-offset jitter, so ours would double up. When off, this clears our
+  // offset once; updateOutputNode() also clears on rebuild, which is harmless
+  // (next frame's enabled path re-applies).
+  private applyJitter(w: number, h: number, enabled: boolean): void {
+    if (enabled) {
+      const [jx, jy] = HALTON_JITTER[this.jitterIndex];
+      this.jitterIndex = (this.jitterIndex + 1) % HALTON_JITTER.length;
+      applyCameraJitter(this.camera, w, h, jx, jy);
+      this.jitterActive = true;
+    } else if (this.jitterActive) {
+      clearCameraJitter(this.camera);
+      this.jitterActive = false;
+    }
+  }
+
   private cameraMoved(): boolean {
     const EPS = 2e-4;
     const p = this.camera.position;
@@ -492,6 +520,10 @@ class DenoiseLabDemo implements Demo {
     this.uGiExposure.value = this.params.values.giExposure;
     const { width, height } = ctx.renderSize();
     const v = this.params.values;
+
+    // 0. Sub-pixel jitter before the G-buffer rasterizes (producer + accumulate
+    // reference read the jittered projection). OFF under TRAA (it self-jitters).
+    this.applyJitter(width, height, v.jitterAA && !v.traa);
 
     // 1. G-buffer.
     this.gbufferPipeline.render();

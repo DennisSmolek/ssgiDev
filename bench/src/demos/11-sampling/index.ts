@@ -12,6 +12,7 @@ import { RenderPipeline } from 'three/webgpu';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawRenderPass } from '../../harness/raw-pass';
+import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { Comparator } from '../../harness/compare';
 import type { CompareChannel, CompareMode } from '../../harness/compare';
 import { ensureRenderTarget, ensureTexture, getDevice, getGPUTexture } from '../../harness/three-internals';
@@ -43,6 +44,7 @@ const schema = {
   importanceSampling: { type: 'boolean', value: true, label: 'slice importance' },
   thicknessNormalize: { type: 'boolean', value: false, label: 'thickness: normalize' },
   accumulate: { type: 'boolean', value: true, label: 'accumulate' },
+  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter' },
   maxAccumFrames: { type: 'number', value: 128, min: 1, max: 4096, step: 1, label: 'max frames' },
   // bilateral denoiser (fixed config applied to raw single-frame AO)
   denoiseRadius: { type: 'number', value: 3, min: 1, max: 8, step: 1, label: 'dn radius' },
@@ -131,6 +133,9 @@ class SamplingLabDemo implements Demo {
 
   private sampleCount = 0;
   private refCount = 0;
+  private jitterIndex = 0;
+  private jitterActive = false;
+  private cam!: PerspectiveCamera;
   private resetRequested = true;
   private lastPose = new Float64Array(8);
   private device!: GPUDevice;
@@ -139,6 +144,7 @@ class SamplingLabDemo implements Demo {
 
   init(ctx: HarnessContext): void | Promise<void> {
     const cam = ctx.scene.camera;
+    this.cam = cam;
     this.device = getDevice(ctx.renderer);
 
     this.scenePass = pass(ctx.scene.scene, cam);
@@ -200,6 +206,11 @@ class SamplingLabDemo implements Demo {
       this.params.values.temporalAdvance = temporal === '1';
       this.params.refresh();
     }
+    const urlJitter = search.get('jitter'); // ?jitter=0/1 AA override
+    if (urlJitter === '0' || urlJitter === '1') {
+      this.params.values.jitterAA = urlJitter === '1';
+      this.params.refresh();
+    }
 
     this.updateOutputNode();
 
@@ -257,6 +268,20 @@ class SamplingLabDemo implements Demo {
     }
   }
 
+  // Advance/apply Halton jitter, or clear it once when disabled. Jitters the
+  // projection only; cameraMoved() hashes pose/fov/aspect so it never trips.
+  private applyJitter(cam: PerspectiveCamera, w: number, h: number, enabled: boolean): void {
+    if (enabled) {
+      const [jx, jy] = HALTON_JITTER[this.jitterIndex];
+      this.jitterIndex = (this.jitterIndex + 1) % HALTON_JITTER.length;
+      applyCameraJitter(cam, w, h, jx, jy);
+      this.jitterActive = true;
+    } else if (this.jitterActive) {
+      clearCameraJitter(cam);
+      this.jitterActive = false;
+    }
+  }
+
   private cameraMoved(cam: PerspectiveCamera): boolean {
     const EPS = 2e-4;
     const p = cam.position;
@@ -285,6 +310,12 @@ class SamplingLabDemo implements Demo {
     const accumulate = v.accumulate && !denoiseView;
     const maxFrames = denoiseView ? 1 : v.maxAccumFrames;
 
+    const { width, height } = ctx.renderSize();
+
+    // Jitter before the G-buffer; the VBAO + reference marchers read
+    // cam.projectionMatrix and share the same jittered projection.
+    this.applyJitter(cam, width, height, v.jitterAA);
+
     this.gbufferPipeline.render();
 
     if (this.cameraMoved(cam) || this.resetRequested || !accumulate) {
@@ -292,8 +323,6 @@ class SamplingLabDemo implements Demo {
       this.refCount = 0;
       this.resetRequested = false;
     }
-
-    const { width, height } = ctx.renderSize();
 
     if (this.sampleCount < maxFrames) {
       const first = this.sampleCount === 0;
@@ -575,6 +604,7 @@ class SamplingLabDemo implements Demo {
   }
 
   dispose(): void {
+    if (this.jitterActive && this.cam) clearCameraJitter(this.cam);
     for (const rt of [this.vbaoRT, this.refRT, this.denoiseRT, this.compareRT]) rt.dispose();
     delete (window as unknown as Record<string, unknown>).__lab11;
   }

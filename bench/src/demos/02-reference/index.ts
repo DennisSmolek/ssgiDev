@@ -16,6 +16,7 @@ import { RenderPipeline } from 'three/webgpu';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawRenderPass } from '../../harness/raw-pass';
+import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { Comparator } from '../../harness/compare';
 import type { CompareChannel, CompareMode } from '../../harness/compare';
 import { ensureRenderTarget } from '../../harness/three-internals';
@@ -34,6 +35,7 @@ const schema = {
   thickness: { type: 'number', value: 0.5, min: 0.05, max: 4, step: 0.05, label: 'thickness (world)' },
   bias: { type: 'number', value: 0.03, min: 0.005, max: 0.3, step: 0.005, label: 'normal bias' },
   accumulate: { type: 'boolean', value: true, label: 'accumulate' },
+  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter' },
   maxAccumFrames: { type: 'number', value: 512, min: 1, max: 4096, step: 1, label: 'max frames' },
   maxLuminance: { type: 'number', value: 10, min: 1, max: 30, step: 0.5, label: 'firefly clamp' },
   giStrength: { type: 'number', value: 1, min: 0, max: 5, step: 0.05, label: 'GI strength' },
@@ -100,6 +102,12 @@ class ReferenceDemo implements Demo {
   // Accumulation state.
   private sampleCount = 0;
   private frameCounter = 0;
+  // Sub-pixel projection jitter (TAA-style). index cycles the Halton sequence;
+  // active tracks whether a view offset is currently set so we clear it exactly
+  // once when jitter is turned off (not every frame).
+  private jitterIndex = 0;
+  private jitterActive = false;
+  private cam!: PerspectiveCamera;
   private resetRequested = true;
   // Float64: fovHash is ~40000, whose float32 quantization error (~0.004) would
   // otherwise exceed the move threshold and reset accumulation every frame.
@@ -112,6 +120,7 @@ class ReferenceDemo implements Demo {
 
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
+    this.cam = cam;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(
@@ -144,9 +153,16 @@ class ReferenceDemo implements Demo {
       if (!NON_RESET_KEYS.has(key as string)) this.resetRequested = true;
     });
 
-    const urlView = new URLSearchParams(window.location.search).get('view');
+    const search = new URLSearchParams(window.location.search);
+    const urlView = search.get('view');
     if (urlView && (VIEW_MODES as readonly string[]).includes(urlView)) {
       this.params.values.viewMode = urlView as ViewMode;
+      this.params.refresh();
+    }
+    // ?jitter=0 / ?jitter=1 override for deterministic AA A/B captures.
+    const urlJitter = search.get('jitter');
+    if (urlJitter === '0' || urlJitter === '1') {
+      this.params.values.jitterAA = urlJitter === '1';
       this.params.refresh();
     }
 
@@ -183,6 +199,19 @@ class ReferenceDemo implements Demo {
     }
   }
 
+  // Advance/apply the Halton jitter, or clear it once when disabled.
+  private applyJitter(cam: PerspectiveCamera, w: number, h: number, enabled: boolean): void {
+    if (enabled) {
+      const [jx, jy] = HALTON_JITTER[this.jitterIndex];
+      this.jitterIndex = (this.jitterIndex + 1) % HALTON_JITTER.length;
+      applyCameraJitter(cam, w, h, jx, jy);
+      this.jitterActive = true;
+    } else if (this.jitterActive) {
+      clearCameraJitter(cam);
+      this.jitterActive = false;
+    }
+  }
+
   private cameraMoved(cam: PerspectiveCamera): boolean {
     // Threshold must tolerate OrbitControls damping, which re-derives the camera
     // pose every frame with tiny residual jitter even when visually static; too
@@ -208,6 +237,13 @@ class ReferenceDemo implements Demo {
     const cam = ctx.scene.camera;
     const v = this.params.values;
     this.frameCounter++;
+    const { width, height } = ctx.renderSize();
+
+    // 0. Sub-pixel jitter BEFORE the G-buffer rasterizes, so the scene and the
+    // marcher (which reads cam.projectionMatrix below) share the jittered
+    // projection. cameraMoved() hashes only pose/fov/aspect, so this never
+    // resets accumulation.
+    this.applyJitter(cam, width, height, v.jitterAA);
 
     // 1. G-buffer.
     this.gbufferPipeline.render();
@@ -219,7 +255,6 @@ class ReferenceDemo implements Demo {
     }
 
     // 3. Marcher into the accumulation buffer (additive) unless frozen at max.
-    const { width, height } = ctx.renderSize();
     if (this.sampleCount < v.maxAccumFrames) {
       const loadOp: GPULoadOp = this.sampleCount === 0 ? 'clear' : 'load';
       this.fillMarcherUniform(cam, width, height, this.sampleCount, v);
@@ -340,6 +375,8 @@ class ReferenceDemo implements Demo {
       if (type === 'pointerdown') el?.removeEventListener(type, fn);
       else window.removeEventListener(type, fn);
     }
+    // Camera is shared across demos — never leave a jittered projection behind.
+    if (this.jitterActive && this.cam) clearCameraJitter(this.cam);
     this.accumRT.dispose();
     this.liveRT.dispose();
     this.compareRT.dispose();

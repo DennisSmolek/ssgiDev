@@ -1,5 +1,56 @@
 import { RenderTarget } from 'three/webgpu';
-import type { Texture, Vector2 } from 'three/webgpu';
+import type { PerspectiveCamera, Texture, Vector2 } from 'three/webgpu';
+
+// --- Sub-pixel projection jitter (TAA-style) -------------------------------
+// Accumulation demos jitter only their hemisphere-sampling noise, so the
+// G-buffer rasterizes identically every frame and converged output keeps
+// aliased edges. Jittering the projection sub-pixel per frame (exactly what
+// TRAANode does) makes a static-camera accumulation integrate the pixel
+// footprint over time — strictly better reference quality (supersampling +
+// a more correct pixel-footprint integral).
+//
+// Mirrors three's TRAANode convention: offsets are in PIXELS, centered in
+// [-0.5, 0.5), applied via camera.setViewOffset(w, h, jx, jy, w, h). A
+// fractional view offset is valid — setViewOffset marks the projection dirty
+// and calls updateProjectionMatrix() internally, so no extra call is needed.
+
+function halton(index: number, base: number): number {
+  let fraction = 1;
+  let result = 0;
+  while (index > 0) {
+    fraction /= base;
+    result += fraction * (index % base);
+    index = Math.floor(index / base);
+  }
+  return result;
+}
+
+// 16 centered Halton(2,3) offsets in [-0.5, 0.5) pixels. index+1 so entry 0 is
+// a real offset, not (0,0) (matching TRAANode, which also starts at index 1).
+export const HALTON_JITTER: ReadonlyArray<readonly [number, number]> = Array.from(
+  { length: 16 },
+  (_, i) => [halton(i + 1, 2) - 0.5, halton(i + 1, 3) - 0.5] as const,
+);
+
+// Apply a sub-pixel view offset to the camera. w/h MUST be the current render
+// size. setViewOffset also sets camera.aspect = w/h (unchanged here) and calls
+// updateProjectionMatrix() itself. Note: this jitters the projection matrix
+// only — position/quaternion/fov/aspect are untouched, so an accumulation
+// demo's cameraMoved() (which hashes only those) does NOT trip on jitter.
+export function applyCameraJitter(
+  camera: PerspectiveCamera,
+  w: number,
+  h: number,
+  jx: number,
+  jy: number,
+): void {
+  camera.setViewOffset(w, h, jx, jy, w, h);
+}
+
+// Remove any active view offset (restores the un-jittered projection).
+export function clearCameraJitter(camera: PerspectiveCamera): void {
+  camera.clearViewOffset();
+}
 
 // Temporal contract (skeleton). Interfaces only — no reprojection WGSL yet
 // (that is M2/M3). The G-buffer already carries velocity (demo 00 MRT) so these

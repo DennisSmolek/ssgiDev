@@ -465,3 +465,71 @@ Known residual (logged, low priority): stage (a) — the debug path — still
 over-darkens somewhat at grazing even with the falloff fixed; likely needs
 GTAONode's full sample treatment. It's validation scaffolding, not the
 algorithm under test.
+
+---
+
+## 2026-07-18 — Sub-pixel projection jitter (TAA-style AA) in accumulation demos
+
+Feature: a `jitterAA` control (label "subpixel AA jitter", **default ON**) in
+every accumulation demo. Our accumulation demos jittered only the
+hemisphere-sampling noise, so the G-buffer rasterized identically every frame
+and converged output kept aliased edges. Jittering the projection sub-pixel per
+frame (exactly TRAANode's mechanism) makes a static-camera accumulation
+integrate the pixel footprint over time — supersampled, AA'd, more-correct
+reference quality.
+
+**Harness (bench/src/harness/temporal.ts):** added `HALTON_JITTER` (16 centered
+Halton(2,3) offsets in [-0.5,0.5) px, mirroring TRAANode's `_halton(i+1,base)`
+convention), `applyCameraJitter(cam,w,h,jx,jy)` → `cam.setViewOffset(w,h,jx,jy,
+w,h)`, and `clearCameraJitter(cam)`. Verified in three source that setViewOffset
+sets `aspect = w/h` (unchanged here) and calls updateProjectionMatrix()
+internally — no extra call needed.
+
+**Demos done: 02, 04, 05, 06, 10, 11** (all six). Each: added the param, a
+`jitterIndex`/`jitterActive` pair, and an `applyJitter()` that advances the
+Halton sequence when enabled or clears the offset exactly once when disabled
+(state-tracked, not cleared every frame). Jitter is applied with the CURRENT
+`ctx.renderSize()` BEFORE the G-buffer pass renders, so the scene rasterizes and
+the marchers (which read `cam.projectionMatrix[Inverse]`) share the same
+jittered projection. dispose() clears any leftover offset (camera is shared
+across demos). `?jitter=0`/`?jitter=1` URL override on all six for deterministic
+captures.
+
+**Guard verification — cameraMoved() does NOT trip on jitter:** every demo's
+reset predicate hashes only position/quaternion/fov/aspect (never
+projectionMatrix or .view). setViewOffset touches only the projection matrix (+
+aspect, which stays w/h), so jitter never resets accumulation. Confirmed live:
+demo 02 & 05 "accum samples" climb to the 512 cap with jitter ON.
+
+**Demo-specific guards:**
+- **06 (Mathis):** jitter enabled only in `static` accumulation mode
+  (`v.jitterAA && v.reproject === 'static'`). Velocity-reprojection mode leaves
+  the camera unjittered — the velocity MRT would read the jittered projection
+  and register the sub-pixel offset as fake motion. Param label documents this.
+- **10 (denoise):** jitter forced OFF when `v.traa` is true
+  (`v.jitterAA && !v.traa`) — three's traa() drives its OWN onBeforeRenderPipeline
+  Halton view-offset, so ours would double-jitter. updateOutputNode() already
+  calls camera.clearViewOffset() on rebuild; that's harmless vs our ordering
+  (the enabled path re-applies next frame). Toggling jitterAA or traa restarts
+  the converged accumulate reference (this.reset). Param label documents it.
+- **04/05/11:** straight demo-02 accumulate pattern.
+
+**Verification (headed playwright, localhost:5180, --enable-unsafe-webgpu):**
+pnpm typecheck + build both green. Demo 02 cornell, converged 9s, AO view:
+jitter OFF shows a hard STAIR-STEPPED box top edge (classic aliasing);
+jitter ON shows the same silhouette as a smooth AA'd gradient — conclusive at
+5× crop. Evidence in bench/screenshots/aa-jitter-*.png (02 ao/combined on+off,
+05 gi on, 06 static on; *-crop5x.png are the zoomed silhouettes). Demos 05 & 06
+render correctly with jitter on, converged, no reset artifacts.
+
+**Decisions for review:**
+1. Combined-view caveat: the displayed beauty/albedo are single-frame (not
+   accumulated), so silhouette AA is visible in the accumulated AO/GI channels
+   (and any downstream A/B against those buffers), NOT in the live beauty
+   multiplier of the "combined" composite. A whole-frame supersample would also
+   need beauty accumulation — out of scope; the reference buffers are the point.
+2. Toggling jitterAA resets accumulation in all demos (not a NON_RESET key) so
+   the converged buffer never mixes jittered + unjittered samples.
+3. Left the pre-existing (not mine) GTAO-falloff fix in demos 03/09 untouched.
+
+Tree left uncommitted for review (no commit per instructions).

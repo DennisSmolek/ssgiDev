@@ -15,7 +15,7 @@ import { RenderPipeline } from 'three/webgpu';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawRenderPass } from '../../harness/raw-pass';
-import { HistoryTarget } from '../../harness/temporal';
+import { HistoryTarget, HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { Comparator } from '../../harness/compare';
 import type { CompareMode } from '../../harness/compare';
 import { ensureRenderTarget } from '../../harness/three-internals';
@@ -54,6 +54,9 @@ const schema = {
   multibounce: { type: 'boolean', value: true, label: 'multibounce' },
   feedback: { type: 'number', value: 0.5, min: 0, max: 0.95, step: 0.01, label: 'bounce feedback' },
   reproject: { type: 'enum', value: 'static' as Reproject, options: REPROJECT, label: 'accumulation' },
+  // Static mode only: velocity mode leaves the camera unjittered (jitter would
+  // pollute the velocity MRT as fake sub-pixel motion). See applyJitter().
+  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter (static only)' },
   bilateralScale: { type: 'number', value: 1, min: 0.5, max: 3, step: 0.1, label: 'bilateral footprint' },
   countCap: { type: 'number', value: 64, min: 4, max: 256, step: 1, label: 'accum cap' },
   depthThresh: { type: 'number', value: 0.1, min: 0.01, max: 0.5, step: 0.01, label: 'reproj depth rej' },
@@ -130,6 +133,9 @@ class SSHGIDemo implements Demo {
   private params!: ParamGroup<typeof schema>;
 
   private frameSeed = 0;
+  private jitterIndex = 0;
+  private jitterActive = false;
+  private cam!: PerspectiveCamera;
   private resetRequested = true;
   private lastPose = new Float64Array(8);
 
@@ -139,6 +145,7 @@ class SSHGIDemo implements Demo {
 
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
+    this.cam = cam;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(
@@ -196,9 +203,15 @@ class SSHGIDemo implements Demo {
       if (!NON_RESET_KEYS.has(key as string)) this.resetRequested = true;
     });
 
-    const urlView = new URLSearchParams(window.location.search).get('view');
+    const search = new URLSearchParams(window.location.search);
+    const urlView = search.get('view');
     if (urlView && (VIEW_MODES as readonly string[]).includes(urlView)) {
       this.params.values.viewMode = urlView as ViewMode;
+      this.params.refresh();
+    }
+    const urlJitter = search.get('jitter'); // ?jitter=0/1 AA override
+    if (urlJitter === '0' || urlJitter === '1') {
+      this.params.values.jitterAA = urlJitter === '1';
       this.params.refresh();
     }
 
@@ -211,6 +224,22 @@ class SSHGIDemo implements Demo {
     const src = this.params.values.viewMode === 'split' ? this.compareRT.texture : this.outRT.texture;
     this.displayPipeline.outputNode = vec4(texture(src, uv).rgb, float(1));
     this.displayPipeline.needsUpdate = true;
+  }
+
+  // Advance/apply Halton jitter, or clear it once when disabled. GUARD: only in
+  // static accumulation mode. In velocity-reprojection mode the velocity MRT
+  // would read the jittered projection and register the sub-pixel offset as fake
+  // motion, so jitter is forced off (and cleared) there.
+  private applyJitter(cam: PerspectiveCamera, w: number, h: number, enabled: boolean): void {
+    if (enabled) {
+      const [jx, jy] = HALTON_JITTER[this.jitterIndex];
+      this.jitterIndex = (this.jitterIndex + 1) % HALTON_JITTER.length;
+      applyCameraJitter(cam, w, h, jx, jy);
+      this.jitterActive = true;
+    } else if (this.jitterActive) {
+      clearCameraJitter(cam);
+      this.jitterActive = false;
+    }
   }
 
   private cameraMoved(cam: PerspectiveCamera): boolean {
@@ -236,6 +265,9 @@ class SSHGIDemo implements Demo {
     const v = this.params.values;
     const { width, height } = ctx.renderSize();
     this.frameSeed = (this.frameSeed + 1) >>> 0;
+
+    // 0. Sub-pixel jitter (static mode only) before the G-buffer rasterizes.
+    this.applyJitter(cam, width, height, v.jitterAA && v.reproject === 'static');
 
     // 1. G-buffer.
     this.gbufferPipeline.render();
@@ -428,6 +460,7 @@ class SSHGIDemo implements Demo {
       if (type === 'pointerdown') el?.removeEventListener(type, fn);
       else window.removeEventListener(type, fn);
     }
+    if (this.jitterActive && this.cam) clearCameraJitter(this.cam);
     this.sourceRT.dispose();
     this.rawRT.dispose();
     this.outRT.dispose();
