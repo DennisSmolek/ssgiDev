@@ -85,13 +85,39 @@ green wall, matching demo 01's GI.
 
 ### Stage (d) — temporal + bilateral denoise
 `ssrt-temporal.wgsl` reprojects prev-resolved GI/AO along three's velocity
-(`prevUV = uv − vel·vec2(0.5,−0.5)`), rejects on world-position delta
-(`blendWeight = mix(1, temporalResponse, posSimilarity)`), 4-neighbour history
-clamp; ping-pong history. `ssrt-denoise.wgsl` (distilled DiffuseDenoiser) is a
-16-tap disk bilateral with depth+normal edge stops scaled by `denoisingRadius`.
-**Validation:** `03d-cornell-gi-denoised.png` vs `03d-cornell-gi-raw.png` —
-converged still-camera result far cleaner; `03d-cornell-moving.png` — camera
-orbit stays clean, no ghosting trails.
+(`prevUV = uv − vel·vec2(0.5,−0.5)`), rejects on world-position delta, 4-neighbour
+history clamp (soft `mix 0.25`); ping-pong history. `ssrt-denoise.wgsl` (distilled
+DiffuseDenoiser) is a 16-tap disk bilateral with depth+normal edge stops scaled by
+`denoisingRadius`. **Validation:** `03d-cornell-gi-denoised.png` vs
+`03d-cornell-gi-raw.png` — converged still-camera result far cleaner;
+`03d-cornell-moving.png` — camera orbit stays clean, no ghosting trails.
+
+**Real previous-depth pass** (matches SSRT3's `previousDepthTexture`,
+SSRT_HDRP.cs). The reproject reads `dPrev` from a real prev-depth buffer, not the
+old "current depth at the reprojected coord" proxy. A tiny copy pass
+(`ssrt-copydepth.wgsl`) writes the current depth into an r32float StorageTexture
+(`prevDepthTex`) each frame AFTER the temporal pass has consumed the prior copy;
+next frame's reproject reads it. First frame / resize: the reset short-circuit
+(`frameCounter < 2` / `resetTemporal`) emits current before `dPrev` is read, so
+the uninitialized copy never rejects startup history.
+
+**Accumulation mode** (`accumMode`, group *temporal & denoise*, **default
+`ssrt3-ema`** = SSRT3-faithful):
+- `ssrt3-ema` — fixed-`temporalResponse` EMA (0.35, ~3-frame memory). Cannot
+  converge SSRT3's 12-frame noise cycle (6 rotations × 4 spatial offsets) →
+  residual boil on stills.
+- `frame-count` — **our improvement.** A per-pixel frame counter `N` (r16float
+  ping-pong, reprojected alongside the GI history) grows while history stays valid
+  (`N = min(N+1, accumFrameCap)`) and resets to 1 on disocclusion
+  (`posSimilarity < 0.5`), off-screen reproj, or reset. Blend weight `= 1/N`, so a
+  static pixel keeps averaging (up to `accumFrameCap`, default 16) and the cycle
+  converges. Tradeoff: smoother stills vs more potential motion ghosting; the soft
+  neighborhood clamp is kept in both modes to bound it. `N` is written in both
+  modes so switching needs no reset.
+
+**Validation (headed, box-top cam):** gi view, two shots 2s apart after 6s
+settle — mean abs per-pixel diff `frame-count` ≈ 0.83 (converged), `ssrt3-ema` ≈
+3.38 (≈4× more boil). combined view identical & correct in both modes.
 
 ### Stage (e) — probe fallback (§3.2), the headline restored feature
 Per slice, the same 32-bit mask is split into `fallbackSampleCount` contiguous
@@ -161,9 +187,16 @@ Works on cornell + sponza + artifact-zoo and at `renderScale` 0.5 (`?scale=0.5`)
   fallback (option A in `threejs-probe-options.md`), minus parallax/positional
   correction. Not wired to `scene.environment` — keeps beauty unchanged and
   isolates the fallback term for validation.
-- **Temporal prev-depth proxy.** Reprojection reconstructs the previous world
-  position using the *current* depth at the reprojected coord (no prev-depth copy
-  pass); the world-position-delta reject still catches disocclusions.
+- **Temporal prev-depth is now a real buffer** (was: current-depth proxy).
+  `ssrt-copydepth.wgsl` refreshes an r32float `prevDepthTex` after each temporal
+  pass, matching SSRT3's `previousDepthTexture`; the reproject's world-delta reject
+  is accurate under camera motion. See stage (d).
+- **Per-frame jitter advance (deviation from SSRT3).** SSRT3 ships a frame-static
+  `rand(uv)` for the F_JITTER first-step offset, which the temporal accumulator can
+  never average away (lab 10). We advance the rand input per frame by a
+  golden-ratio offset driven by `frameSeed` (`rand(uv + frameSeed%64 · φ)`), so it
+  decorrelates and temporal accumulation converges it. `frameSeed` is driven from
+  the freeze-aware frame counter, so `freezeNoise` pins the jitter too.
 - **View-space bridge.** Reconstruct standard three view space, then flip to
   SSRT3's convention so its horizon/bitmask/fallback math ports verbatim.
 - **Perspective-only** (`halfProjScale`) — documented, acceptable per PLAN.

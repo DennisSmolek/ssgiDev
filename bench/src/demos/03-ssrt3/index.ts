@@ -37,6 +37,7 @@ import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
 import mainWgsl from './ssrt-main.wgsl?raw';
 import temporalWgsl from './ssrt-temporal.wgsl?raw';
+import copyDepthWgsl from './ssrt-copydepth.wgsl?raw';
 import denoiseWgsl from './ssrt-denoise.wgsl?raw';
 import lightmaskWgsl from './ssrt-lightmask.wgsl?raw';
 import pyramidWgsl from './ssrt-depth-pyramid.wgsl?raw';
@@ -46,6 +47,11 @@ import pyramidWgsl from './ssrt-depth-pyramid.wgsl?raw';
 
 const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
+
+// Temporal accumulation mode (stage d, Task 2). 'ssrt3-ema' = SSRT3-faithful EMA;
+// 'frame-count' = our convergence-aware 1/N accumulation.
+const ACCUM_MODES = ['ssrt3-ema', 'frame-count'] as const;
+type AccumMode = (typeof ACCUM_MODES)[number];
 
 // flags bits mirror ssrt-main.wgsl.
 const F_BITMASK = 1;
@@ -155,9 +161,13 @@ class Ssrt3Demo implements Demo {
   private finalTex = this.makeStorage();  // (d) denoised final -> composite
   private lightTex = this.makeStorage();  // (f) beauty + prevGI feedback -> march light source
   private depthPyramid = this.makePyramid(); // (g) raw-depth mip pyramid
+  private prevDepthTex = this.makeR32();  // (d) real previous-frame depth (Task 1)
+  private countA = this.makeR16();        // (d) per-pixel frame counter ping-pong (Task 2)
+  private countB = this.makeR16();
 
   private main!: RawComputePass;
   private temporal!: RawComputePass;
+  private copyDepth!: RawComputePass;
   private denoise!: RawComputePass;
   private lightmask!: RawComputePass;
   private pyramid!: RawComputePass;
@@ -172,6 +182,7 @@ class Ssrt3Demo implements Demo {
   private lData = new Float32Array(L_FLOATS);
   private pData = new Float32Array(P_FLOATS);
   private pU32 = new Uint32Array(this.pData.buffer);
+  private cData = new Float32Array(4); // copy-depth: resolution + pad
 
   private invViewProj = new Matrix4();
   private prevInvViewProj = new Matrix4();
@@ -206,6 +217,27 @@ class Ssrt3Demo implements Demo {
     t.format = RedFormat;
     t.colorSpace = NoColorSpace;
     t.generateMipmaps = true;
+    return t;
+  }
+
+  // Single-mip r32float storage (Task 1): copy of last frame's depth buffer.
+  // r32float is a WebGPU storage-capable format; full depth precision preserved.
+  private makeR32(): StorageTexture {
+    const t = new StorageTexture(1, 1);
+    t.type = FloatType;
+    t.format = RedFormat;
+    t.colorSpace = NoColorSpace;
+    t.generateMipmaps = false;
+    return t;
+  }
+
+  // Single-mip r16float storage (Task 2): per-pixel temporal frame counter N.
+  private makeR16(): StorageTexture {
+    const t = new StorageTexture(1, 1);
+    t.type = HalfFloatType;
+    t.format = RedFormat;
+    t.colorSpace = NoColorSpace;
+    t.generateMipmaps = false;
     return t;
   }
 
@@ -250,16 +282,26 @@ class Ssrt3Demo implements Demo {
       ],
     });
 
-    // Temporal reprojection: current + history + velocity + depth -> resolved.
+    // Temporal reprojection: current + history + velocity + curDepth + prevDepth
+    // + count history -> resolved GI/AO + updated count.
     this.temporal = new RawComputePass(ctx.renderer, 'ssrt-temporal', temporalWgsl, {
       bindings: [
-        { kind: 'tex' },
-        { kind: 'tex' },
-        { kind: 'tex' },
-        { kind: 'depth' },
-        { kind: 'storage', format: 'rgba16float' },
-        { kind: 'uniform' },
+        { kind: 'tex' },                              // 0 curTex
+        { kind: 'tex' },                              // 1 histTex
+        { kind: 'tex' },                              // 2 velTex
+        { kind: 'depth' },                            // 3 depthTex (current)
+        { kind: 'tex' },                              // 4 prevDepthTex (r32float, Task 1)
+        { kind: 'tex' },                              // 5 countHistTex (r16float, Task 2)
+        { kind: 'storage', format: 'rgba16float' },   // 6 outTex
+        { kind: 'storage', format: 'r16float' },      // 7 countOutTex
+        { kind: 'uniform' },                          // 8
       ],
+    });
+
+    // Prev-depth refresh (Task 1): copy current depth -> prevDepthTex AFTER the
+    // temporal pass has consumed the prior copy (SSRT3 previousDepthTexture).
+    this.copyDepth = new RawComputePass(ctx.renderer, 'ssrt-copydepth', copyDepthWgsl, {
+      bindings: [{ kind: 'depth' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
     });
     // Bilateral denoise: resolved + depth + normal -> final.
     this.denoise = new RawComputePass(ctx.renderer, 'ssrt-denoise', denoiseWgsl, {
@@ -291,6 +333,7 @@ class Ssrt3Demo implements Demo {
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
     this.temporal.configure(this.tData.byteLength);
+    this.copyDepth.configure(this.cData.byteLength);
     this.denoise.configure(this.dData.byteLength);
     this.lightmask.configure(this.lData.byteLength);
     this.pyramid.configure(this.pData.byteLength);
@@ -406,18 +449,20 @@ class Ssrt3Demo implements Demo {
     d[53] = v.thickness;
     d[54] = v.expFactor;
     d[55] = (height / (Math.tan(cam.fov * MathUtils.DEG2RAD * 0.5) * 2)) * 0.5; // halfProjScale
+    // freezeNoise pins the SSRT3 temporal rotation/offset cycle (which otherwise
+    // advances EVERY frame by design, as food for the temporal accumulator) so
+    // static noise patterns can be inspected. frameSeed is driven from fc (not
+    // the raw frameCounter) so freezeNoise also pins the per-frame jitter advance
+    // (ssrt-main.wgsl F_JITTER — our deviation from SSRT3's frame-static rand).
+    const fc = v.freezeNoise ? 0 : this.frameCounter;
     u[56] = v.rotationCount;
     u[57] = v.stepCount;
-    u[58] = this.frameCounter >>> 0;
+    u[58] = fc >>> 0;
     u[59] = this.computeFlags();
     d[60] = v.aoIntensity;
     d[61] = v.giIntensity;
     d[62] = v.backfaceLighting;
     d[63] = v.maxLuminance;
-    // freezeNoise pins the SSRT3 temporal rotation/offset cycle (which otherwise
-    // advances EVERY frame by design, as food for the temporal accumulator) so
-    // static noise patterns can be inspected.
-    const fc = v.freezeNoise ? 0 : this.frameCounter;
     d[64] = SPATIAL_OFFSETS[Math.floor(fc / 6) % 4];
     d[65] = TEMPORAL_ROTATIONS[fc % 6] / 360;
     u[66] = v.fallbackSampleCount;
@@ -476,13 +521,22 @@ class Ssrt3Demo implements Demo {
     this.invViewProj.multiplyMatrices(cam.matrixWorld, cam.projectionMatrixInverse);
     const histWrite = this.histPing ? this.histA : this.histB;
     const histRead = this.histPing ? this.histB : this.histA;
+    const countWrite = this.histPing ? this.countA : this.countB;
+    const countRead = this.histPing ? this.countB : this.countA;
     const v = this.params.values;
     this.fillTemporal(cam, width, height, v);
     this.temporal.execute(
-      [this.giAoTex, histRead, this.velocityTex, this.depthTex, histWrite, this.tData],
+      [this.giAoTex, histRead, this.velocityTex, this.depthTex, this.prevDepthTex, countRead, histWrite, countWrite, this.tData],
       width,
       height,
     );
+
+    // 3b. Prev-depth refresh (Task 1): copy current depth into prevDepthTex now
+    //     that the temporal pass above has consumed last frame's copy. Next
+    //     frame's temporal reproject reads this as dPrev.
+    this.cData[0] = width;
+    this.cData[1] = height;
+    this.copyDepth.execute([this.depthTex, this.prevDepthTex, this.cData], width, height);
 
     // 4. Bilateral denoise (d): resolved -> finalTex (display samples this).
     this.fillDenoise(cam, width, height, v);
@@ -524,7 +578,11 @@ class Ssrt3Demo implements Demo {
         [this.depthTex, this.normalTex, this.lightTex, this.envTex, this.envSampler, this.depthPyramid, this.giAoTex, this.mainData],
         w, h,
       );
-      this.temporal.execute([this.giAoTex, this.histB, this.velocityTex, this.depthTex, this.histA, this.tData], w, h);
+      this.temporal.execute(
+        [this.giAoTex, this.histB, this.velocityTex, this.depthTex, this.prevDepthTex, this.countB, this.histA, this.countA, this.tData],
+        w, h,
+      );
+      this.copyDepth.execute([this.depthTex, this.prevDepthTex, this.cData], w, h);
       this.denoise.execute([this.histA, this.depthTex, this.normalTex, this.finalTex, this.dData], w, h);
     }
     await this.device.queue.onSubmittedWorkDone();
@@ -544,8 +602,9 @@ class Ssrt3Demo implements Demo {
     let flags = 0;
     if (v.temporalAccumulation) flags |= 1;
     if (this.resetTemporal || this.frameCounter < 2) flags |= 2;
+    if (v.accumMode === 'frame-count') flags |= 4; // Task 2: 1/N accumulation
     u[37] = flags;
-    d[38] = 0;
+    d[38] = v.accumFrameCap; // frame-count mode: max effective history length
     d[39] = 0;
   }
 
@@ -574,6 +633,12 @@ class Ssrt3Demo implements Demo {
     this.depthPyramid.image = { width, height };
     this.depthPyramid.dispose();
     ensureTexture(ctx.renderer, this.depthPyramid);
+    // Prev-depth (r32float) + frame-counter ping-pong (r16float), same pattern.
+    for (const t of [this.prevDepthTex, this.countA, this.countB]) {
+      t.image = { width, height };
+      t.dispose();
+      ensureTexture(ctx.renderer, t);
+    }
     this.resetTemporal = true; // history invalid at the new resolution
   }
 
@@ -584,6 +649,9 @@ class Ssrt3Demo implements Demo {
     this.finalTex.dispose();
     this.lightTex.dispose();
     this.depthPyramid.dispose();
+    this.prevDepthTex.dispose();
+    this.countA.dispose();
+    this.countB.dispose();
     this.envTex.dispose();
   }
 }
@@ -602,7 +670,7 @@ const schema = {
   expFactor: { type: 'number', value: 1, min: 1, max: 3, step: 0.05, label: 'expFactor', group: 'sampling',
     hint: 'Exponential step distribution. 1 = uniform; higher packs samples near the pixel (better contact detail, sparser far field).' },
   jitterSamples: { type: 'boolean', value: true, label: 'jitterSamples', group: 'sampling',
-    hint: 'Randomize the first step offset per pixel (rand(uv), frame-static). Trades banding for noise.' },
+    hint: 'Randomize the first step offset per pixel. Advanced per-frame (our deviation: SSRT3 ships a frame-STATIC rand the accumulator can never average away) and pinned by freezeNoise. Trades banding for noise the temporal pass eats.' },
   screenSpaceSampling: { type: 'boolean', value: false, label: 'screenSpaceSampling', group: 'sampling',
     hint: 'Fixed screen-space radius instead of world-space projected radius. SSRT3 debug/compat mode.' },
   mipOptimization: { type: 'boolean', value: true, label: 'mipOptimization (g)', group: 'sampling',
@@ -650,7 +718,11 @@ const schema = {
   temporalAccumulation: { type: 'boolean', value: true, label: 'temporalAccumulation (d)', group: 'temporal & denoise',
     hint: 'Reprojected exponential history blend (stage d). Eats the per-frame noise cycle; without it the raw march boils.' },
   temporalResponse: { type: 'number', value: 0.35, min: 0, max: 1, step: 0.01, label: 'temporalResponse', group: 'temporal & denoise',
-    hint: 'History blend rate: LOWER = longer memory = smoother/less boil but more ghosting in motion. 0.35 ~ 3-frame memory; try 0.05-0.1 for stills.' },
+    hint: 'History blend rate (ssrt3-ema mode only): LOWER = longer memory = smoother/less boil but more ghosting in motion. 0.35 ~ 3-frame memory; try 0.05-0.1 for stills.' },
+  accumMode: { type: 'enum', value: 'ssrt3-ema' as AccumMode, options: ACCUM_MODES, label: 'accumulation', group: 'temporal & denoise',
+    hint: 'ssrt3-ema (default, SSRT3-faithful) = fixed temporalResponse EMA (~3-frame memory); cannot fully converge SSRT3\'s 12-frame noise cycle -> residual boil on stills. frame-count (our improvement) = per-pixel 1/N accumulation that keeps averaging a static pixel up to accumFrameCap frames (converges the cycle), resetting N on disocclusion. Tradeoff: smoother stills vs more potential motion ghosting.' },
+  accumFrameCap: { type: 'number', value: 16, min: 4, max: 64, step: 1, label: 'accumFrameCap', group: 'temporal & denoise',
+    hint: 'frame-count mode only: max effective history length N. Higher = smoother stills, but more motion ghosting (a moved pixel takes longer to forget stale history when reprojection fails to flag it).' },
   denoising: { type: 'boolean', value: true, label: 'denoising (d)', group: 'temporal & denoise',
     hint: 'Depth/normal-aware bilateral spatial blur after temporal (stage d).' },
   denoisingRadius: { type: 'number', value: 0.5, min: 0, max: 1, step: 0.01, label: 'denoisingRadius', group: 'temporal & denoise',
