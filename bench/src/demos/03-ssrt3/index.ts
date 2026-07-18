@@ -58,6 +58,7 @@ const F_FALLBACK = 64;
 const F_FB_NORMALIZE = 128;
 const F_CONE_MIP = 256;
 const F_GI = 512;
+const F_SECTOR_REMAP = 1024;
 
 // Per-scene world-space defaults (thickness/radius are world units — PLAN trap:
 // Cornell interior ~5.5u, Sponza longest edge ~29.8u).
@@ -386,6 +387,7 @@ class Ssrt3Demo implements Demo {
     if (v.fallbackNormalization) f |= F_FB_NORMALIZE;
     if (v.coneMip) f |= F_CONE_MIP;
     if (v.gatherGI) f |= F_GI;
+    if (v.sectorRemap) f |= F_SECTOR_REMAP;
     return f;
   }
 
@@ -412,8 +414,12 @@ class Ssrt3Demo implements Demo {
     d[61] = v.giIntensity;
     d[62] = v.backfaceLighting;
     d[63] = v.maxLuminance;
-    d[64] = SPATIAL_OFFSETS[Math.floor(this.frameCounter / 6) % 4];
-    d[65] = TEMPORAL_ROTATIONS[this.frameCounter % 6] / 360;
+    // freezeNoise pins the SSRT3 temporal rotation/offset cycle (which otherwise
+    // advances EVERY frame by design, as food for the temporal accumulator) so
+    // static noise patterns can be inspected.
+    const fc = v.freezeNoise ? 0 : this.frameCounter;
+    d[64] = SPATIAL_OFFSETS[Math.floor(fc / 6) % 4];
+    d[65] = TEMPORAL_ROTATIONS[fc % 6] / 360;
     u[66] = v.fallbackSampleCount;
     d[67] = v.fallbackPower;
     d[68] = v.fallbackIntensity;
@@ -603,6 +609,8 @@ const schema = {
   maxLuminance: { type: 'number', value: 7, min: 1, max: 30, step: 0.5, label: 'firefly clamp' },
   // --- Occlusion ---
   useBitmask: { type: 'boolean', value: true, label: 'VBAO bitmask (b)' },
+  sectorRemap: { type: 'boolean', value: true, label: 'sector remap (anti tangent-phantom)' },
+  freezeNoise: { type: 'boolean', value: false, label: 'freeze noise cycle (inspect)' },
   aoIntensity: { type: 'number', value: 1, min: 0, max: 4, step: 0.05, label: 'AOIntensity' },
   thickness: { type: 'number', value: 0.5, min: 0.01, max: 10, step: 0.01, label: 'thickness (world)' },
   linearThickness: { type: 'boolean', value: false, label: 'linearThickness' },

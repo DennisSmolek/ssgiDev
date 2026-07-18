@@ -67,7 +67,12 @@ const F_NORMALAPPROX : u32 = 32u;   // bit5: reconstruct sample normal from posi
 const F_FALLBACK : u32 = 64u;       // bit6: probe fallback enabled (e)
 const F_FB_NORMALIZE : u32 = 128u;  // bit7: SSRT3 shipped MAX_RAY normalization (vs paper per-subregion)
 const F_CONE_MIP : u32 = 256u;      // bit8: cone->mip formula (vs hardcoded mip 3)
-const F_GI : u32 = 512u;            // bit9: gather GI (c+)
+const F_GI : u32 = 512u;
+const F_SECTOR_REMAP : u32 = 1024u; // bit10: Therrien's shipped-but-commented "one
+// sector narrower hemisphere" remap (SSRTCS.compute L265). Coplanar samples land
+// exactly on the hemisphere boundary where ceil() stamps a phantom sector
+// (1/32 AO per step, rotation-modulated flicker on flat surfaces); shrinking the
+// mapped range by ~1.5 sectors per side collapses those spans to zero width.            // bit9: gather GI (c+)
 
 @group(0) @binding(0) var depthTex : texture_depth_2d;
 @group(0) @binding(1) var normalTex : texture_2d<f32>;   // three normalView (view-space, [-1,1])
@@ -268,6 +273,9 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
     var fbh = vec2<f32>(dot(pixelToSample, viewDir), dot(pixelToSampleBackface, viewDir));
     fbh = vec2<f32>(fastAcos(fbh.x), fastAcos(fbh.y));
     fbh = clamp(((samplingDirection * -fbh) - n + HALF_PI) / PI, vec2<f32>(0.0), vec2<f32>(1.0));
+    if (hasFlag(F_SECTOR_REMAP)) {
+      fbh = clamp(fbh * (1.0 + 1.5 * PI / f32(MAX_RAY)) - vec2<f32>(1.5 * HALF_PI / f32(MAX_RAY)), vec2<f32>(0.0), vec2<f32>(1.0));
+    }
     // Front/back swap by direction (SSRT3: directionIsRight ? .yx : .xy)
     let ordered = select(fbh, fbh.yx, dirIsRight);
     let numOccludedZones = computeOccludedBitfield(ordered.x, ordered.y, globalBitfield);

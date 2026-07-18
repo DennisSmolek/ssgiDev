@@ -533,3 +533,25 @@ render correctly with jitter on, converged, no reset artifacts.
 3. Left the pre-existing (not mine) GTAO-falloff fix in demos 03/09 untouched.
 
 Tree left uncommitted for review (no commit per instructions).
+
+---
+
+## 2026-07-18 — Demo 03: tangent-phantom sectors on flat surfaces (Dennis's catch #2)
+
+Bitmask mode veiled flat surfaces (box tops) with rotation-modulated gray
+speckle the temporal pass can't converge; reference renders them near-white.
+Root cause: coplanar samples land exactly on the mapped hemisphere boundary,
+where `ceil(span * 32)` stamps a phantom sector (1/32 AO per march step).
+Faithful to SSRT3 — and SSRT3's own cure exists COMMENTED OUT in their
+shipped compute (SSRTCS.compute L265, "remap bitfield on one sector narrower
+hemisphere"); SSGINode inherits the same omission. Implemented that remap as
+`sectorRemap` (default ON; off = shipped-SSRT3-faithful). Verified on a
+box-top camera: veil gone with remap, matches reference structure.
+
+Also added `freezeNoise` (default off): SSRT3's temporal rotation/offset
+cycle advances EVERY frame by design (denoiser food) — that's the "flicker
+with jitter off" report; the toggle pins it for static inspection.
+
+Note for comparisons: `gatherGI` implies the bitmask in the WGSL (GI needs
+sector counts), so gatherGI ON + bitmask UNCHECKED still marches in bitmask
+mode — identical AO to bitmask-on is by design, not a bug.
