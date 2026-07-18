@@ -135,7 +135,7 @@ const schema = {
   traa: { type: 'boolean', value: false, label: 'TRAA after (combined)' },
   // Forced OFF when TRAA is on: traa() drives its OWN Halton view-offset jitter,
   // so ours would double-jitter. See applyJitter() / updateOutputNode().
-  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter (off under TRAA)' },
+  jitterAA: { type: 'boolean', value: false, label: 'subpixel AA jitter (off under TRAA)' },
   giExposure: { type: 'number', value: 1, min: 0.1, max: 8, step: 0.05, label: 'GI display gain' },
   // --- SSRT3 stack ---
   temporalResponse: { type: 'number', value: 0.35, min: 0, max: 1, step: 0.01, label: 'ssrt temporalResponse' },

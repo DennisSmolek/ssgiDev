@@ -56,7 +56,7 @@ const schema = {
   reproject: { type: 'enum', value: 'static' as Reproject, options: REPROJECT, label: 'accumulation' },
   // Static mode only: velocity mode leaves the camera unjittered (jitter would
   // pollute the velocity MRT as fake sub-pixel motion). See applyJitter().
-  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter (static only)' },
+  jitterAA: { type: 'boolean', value: false, label: 'subpixel AA jitter (static only)' },
   bilateralScale: { type: 'number', value: 1, min: 0.5, max: 3, step: 0.1, label: 'bilateral footprint' },
   countCap: { type: 'number', value: 64, min: 4, max: 256, step: 1, label: 'accum cap' },
   depthThresh: { type: 'number', value: 0.1, min: 0.01, max: 0.5, step: 0.01, label: 'reproj depth rej' },

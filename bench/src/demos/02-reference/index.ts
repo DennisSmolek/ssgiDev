@@ -35,7 +35,7 @@ const schema = {
   thickness: { type: 'number', value: 0.5, min: 0.05, max: 4, step: 0.05, label: 'thickness (world)' },
   bias: { type: 'number', value: 0.03, min: 0.005, max: 0.3, step: 0.005, label: 'normal bias' },
   accumulate: { type: 'boolean', value: true, label: 'accumulate' },
-  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter' },
+  jitterAA: { type: 'boolean', value: false, label: 'subpixel AA jitter' },
   maxAccumFrames: { type: 'number', value: 512, min: 1, max: 4096, step: 1, label: 'max frames' },
   maxLuminance: { type: 'number', value: 10, min: 1, max: 30, step: 0.5, label: 'firefly clamp' },
   giStrength: { type: 'number', value: 1, min: 0, max: 5, step: 0.05, label: 'GI strength' },

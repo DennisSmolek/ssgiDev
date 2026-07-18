@@ -39,7 +39,7 @@ const schema = {
   importanceSampling: { type: 'boolean', value: true, label: 'slice importance' },
   thicknessNormalize: { type: 'boolean', value: false, label: 'thickness: normalize' },
   accumulate: { type: 'boolean', value: true, label: 'accumulate' },
-  jitterAA: { type: 'boolean', value: true, label: 'subpixel AA jitter' },
+  jitterAA: { type: 'boolean', value: false, label: 'subpixel AA jitter' },
   maxAccumFrames: { type: 'number', value: 512, min: 1, max: 4096, step: 1, label: 'max frames' },
   // reference marcher (validation oracle) params
   refRays: { type: 'number', value: 4, min: 1, max: 16, step: 1, label: 'ref rays/frame' },
