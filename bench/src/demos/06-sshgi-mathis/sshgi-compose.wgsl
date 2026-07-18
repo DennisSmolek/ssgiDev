@@ -80,7 +80,11 @@ fn fs(in : VOut) -> @location(0) vec4<f32> {
   }
 
   if (params.tonemap == 1u && params.viewMode == 0u) {
-    col = pow(acesFilm(max(vec3<f32>(0.0), col)), vec3<f32>(0.45));
+    // ACES only, in linear. Mathis's Shadertoy also applied pow(0.45) gamma
+    // here, but our output goes through three's display pipeline which does
+    // the linear->sRGB encode itself — keeping the manual gamma double-encodes
+    // and washes out the combined view.
+    col = acesFilm(max(vec3<f32>(0.0), col));
   }
   return vec4<f32>(col, 1.0);
 }

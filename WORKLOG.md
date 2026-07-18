@@ -418,3 +418,22 @@ shadows; fps reads 165 on the 165 Hz display). NOTE: all pre-shadow
 screenshots in bench/screenshots/ are historical — lab quality comparisons
 against a shadowless beauty remain valid A/B-internally but don't represent
 current beauty output.
+
+---
+
+## 2026-07-18 — Demo 06 combined-view blowout fix (Dennis's catch)
+
+Combined view was washed out while the GI view looked correct: the compose
+shader kept Mathis's Shadertoy output transform verbatim — ACES + manual
+pow(0.45) gamma — but only in combined mode, and the result then passes
+through three's display pipeline which applies its own linear→sRGB encode.
+Combined was gamma-encoded TWICE; GI view (no manual transform) was encoded
+once, hence the asymmetry. Shadertoy has no output encoding stage, so the
+manual gamma was correct in Mathis's context and wrong in ours. Fix: ACES
+stays (in linear), manual gamma removed. Verified headed on cornell —
+contrast/saturation restored. Grep confirmed no other demo WGSL carries a
+manual gamma.
+
+Trap added to the list: when porting Shadertoy code, its final pass always
+includes display encoding (gamma/tonemap) that must be REMOVED when the
+output feeds three's pipeline, which encodes on its own.
