@@ -193,9 +193,13 @@ fn marchHorizonCos(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : ve
     let dist = length(pixelToSample);
     if (dist < 1e-5) { continue; }
     let c = dot(pixelToSample / dist, viewDir);
-    // Falloff: ignore samples beyond radius.
-    let falloff = clamp(1.0 - (dist * dist) / (params.radius * params.radius), 0.0, 1.0);
-    cHorizon = max(cHorizon, c * falloff);
+    // Distance falloff, GTAO-canonical (see GTAONode.js): raise the horizon with
+    // the RAW sample cosine, then fade the RESULT back toward the previous
+    // horizon as dist approaches the radius. Multiplying the cosine by the
+    // falloff instead drags negative cosines toward zero, which RAISES the
+    // horizon on flat grazing surfaces — phantom AO + per-frame boil.
+    let distFacSq = clamp((dist * dist) / (params.radius * params.radius), 0.0, 1.0);
+    cHorizon = mix(max(cHorizon, c), cHorizon, distFacSq);
   }
   return cHorizon;
 }

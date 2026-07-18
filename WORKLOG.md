@@ -437,3 +437,31 @@ manual gamma.
 Trap added to the list: when porting Shadertoy code, its final pass always
 includes display encoding (gamma/tonemap) that must be REMOVED when the
 output feeds three's pipeline, which encodes on its own.
+
+---
+
+## 2026-07-18 — Demo 03 grazing-surface artifact (Dennis's catch) — two defects
+
+Symptom: dark noisy veil on grazing surfaces (ceiling, box tops, side walls
+depending on view) that never accumulates away; absent from demos 01/02/04.
+
+1. **Stage-(a) falloff math bug**: `cHorizon = max(cHorizon, c * falloff)`
+   scales the sample COSINE by the distance falloff — for negative cosines
+   (geometry below the tangent plane) that drags values toward 0 and RAISES
+   the horizon, manufacturing occlusion on flat grazing surfaces; jittered
+   step distances modulate it per frame (the un-accumulatable boil).
+   Canonical GTAO (GTAONode.js:519) fades the RESULT toward the previous
+   horizon: `cHorizon = mix(max(cHorizon, c), cHorizon, distFacSq)`. Fixed in
+   demo 03's ssrt-main.wgsl AND lab 09's forked march (same inherited line).
+   Diagnosis matrix: artifact invariant to temporal/radius/thickness toggles,
+   confirmed via matched-camera A/B vs demo 02 (?cam= override).
+2. **Wrong boot defaults**: demo 03 defaulted to useBitmask=false,
+   gatherGI=false, mip=false — i.e. it booted into the stage-(a) DEBUG path
+   (custom GTAO scaffolding), not SSRT3. With the bitmask on, grazing walls
+   are clean and match the reference's structure. Defaults now match shipped
+   SSRT3: bitmask ON, GI ON, mipOptimization ON.
+
+Known residual (logged, low priority): stage (a) — the debug path — still
+over-darkens somewhat at grazing even with the falloff fixed; likely needs
+GTAONode's full sample treatment. It's validation scaffolding, not the
+algorithm under test.

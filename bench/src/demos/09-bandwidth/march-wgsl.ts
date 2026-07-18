@@ -136,8 +136,10 @@ fn marchHorizonCos(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : ve
     let dist = length(pixelToSample);
     if (dist < 1e-5) { continue; }
     let c = dot(pixelToSample / dist, viewDir);
-    let falloff = clamp(1.0 - (dist * dist) / (params.radius * params.radius), 0.0, 1.0);
-    cHorizon = max(cHorizon, c * falloff);
+    // GTAO-canonical falloff (same fix as demo 03's ssrt-main.wgsl): fade the
+    // RESULT toward the previous horizon, never scale the cosine itself.
+    let distFacSq = clamp((dist * dist) / (params.radius * params.radius), 0.0, 1.0);
+    cHorizon = mix(max(cHorizon, c), cHorizon, distFacSq);
   }
   return cHorizon;
 }

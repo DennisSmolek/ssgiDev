@@ -592,9 +592,9 @@ const schema = {
   expFactor: { type: 'number', value: 1, min: 1, max: 3, step: 0.05, label: 'expFactor' },
   jitterSamples: { type: 'boolean', value: true, label: 'jitterSamples' },
   screenSpaceSampling: { type: 'boolean', value: false, label: 'screenSpaceSampling' },
-  mipOptimization: { type: 'boolean', value: false, label: 'mipOptimization (g)' },
+  mipOptimization: { type: 'boolean', value: true, label: 'mipOptimization (g)' },
   // --- GI ---
-  gatherGI: { type: 'boolean', value: false, label: 'gather GI (c)' },
+  gatherGI: { type: 'boolean', value: true, label: 'gather GI (c)' },
   giIntensity: { type: 'number', value: 10, min: 0, max: 100, step: 0.5, label: 'GIIntensity' },
   multiBounceGI: { type: 'number', value: 0, min: 0, max: 1, step: 0.01, label: 'multiBounceGI (f)' },
   mbDamping: { type: 'number', value: 0.5, min: 0, max: 1, step: 0.05, label: 'mb feedback damping (f)' },
@@ -602,7 +602,7 @@ const schema = {
   backfaceLighting: { type: 'number', value: 0, min: 0, max: 1, step: 0.01, label: 'backfaceLighting' },
   maxLuminance: { type: 'number', value: 7, min: 1, max: 30, step: 0.5, label: 'firefly clamp' },
   // --- Occlusion ---
-  useBitmask: { type: 'boolean', value: false, label: 'VBAO bitmask (b)' },
+  useBitmask: { type: 'boolean', value: true, label: 'VBAO bitmask (b)' },
   aoIntensity: { type: 'number', value: 1, min: 0, max: 4, step: 0.05, label: 'AOIntensity' },
   thickness: { type: 'number', value: 0.5, min: 0.01, max: 10, step: 0.01, label: 'thickness (world)' },
   linearThickness: { type: 'boolean', value: false, label: 'linearThickness' },
