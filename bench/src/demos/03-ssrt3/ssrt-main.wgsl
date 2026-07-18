@@ -217,7 +217,7 @@ fn marchHorizonCos(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : ve
 fn computeOccludedBitfield(minHorizon : f32, maxHorizon : f32, globalBitfield : ptr<function, u32>) -> u32 {
   var startHorizonInt = u32(minHorizon * f32(MAX_RAY));
   if (startHorizonInt >= 32u) { startHorizonInt = 31u; } // guard: 1<<32 is WGSL UB
-  let angleHorizonInt = u32(ceil(clamp(maxHorizon - minHorizon, 0.0, 1.0) * f32(MAX_RAY)));
+  let angleHorizonInt = u32(clamp(maxHorizon - minHorizon, 0.0, 1.0) * f32(MAX_RAY));
   var angleHorizonBitfield : u32 = 0u;
   if (angleHorizonInt > 0u) {
     angleHorizonBitfield = 0xFFFFFFFFu >> (32u - angleHorizonInt);
@@ -364,7 +364,12 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
     let sliceDir = vec3<f32>(cos(rotationAngle), sin(rotationAngle), 0.0);
-    let slideDir_TexelSize = sliceDir.xy * (1.0 / params.resolution);
+    // sliceDir is a VIEW-SPACE direction (y up); our screen uv has y DOWN
+    // (top-left origin, viewPosStd flips y). Unity's uv is y-up so SSRT3 uses
+    // sliceDir.xy for both spaces — here the screen step must mirror y or every
+    // slice marches in the y-mirrored plane of its own planeNormal/n frame
+    // (horizon sectors land mirrored about the normal; grazing-angle speckle).
+    let slideDir_TexelSize = vec2<f32>(sliceDir.x, -sliceDir.y) * (1.0 / params.resolution);
 
     let planeNormal = normalize(cross(sliceDir, viewDir));
     let tangent = cross(viewDir, planeNormal);

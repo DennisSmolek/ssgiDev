@@ -555,3 +555,28 @@ with jitter off" report; the toggle pins it for static inspection.
 Note for comparisons: `gatherGI` implies the bitmask in the WGSL (GI needs
 sector counts), so gatherGI ON + bitmask UNCHECKED still marches in bitmask
 mode — identical AO to bitmask-on is by design, not a bug.
+
+## 2026-07-18 — Demo 03 box-top speckle: REAL root cause (screen-y vs view-y mirror)
+
+Dennis disproved the phantom-sector/ceil() theory experimentally (endpoint-floor
+quantization and ceil removal changed nothing) and supplied the winning clue:
+GT-VBAO/VBGI (also bitmask) are clean, and Unity flips textures vs WebGPU.
+Root cause: SSRT3 uses `sliceDir.xy` as BOTH the view-space slice direction
+(builds planeNormal / projected normal angle n) AND the screen-space march step.
+Legal in Unity (uv y-up == view y-up); in our compute port uv is y-DOWN
+(top-left origin, viewPosStd flips y), so the marcher physically walked in
+view direction (cos a, -sin a) while the hemisphere mapping assumed
+(cos a, +sin a) — every slice mirrored about its own frame. Error scales with
+grazing angle and varies with the per-pixel rotation noise → dark speckle on
+flat tops, quantization-independent (why ceil/floor experiments were null).
+Fix: mirror y in the screen step only —
+`slideDir_TexelSize = vec2(sliceDir.x, -sliceDir.y) / resolution` — in
+demo 03 ssrt-main.wgsl and the forked marchers in demos 07 and 09.
+Verified headed on the box-top camera (diag-03e.mjs): raw AO clean/near-white,
+combined shows correct green-wall bounce, no speckle.
+Retraction: the 2026-07-17 sector-remap entry over-claimed — the remap only
+slightly attenuated the artifact; it remains as an SSRT3-faithful toggle but is
+NOT the cure. Stage-(a) "edges super dark" residual likely shared this cause;
+re-check before treating it as a separate bug.
+Also: subpixel AA jitter now defaults OFF in all demos (02/04/05/06/10/11) —
+without a reprojecting TRAA/FSR resolve it never settles (Dennis request).

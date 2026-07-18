@@ -413,7 +413,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
     let sliceDir = vec3<f32>(cos(rotationAngle), sin(rotationAngle), 0.0);
-    let slideDir_TexelSize = sliceDir.xy * (1.0 / params.resolution);
+    let slideDir_TexelSize = vec2<f32>(sliceDir.x, -sliceDir.y) * (1.0 / params.resolution); // screen y-down vs view y-up (see demo 03 ssrt-main.wgsl)
 
     let planeNormal = normalize(cross(sliceDir, viewDir));
     let tangent = cross(viewDir, planeNormal);
