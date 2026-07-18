@@ -1,19 +1,21 @@
 import type { FolderApi } from 'tweakpane';
 
-export type NumberParam = {
+// `group` nests the control in a sub-folder of that title (created on first
+// use, in schema order; ungrouped controls stay at the folder root). `hint`
+// becomes a native hover tooltip (title attr) explaining what/why.
+type CommonParam = { label?: string; group?: string; hint?: string };
+export type NumberParam = CommonParam & {
   type: 'number';
   value: number;
   min?: number;
   max?: number;
   step?: number;
-  label?: string;
 };
-export type BooleanParam = { type: 'boolean'; value: boolean; label?: string };
-export type EnumParam<T extends string = string> = {
+export type BooleanParam = CommonParam & { type: 'boolean'; value: boolean };
+export type EnumParam<T extends string = string> = CommonParam & {
   type: 'enum';
   value: T;
   options: readonly T[];
-  label?: string;
 };
 
 export type ParamSpec = NumberParam | BooleanParam | EnumParam;
@@ -47,6 +49,7 @@ export function buildParams<T extends ParamSchema>(
   const values = {} as ParamValues<T>;
   const listeners: Array<(key: keyof T) => void> = [];
   const bindings = new Map<keyof T, { refresh(): void }>();
+  const subFolders = new Map<string, FolderApi>();
 
   for (const key of Object.keys(schema) as Array<keyof T>) {
     const spec = schema[key];
@@ -61,11 +64,22 @@ export function buildParams<T extends ParamSchema>(
       opts = { ...opts, options: map };
     }
 
-    const binding = folder.addBinding(
+    let target = folder;
+    if (spec.group) {
+      let sub = subFolders.get(spec.group);
+      if (!sub) {
+        sub = folder.addFolder({ title: spec.group, expanded: true });
+        subFolders.set(spec.group, sub);
+      }
+      target = sub;
+    }
+
+    const binding = target.addBinding(
       values as Record<string, unknown>,
       key as string,
       opts,
     );
+    if (spec.hint) binding.element.title = spec.hint;
     binding.on('change', () => {
       for (const cb of listeners) cb(key);
     });

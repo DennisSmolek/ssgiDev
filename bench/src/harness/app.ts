@@ -85,6 +85,13 @@ export async function startApp(config: AppConfig): Promise<void> {
 
   // --- Tweakpane root ---
   const pane = new Pane({ title: 'SSGI Bench' });
+  // Tweakpane's injected container (.tp-dfwv) is position:fixed with no height
+  // cap, so long demo panels run off-screen with no way to reach them.
+  const paneRoot = pane.element.parentElement;
+  if (paneRoot) {
+    paneRoot.style.maxHeight = 'calc(100vh - 16px)';
+    paneRoot.style.overflowY = 'auto';
+  }
 
   // --- scene + camera + controls ---
   const scene: SceneHandle = sceneDef.create({
