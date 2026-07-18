@@ -583,7 +583,7 @@ class Ssrt3Demo implements Demo {
 }
 
 const schema = {
-  viewMode: { type: 'enum', value: 'ao' as ViewMode, options: VIEW_MODES, label: 'view' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   giExposure: { type: 'number', value: 1, min: 0.1, max: 8, step: 0.05, label: 'GI display gain' },
   // --- Sampling (SSRT3) ---
   rotationCount: { type: 'number', value: 2, min: 1, max: 4, step: 1, label: 'rotationCount' },

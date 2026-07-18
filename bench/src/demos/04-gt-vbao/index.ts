@@ -28,7 +28,7 @@ const VIEW_MODES = ['ao', 'reference', 'combined', 'beauty', 'split'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
 
 const schema = {
-  viewMode: { type: 'enum', value: 'ao' as ViewMode, options: VIEW_MODES, label: 'view' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   slicesPerFrame: { type: 'number', value: 2, min: 1, max: 8, step: 1, label: 'slices/frame' },
   stepsPerSlice: { type: 'number', value: 32, min: 4, max: 64, step: 1, label: 'steps/slice' },
   marchWidthPx: { type: 'number', value: 512, min: 32, max: 1024, step: 16, label: 'march width (px)' },

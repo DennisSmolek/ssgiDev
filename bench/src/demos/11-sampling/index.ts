@@ -31,7 +31,7 @@ type NoiseMode = (typeof NOISE_MODES)[number];
 const NOISE_ID: Record<NoiseMode, number> = { white: 0, ign: 1, hilbert: 2, blue: 3, stbn: 4 };
 
 const schema = {
-  viewMode: { type: 'enum', value: 'ao' as ViewMode, options: VIEW_MODES, label: 'view' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   noise: { type: 'enum', value: 'white' as NoiseMode, options: NOISE_MODES, label: 'noise' },
   temporalAdvance: { type: 'boolean', value: true, label: 'temporal advance' },
   slicesPerFrame: { type: 'number', value: 1, min: 1, max: 8, step: 1, label: 'slices/frame' },

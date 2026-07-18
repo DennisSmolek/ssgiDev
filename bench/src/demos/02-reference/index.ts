@@ -28,7 +28,7 @@ const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'split'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
 
 const schema = {
-  viewMode: { type: 'enum', value: 'ao' as ViewMode, options: VIEW_MODES, label: 'view' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   raysPerPixel: { type: 'number', value: 4, min: 1, max: 64, step: 1, label: 'rays/pixel' },
   stepsPerRay: { type: 'number', value: 32, min: 4, max: 96, step: 1, label: 'steps/ray' },
   radius: { type: 'number', value: 6, min: 0.5, max: 14, step: 0.1, label: 'radius (world)' },

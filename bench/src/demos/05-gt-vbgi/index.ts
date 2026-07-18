@@ -39,7 +39,7 @@ const VARIANT_INDEX: Record<Variant, number> = {
 const CMP_CHANNELS = ['rgb', 'alpha'] as const;
 
 const schema = {
-  viewMode: { type: 'enum', value: 'gi' as ViewMode, options: VIEW_MODES, label: 'view' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view' },
   variant: { type: 'enum', value: 'bidirectional' as Variant, options: VARIANTS, label: 'variant' },
   slicesPerFrame: { type: 'number', value: 2, min: 1, max: 8, step: 1, label: 'slices/frame' },
   stepsPerSlice: { type: 'number', value: 32, min: 4, max: 64, step: 1, label: 'steps/slice' },
