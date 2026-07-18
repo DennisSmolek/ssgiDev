@@ -422,6 +422,7 @@ class DenoiseLabDemo implements Demo {
   private updateOutputNode(): void {
     const v = this.params.values;
     const uv = screenUV;
+    this.displayPipeline.needsUpdate = true;
 
     // Dispose a previous TRAA wrapper and clear any camera view-offset it set.
     if (this.traaNode?.dispose) this.traaNode.dispose();

@@ -156,6 +156,7 @@ class ReferenceDemo implements Demo {
 
   private updateOutputNode(): void {
     this.displayPipeline.outputNode = this.buildViewNode(this.params.values.viewMode);
+    this.displayPipeline.needsUpdate = true;
   }
 
   private buildViewNode(mode: ViewMode) {

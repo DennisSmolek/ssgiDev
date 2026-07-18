@@ -210,6 +210,7 @@ class SSHGIDemo implements Demo {
     const uv = screenUV;
     const src = this.params.values.viewMode === 'split' ? this.compareRT.texture : this.outRT.texture;
     this.displayPipeline.outputNode = vec4(texture(src, uv).rgb, float(1));
+    this.displayPipeline.needsUpdate = true;
   }
 
   private cameraMoved(cam: PerspectiveCamera): boolean {

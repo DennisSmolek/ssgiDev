@@ -21,8 +21,10 @@ class Rolling {
 export class Timing {
   private cpu = new Rolling();
   private gpu = new Rolling();
+  private interval = new Rolling();
   private named = new Map<string, Rolling>();
   private frameT0 = 0;
+  private lastFrameStart = 0;
   private gpuInFlight = false;
 
   // Live object the stats panel binds readonly monitors to.
@@ -39,14 +41,25 @@ export class Timing {
   }
 
   frameStart(): void {
-    this.frameT0 = performance.now();
+    const now = performance.now();
+    // FPS = wall-clock interval between frame starts (the rAF/vsync cadence),
+    // NOT 1000/cpu-work-time, which reports impossible throughput numbers.
+    // Intervals > 500 ms (tab hidden, debugger pause) are dropped, not averaged.
+    if (this.lastFrameStart > 0) {
+      const delta = now - this.lastFrameStart;
+      if (delta < 500) {
+        this.interval.push(delta);
+        this.readout.fps = this.interval.avg > 0 ? Math.round(1000 / this.interval.avg) : 0;
+      }
+    }
+    this.lastFrameStart = now;
+    this.frameT0 = now;
   }
 
   frameEnd(): void {
     const ms = performance.now() - this.frameT0;
     this.cpu.push(ms);
     this.readout.cpuMs = round2(this.cpu.avg);
-    this.readout.fps = this.cpu.avg > 0 ? Math.round(1000 / this.cpu.avg) : 0;
   }
 
   // Named CPU sub-timer (e.g. the raw pass, which three's timestamp pool does

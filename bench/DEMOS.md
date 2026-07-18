@@ -134,7 +134,7 @@ Labs answer questions; their READMEs end in Findings. The defaults they settled:
 
 | Demo | Source lineage | Estimator character | Temporal | Off-screen answer | Role |
 |---|---|---|---|---|---|
-| 01 | SSRT3 → three TSL port | paper-faithful, simplified | BYO (TRAA/Denoise) | none | shipping floor |
+| 01 | SSRT3 → three TSL port | paper-faithful, simplified | wired: TRAA default (selector: TRAA/Denoise/none) | none | shipping floor |
 | 02 | Salm's reference marcher | unbiased MC, single bounce | accumulate-only | sky term | oracle |
 | 03 | SSRT3 (complete) | paper-faithful, full-featured | own reproj+bilateral | **§3.2 fallback** | faithful reference impl |
 | 04 | Salm GT-VBAO | ground-truth-converging AO | accumulate | n/a (AO) | correctness anchor (AO) |

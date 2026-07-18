@@ -288,6 +288,7 @@ class StockThreeDemo implements Demo {
     }
 
     // --- Debug view selection ---
+    this.pipeline.needsUpdate = true;
     switch (v.viewMode) {
       case 'final':
         this.pipeline.outputNode = finalNode;

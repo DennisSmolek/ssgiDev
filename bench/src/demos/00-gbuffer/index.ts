@@ -130,6 +130,9 @@ class GBufferDemo implements Demo {
 
   private updateOutputNode(): void {
     this.displayPipeline.outputNode = this.buildViewNode(this.params.values.viewMode);
+    // three's RenderPipeline only re-reads outputNode when needsUpdate is set
+    // (RenderPipeline.js render(): `if (this.needsUpdate === true)`).
+    this.displayPipeline.needsUpdate = true;
   }
 
   private buildViewNode(mode: ViewMode) {

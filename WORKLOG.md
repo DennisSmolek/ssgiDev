@@ -356,3 +356,38 @@ were restarted into hand-provisioned worktrees (m5-lab08/m5-lab09).
    prev-depth copy.
 6. three bump watch: LightProbeGrid WebGPU (lab 07 Source B), SSGINode updates.
 7. Wasted beauty blit in demo 00's pass ordering (minor).
+
+---
+
+## 2026-07-18 — Live-testing fixes (Dennis's first hands-on pass)
+
+Three defects found by actual interactive use that headless URL-param
+screenshots structurally could not catch (each screenshot was a fresh page
+load, so runtime state changes were never exercised):
+
+1. **FPS readout was 1000/cpu-work-ms** (reported 2200+ "fps" on a 160 Hz
+   display). Now measured as wall-clock interval between frame starts,
+   >500 ms gaps dropped. Verified headed: 165 fps on a 165 Hz display.
+2. **Live view switching did nothing in demo 00** (and was unreliable
+   repo-wide): three's RenderPipeline only re-reads outputNode when
+   `needsUpdate` is set. All 12 demos now set `pipeline.needsUpdate = true`
+   at their view-update site. Some demos appeared to work because their
+   param changes rebuild enough graph to trigger recompiles indirectly;
+   the flag is now explicit everywhere.
+3. **Beauty/scene quality gap vs the official three.js SSGI example**: our
+   5.5-unit cornell has no shadow-casting light and gray boxes, and demo 01's
+   default radius (~12) is tuned for the official 20-unit room — on the small
+   box it over-reaches and reads far noisier. Added `cornell3` scene
+   ("Cornell (three.js example)"): faithful replica of
+   webgpu_postprocessing_ssgi.html's scene (20×15×20 room, PointLight 100
+   w/ 1024² shadows, white MeshPhysicalMaterial boxes, fixture cylinder,
+   ambient 0x0c0c0c, camera fov 40 @ (0,10,30)). Demo 01 on cornell3 now
+   visually matches the official demo (verified headed). The 5.5-unit
+   cornell stays — all lab-tuned world-space defaults reference it.
+
+Also: DEMOS.md demo-01 row clarified — TRAA IS wired (default), selector
+TRAA/Denoise/none; "BYO" only describes upstream three, not our demo.
+
+**Verification note for future sessions:** headless chromium here falls back
+to software WebGPU (black canvas, ~200 ms GPU) — use `headless: false` for
+render verification; `--enable-unsafe-webgpu` alone, no Vulkan flag.
