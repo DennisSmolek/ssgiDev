@@ -10,6 +10,7 @@ import {
   RedFormat,
   RGBAFormat,
   RenderPipeline,
+  RenderTarget,
   RepeatWrapping,
   StorageTexture,
   UnsignedByteType,
@@ -32,7 +33,11 @@ import {
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawComputePass } from '../../harness/raw-compute-pass';
-import { ensureTexture } from '../../harness/three-internals';
+import { Comparator } from '../../harness/compare';
+import type { CompareChannel } from '../../harness/compare';
+import { ReferencePass } from '../../harness/reference-pass';
+import type { ReferenceInputs, ReferenceParams } from '../../harness/reference-pass';
+import { ensureTexture, ensureRenderTarget } from '../../harness/three-internals';
 import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
 import mainWgsl from './ssrt-main.wgsl?raw';
@@ -45,8 +50,20 @@ import pyramidWgsl from './ssrt-depth-pyramid.wgsl?raw';
 // Demo 03 — SSRT3 complete WebGPU compute port. See README for lineage/stages.
 // Built in stages a-g; a=GTAO, b=bitmask, c=GI, d=temporal+denoise.
 
-const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw'] as const;
+// 'reference' = converged brute-force ground truth; 'split' = demo|reference
+// wipe; 'diff' = abs-difference heatmap. The last three run the EXPENSIVE
+// shared reference marcher and only while one of them is the active view.
+const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw', 'reference', 'split', 'diff'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
+
+const REF_VIEWS = new Set<ViewMode>(['reference', 'split', 'diff']);
+const CMP_CHANNELS = ['alpha', 'rgb'] as const;
+
+const VIEW_HINT =
+  'combined = beauty + GI + AO composite; ao/gi = denoised outputs; *-raw = march output before temporal/denoise. ' +
+  'reference = converged brute-force ground truth. split = SSRT3 (left) | reference (right) wipe (drag the divider). ' +
+  'diff = |SSRT3 − reference| heatmap (× diff amp). reference/split/diff run the EXPENSIVE reference marcher and ' +
+  'only while active — accumulates over ~2-4s on a static camera, resets on movement.';
 
 // Temporal accumulation mode (stage d, Task 2). 'ssrt3-ema' = SSRT3-faithful EMA;
 // 'frame-count' = our convergence-aware 1/N accumulation.
@@ -164,6 +181,16 @@ class Ssrt3Demo implements Demo {
   private prevDepthTex = this.makeR32();  // (d) real previous-frame depth (Task 1)
   private countA = this.makeR16();        // (d) per-pixel frame counter ping-pong (Task 2)
   private countB = this.makeR16();
+
+  // Ground-truth comparison (shared harness ReferencePass, lazy-run).
+  private compareRT = new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: false });
+  private refPass!: ReferencePass;
+  private comparator!: Comparator;
+  private uRefCount = uniform(1); // reference accumulation count
+  private wasRefActive = false;
+  private compareState = { splitX: 0.5 };
+  private dragging = false;
+  private pointerHandlers: Array<[keyof HTMLElementEventMap, EventListener]> = [];
 
   private main!: RawComputePass;
   private temporal!: RawComputePass;
@@ -330,6 +357,12 @@ class Ssrt3Demo implements Demo {
       bindings: [{ kind: 'depth' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
     });
 
+    // Ground-truth oracle (shared ReferencePass) + A/B comparator. Constructed
+    // eagerly (stable TSL texture node), run lazily (only in reference views).
+    this.compareRT.texture.colorSpace = NoColorSpace;
+    this.refPass = new ReferencePass(ctx.renderer, 'ssrt3-ref');
+    this.comparator = new Comparator(ctx.renderer, 'ssrt3-compare');
+
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
     this.temporal.configure(this.tData.byteLength);
@@ -337,6 +370,9 @@ class Ssrt3Demo implements Demo {
     this.denoise.configure(this.dData.byteLength);
     this.lightmask.configure(this.lData.byteLength);
     this.pyramid.configure(this.pData.byteLength);
+    this.refPass.configure();
+    this.comparator.configure(this.compareRT);
+    this.installDividerDrag(ctx);
 
     const folder = ctx.pane.addFolder({ title: 'Demo 03 — SSRT3 (WebGPU compute)' });
     const d = sceneDefaults(this.sceneId);
@@ -348,6 +384,8 @@ class Ssrt3Demo implements Demo {
     this.params.onChange((key) => {
       // viewMode + multiBounceAO change the display graph; rebuild it.
       if (key === 'viewMode' || key === 'multiBounceAO') this.updateOutputNode();
+      // Ref-only params restart the reference accumulation (not the demo).
+      if (key === 'refRays' || key === 'refSteps' || key === 'refRadius') this.refPass.reset();
     });
 
     // URL overrides for deterministic screenshots (?view=&bitmask=1&gi=1&fallback=1&mb=1&mbao=1&denoise=0&temporal=0)
@@ -414,7 +452,68 @@ class Ssrt3Demo implements Demo {
       }
       case 'beauty':
         return vec4(texture(this.beautyTex, uv).rgb, float(1));
+      case 'reference': {
+        // rgb = GI radiance mean (×display gain), a = AO mean.
+        const refAcc = texture(this.refPass.outputTexture, uv);
+        return vec4(refAcc.rgb.div(this.uRefCount).mul(this.uGiExposure), float(1));
+      }
+      case 'split':
+      case 'diff':
+        return vec4(texture(this.compareRT.texture, uv).rgb, float(1));
     }
+  }
+
+  private inputs(): ReferenceInputs {
+    return { depth: this.depthTex, normal: this.normalTex, beauty: this.beautyTex };
+  }
+
+  // Oracle params: same thickness as the SSRT3 march for a fair comparison.
+  // giStrength 1 (raw radiance; A/B scaling normalizes the GIIntensity gap).
+  private refParams(v: ParamGroup<typeof schema>['values']): ReferenceParams {
+    return {
+      raysPerPixel: v.refRays,
+      stepsPerRay: v.refSteps,
+      radius: v.refRadius,
+      thickness: v.thickness,
+      bias: 0.03,
+      maxLuminance: v.maxLuminance,
+      giStrength: 1,
+      skyIntensity: 0, // closed Cornell
+      accumulate: true,
+      maxAccumFrames: 4096,
+    };
+  }
+
+  private installDividerDrag(ctx: HarnessContext): void {
+    const el = ctx.renderer.domElement;
+    const near = (clientX: number): boolean =>
+      Math.abs(clientX / el.clientWidth - this.compareState.splitX) < 0.04;
+    const down = (e: PointerEvent): void => {
+      if (this.params.values.viewMode !== 'split') return;
+      if (near(e.clientX)) {
+        this.dragging = true;
+        ctx.controls.enabled = false;
+        this.compareState.splitX = e.clientX / el.clientWidth;
+      }
+    };
+    const move = (e: PointerEvent): void => {
+      if (!this.dragging) return;
+      this.compareState.splitX = Math.min(1, Math.max(0, e.clientX / el.clientWidth));
+    };
+    const up = (): void => {
+      if (this.dragging) {
+        this.dragging = false;
+        ctx.controls.enabled = true;
+      }
+    };
+    el.addEventListener('pointerdown', down as EventListener);
+    window.addEventListener('pointermove', move as EventListener);
+    window.addEventListener('pointerup', up as EventListener);
+    this.pointerHandlers = [
+      ['pointerdown', down as EventListener],
+      ['pointermove', move as EventListener],
+      ['pointerup', up as EventListener],
+    ];
   }
 
   private computeFlags(): number {
@@ -542,6 +641,34 @@ class Ssrt3Demo implements Demo {
     this.fillDenoise(cam, width, height, v);
     this.denoise.execute([histWrite, this.depthTex, this.normalTex, this.finalTex, this.dData], width, height);
 
+    // 4b. Ground-truth oracle: LAZY — runs only while a reference/split/diff
+    //     view is active; restart accumulation on the frame such a view opens.
+    const refActive = REF_VIEWS.has(v.viewMode);
+    if (refActive) {
+      if (!this.wasRefActive) this.refPass.reset();
+      this.refPass.update(cam, this.inputs(), this.refParams(v), width, height);
+      this.uRefCount.value = Math.max(1, this.refPass.sampleCount);
+    }
+    this.wasRefActive = refActive;
+
+    if (v.viewMode === 'split' || v.viewMode === 'diff') {
+      // finalTex is already a mean; reference divides by its sample count. In
+      // rgb mode the demo side ALSO divides by GIIntensity: SSRT3 applies its
+      // non-physical GI gain (default 10) at gather, the oracle gathers at
+      // unit strength — without this the wipe compares gains, not signals.
+      const refScale = 1 / Math.max(1, this.refPass.sampleCount);
+      const gain = v.compareChannel === 'rgb' ? v.giExposure : 1;
+      const giNorm = v.compareChannel === 'rgb' ? 1 / Math.max(1e-3, v.giIntensity) : 1;
+      this.comparator.execute(this.compareRT, this.finalTex, this.refPass.outputTexture, width, height, {
+        mode: v.viewMode === 'diff' ? 'diff' : 'split',
+        splitX: this.compareState.splitX,
+        amp: v.diffAmp,
+        scaleA: giNorm * gain,
+        scaleB: refScale * gain,
+        channel: v.compareChannel,
+      });
+    }
+
     // 5. Display.
     this.displayPipeline.render();
     ctx.timing.sampleGPU(ctx.renderer);
@@ -639,10 +766,20 @@ class Ssrt3Demo implements Demo {
       t.dispose();
       ensureTexture(ctx.renderer, t);
     }
+    this.refPass.setSize(width, height);
+    this.compareRT.setSize(width, height);
+    ensureRenderTarget(ctx.renderer, this.compareRT);
     this.resetTemporal = true; // history invalid at the new resolution
   }
 
   dispose(): void {
+    const el = document.querySelector('canvas');
+    for (const [type, fn] of this.pointerHandlers) {
+      if (type === 'pointerdown') el?.removeEventListener(type, fn);
+      else window.removeEventListener(type, fn);
+    }
+    this.refPass.dispose();
+    this.compareRT.dispose();
     this.giAoTex.dispose();
     this.histA.dispose();
     this.histB.dispose();
@@ -657,8 +794,7 @@ class Ssrt3Demo implements Demo {
 }
 
 const schema = {
-  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view',
-    hint: 'What to display. combined = beauty + GI + AO composite; ao = raw march output before temporal/denoise; gi = bounced light only.' },
+  viewMode: { type: 'enum', value: 'combined' as ViewMode, options: VIEW_MODES, label: 'view', hint: VIEW_HINT },
   giExposure: { type: 'number', value: 1, min: 0.1, max: 8, step: 0.05, label: 'GI display gain',
     hint: 'Display-only multiplier on the gi view for inspecting dark bounce light. Does NOT affect the composite.' },
   rotationCount: { type: 'number', value: 2, min: 1, max: 4, step: 1, label: 'rotationCount', group: 'sampling',
@@ -727,6 +863,16 @@ const schema = {
     hint: 'Depth/normal-aware bilateral spatial blur after temporal (stage d).' },
   denoisingRadius: { type: 'number', value: 0.5, min: 0, max: 1, step: 0.01, label: 'denoisingRadius', group: 'temporal & denoise',
     hint: 'Bilateral kernel radius. Higher = smoother but softens GI contact detail.' },
+  refRays: { type: 'number', value: 4, min: 1, max: 16, step: 1, label: 'ref rays/frame', group: 'reference',
+    hint: 'Brute-force oracle rays per pixel per frame. More = faster convergence, slower frame.' },
+  refSteps: { type: 'number', value: 32, min: 4, max: 64, step: 1, label: 'ref steps', group: 'reference',
+    hint: 'March steps per oracle ray.' },
+  refRadius: { type: 'number', value: 6, min: 0.5, max: 14, step: 0.1, label: 'ref radius', group: 'reference',
+    hint: 'Oracle march radius (world units). Match the demo radius for a fair comparison.' },
+  compareChannel: { type: 'enum', value: 'alpha' as CompareChannel, options: CMP_CHANNELS, label: 'A/B channel', group: 'reference',
+    hint: 'What split/diff compare: alpha = AO (cleanest apples-to-apples). rgb = GI radiance — the demo side is divided by GIIntensity to undo SSRT3\'s non-physical gather gain before comparing.' },
+  diffAmp: { type: 'number', value: 8, min: 1, max: 50, step: 0.5, label: 'diff amp', group: 'reference',
+    hint: 'diff view brightness multiplier on |demo − reference|.' },
 } as const;
 
 export const ssrt3Demo: DemoDef = {

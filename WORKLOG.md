@@ -729,3 +729,21 @@ Decisions for review:
   `bench/public/decoders/` (both gitignored), so the Sponza scene 500'd and vite's
   error overlay covered the cornell canvas — symlinked them from the main checkout
   to verify. Does not affect cornell/the shipped code.
+
+## 2026-07-18 — Demo 03 wired to the shared ReferencePass (orchestrator)
+
+Added reference/split/diff views to demo 03 using agent B's harness
+ReferencePass + Comparator (same lazy-run contract as 04/05: oracle only runs
+while a reference view is active; divider draggable in split). A/B channel
+param defaults to 'alpha' (AO — cleanest apples-to-apples); 'rgb' divides the
+demo side by GIIntensity to undo SSRT3's non-physical gather gain before
+comparing. Verified headed (cornell, wide cam), zero page errors.
+Findings the new views immediately surface (real signal, not bugs — logged for
+the testing phase):
+- rgb split: SSRT3's sector-weighted GI at unit gain is much dimmer than the
+  cosine-weighted brute-force gather — this is WHY Therrien ships
+  GIIntensity=10; the normalized comparison makes the gap visible.
+- alpha diff at default amp 8 saturates white from a systematic ~0.1 AO offset
+  on open surfaces (uniform sector visibility vs cosine-weighted MC AO);
+  lower diff amp to ~2 to see structure. Same class as 04/05's
+  "diff not pitch-black by design".

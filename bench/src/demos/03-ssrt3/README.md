@@ -202,3 +202,14 @@ Works on cornell + sponza + artifact-zoo and at `renderScale` 0.5 (`?scale=0.5`)
 - **Perspective-only** (`halfProjScale`) — documented, acceptable per PLAN.
 - **Three raw-pass classes now exist** (`RawFragmentPass`, `RawRenderPass`,
   `RawComputePass`) — reconcile in the polish pass (flagged since M2).
+
+## Ground-truth comparison views
+
+`reference` / `split` / `diff` compare SSRT3 against the shared brute-force
+oracle (harness ReferencePass; see demo 02). Lazy-run: the oracle only marches
+while one of these views is active, accumulating ~2-4s on a static camera and
+resetting on movement. `A/B channel` alpha = AO (default, cleanest comparison);
+rgb = GI with the demo side divided by GIIntensity (SSRT3 gathers with a
+non-physical gain; the oracle gathers at unit strength). Expect a systematic
+AO offset (~0.1) and a large GI scale gap at unit gain — both are real
+algorithmic differences, not wiring bugs (WORKLOG 2026-07-18).
