@@ -346,7 +346,14 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   let noiseDirection = gradientNoise(vec2<f32>(coord));
   var initialRayStep = fract(noiseOffset + params.temporalOffset);
   if (hasFlag(F_JITTER)) {
-    initialRayStep = initialRayStep + (rand(uv) * 2.0 - 1.0);
+    // DELIBERATE DEVIATION from SSRT3 (which ships a frame-STATIC rand(uv), so
+    // the temporal accumulator can never average the jitter away — lab 10). We
+    // advance the rand input per frame by a golden-ratio offset driven by
+    // frameSeed (already pinned by freezeNoise: index.ts drives it from `fc`),
+    // so the jitter decorrelates across frames and temporal accumulation
+    // converges it. frameSeed % 64 keeps the offset bounded/low-discrepancy.
+    let jitterUV = uv + vec2<f32>(f32(params.frameSeed % 64u)) * 0.6180339887;
+    initialRayStep = initialRayStep + (rand(jitterUV) * 2.0 - 1.0);
   }
 
   let rotationCount = max(1u, params.rotationCount);

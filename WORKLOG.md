@@ -597,3 +597,61 @@ pass + frame-count accumulation toggle (default off, SSRT3-faithful default) +
 per-frame jitterSamples advance; (B) demo 02 reference marcher promoted to a
 shared harness ReferencePass + reference/split/diff views in demos 04/05.
 Demo 03 reference-view wiring happens at merge (avoids worktree conflict).
+
+## 2026-07-18 — Demo 03 temporal: real prev-depth, frame-count accumulation, per-frame jitter
+
+Three targeted changes to `bench/src/demos/03-ssrt3/` (temporal stage d + march
+jitter). Typecheck clean; verified headed (Cornell, box-top cam) — see below.
+
+**Task 1 — real previous-depth pass.** `ssrt-temporal.wgsl` used the CURRENT
+depth at the reprojected coord as a prev-depth proxy. Now a real prev-depth
+buffer, like SSRT3's `previousDepthTexture` (SSRT_HDRP.cs). Added an r32float
+single-mip StorageTexture `prevDepthTex` and a tiny copy pass
+`ssrt-copydepth.wgsl` (`RawComputePass`) that copies the current depth buffer
+into it each frame AFTER the temporal pass consumes the prior copy. Temporal now
+binds `prevDepthTex` and uses it for `dPrev`. First frame / resize: the temporal
+reset short-circuit (`frameCounter < 2` / `resetTemporal`) stores current and
+returns before reading `dPrev`, so the uninitialized copy never rejects startup
+history; by frame 2 the copy holds frame 1's depth. Resize + dispose handled
+like the other storage textures.
+
+**Task 2 — frame-count accumulation toggle (our improvement, DEFAULT OFF).**
+New param `accumMode` ['ssrt3-ema','frame-count'] (default ssrt3-ema =
+SSRT3-faithful) + `accumFrameCap` 4..64 default 16, both in the
+'temporal & denoise' group. `ssrt3-ema` keeps the fixed-`temporalResponse` EMA
+(~3-frame memory) that can't converge SSRT3's 12-frame (6 rotations x 4 offsets)
+noise cycle -> boil. `frame-count` keeps a per-pixel counter N in an r16float
+ping-pong pair (`countA`/`countB`), reprojected alongside the GI history: N=1 on
+disocclusion (`posSimilarity < 0.5`), off-screen reproj, or reset; else
+N=min(N+1, accumFrameCap); blend weight = 1/N. Soft neighborhood clamp (mix 0.25)
+kept in both modes. N is written in both modes so switching needs no reset. Packed
+`accumMode` as flags bit2 and `accumFrameCap` as f32 into TParams' trailing pad
+(16-byte alignment preserved).
+
+**Task 3 — per-frame jitter advance.** `ssrt-main.wgsl` F_JITTER used
+`rand(uv)` (frame-static -> temporal accumulator can never average it out, lab
+10). Now `rand(uv + vec2(f32(frameSeed % 64u)) * 0.6180339887)` so the jitter
+decorrelates per frame. `frameSeed` (uniform) is now driven from `fc` (the
+freeze-aware frame counter) instead of the raw `frameCounter`, so `freezeNoise`
+pins the jitter too. Deliberate deviation from SSRT3 (ships frame-static rand) —
+documented in the WGSL comment + README.
+
+**Verification (headed, Cornell, cam=1.4,3.6,4.6,0.95,1.3,0.7, 5182):** no
+WebGPU/pipeline errors (r16float + r32float storage formats both valid on this
+device). gi view, mean abs per-pixel diff between two shots 2s apart after 6s
+settle: frame-count = 0.83 (converged, near-identical), ssrt3-ema = 3.38 (~4x,
+visible boil) — the intended contrast. combined view identical & correct in both
+modes (red/green wall bleed, soft AO, no ghosting/regression on the static scene).
+Screenshots: scratchpad/{fc,ema}-{gi-a,gi-b,combined}.png.
+
+### Decisions for review
+- **Counter texture is r16float** (per packet). r16float IS storage-capable on
+  the test device (Chrome/Metal) — pipeline built, no validation error. If a
+  target device lacks r16float storage, swap `makeR16` + the WGSL/binding format
+  to r32float (values are small integers 1..64, no precision concern).
+- **Prev-depth first-frame** relies on the existing reset short-circuit rather
+  than an extra pre-first-frame copy — simpler, and history is never read during
+  reset anyway. No separate "copy before first temporal" pass.
+- **Jitter advance uses `frameSeed % 64`** golden-ratio-scaled — bounded,
+  low-discrepancy, and pinned by `freezeNoise` via `fc`. Period 64 frames is far
+  longer than the accumulator's memory so it reads as decorrelated.
