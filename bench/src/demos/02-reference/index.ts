@@ -15,14 +15,14 @@ import {
 import { RenderPipeline } from 'three/webgpu';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
-import { RawRenderPass } from '../../harness/raw-pass';
 import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { Comparator } from '../../harness/compare';
 import type { CompareChannel, CompareMode } from '../../harness/compare';
+import { ReferencePass } from '../../harness/reference-pass';
+import type { ReferenceInputs, ReferenceParams } from '../../harness/reference-pass';
 import { ensureRenderTarget } from '../../harness/three-internals';
 import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
-import marcherWgsl from './reference-marcher.wgsl?raw';
 
 const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'split'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
@@ -56,15 +56,6 @@ const NON_RESET_KEYS = new Set([
   'diffAmp',
 ]);
 
-// Marcher uniform: proj(16) + invProj(16) + [res.xy,near,far] + [rays,steps,count,seed]
-// + [radius,thickness,bias,maxLum] + [giStrength,sky,pad,pad] = 48 floats (192 B).
-const MARCHER_FLOATS = 48;
-
-const ADDITIVE: GPUBlendState = {
-  color: { srcFactor: 'one', dstFactor: 'one', operation: 'add' },
-  alpha: { srcFactor: 'one', dstFactor: 'one', operation: 'add' },
-};
-
 function floatRT(): RenderTarget {
   const rt = new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: false });
   rt.texture.colorSpace = NoColorSpace;
@@ -81,15 +72,13 @@ class ReferenceDemo implements Demo {
   private gbufferPipeline!: RenderPipeline;
   private displayPipeline!: RenderPipeline;
 
-  // Accumulation (additive-blend sums), single-sample live, comparator output.
-  private accumRT = floatRT();
+  // The converged reference accumulation lives in the shared ReferencePass.
+  // Demo 02 keeps its own 1-sample live buffer + comparator output (its split
+  // view is live-vs-converged, unique to this demo).
+  private refPass!: ReferencePass;
   private liveRT = floatRT();
   private compareRT = floatRT();
-
-  private marcher!: RawRenderPass;
   private comparator!: Comparator;
-  private marcherData = new Float32Array(MARCHER_FLOATS);
-  private marcherU32 = new Uint32Array(this.marcherData.buffer);
 
   // Display uniforms.
   private uCount = uniform(1);
@@ -99,8 +88,6 @@ class ReferenceDemo implements Demo {
   private countBinding!: { refresh(): void };
   private readout = { samples: 0 };
 
-  // Accumulation state.
-  private sampleCount = 0;
   private frameCounter = 0;
   // Sub-pixel projection jitter (TAA-style). index cycles the Halton sequence;
   // active tracks whether a view offset is currently set so we clear it exactly
@@ -108,13 +95,9 @@ class ReferenceDemo implements Demo {
   private jitterIndex = 0;
   private jitterActive = false;
   private cam!: PerspectiveCamera;
-  private resetRequested = true;
-  // Float64: fovHash is ~40000, whose float32 quantization error (~0.004) would
-  // otherwise exceed the move threshold and reset accumulation every frame.
-  private lastPose = new Float64Array(8); // pos(3) + quat(4) + fovHash(1)
 
   // Split-view divider drag.
-  private compareState = { splitX: 0.5, mode: 'split' as CompareMode, channel: 'alpha' as CompareChannel, amp: 8 };
+  private compareState = { splitX: 0.5 };
   private dragging = false;
   private pointerHandlers: Array<[keyof HTMLElementEventMap, EventListener]> = [];
 
@@ -134,15 +117,12 @@ class ReferenceDemo implements Demo {
     this.gbufferPipeline = new RenderPipeline(ctx.renderer, this.scenePass);
     this.displayPipeline = new RenderPipeline(ctx.renderer);
 
-    // Marcher: depth + view-normal + beauty + uniform, additive accumulation.
-    this.marcher = new RawRenderPass(ctx.renderer, 'ref-marcher', marcherWgsl, {
-      bindings: [{ kind: 'depth' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'uniform' }],
-      blend: ADDITIVE,
-    });
+    // Shared reference marcher (accumulation) + A/B comparator (live vs accum).
+    this.refPass = new ReferencePass(ctx.renderer, 'ref-marcher');
     this.comparator = new Comparator(ctx.renderer, 'ref-compare');
 
     this.resize(ctx);
-    this.marcher.configure(this.accumRT, this.marcherData.byteLength);
+    this.refPass.configure();
     this.comparator.configure(this.compareRT);
 
     const folder = ctx.pane.addFolder({ title: 'Demo 02 — Reference marcher' });
@@ -150,7 +130,7 @@ class ReferenceDemo implements Demo {
     this.countBinding = folder.addBinding(this.readout, 'samples', { readonly: true, label: 'accum samples' });
     this.params.onChange((key) => {
       if (key === 'viewMode') this.updateOutputNode();
-      if (!NON_RESET_KEYS.has(key as string)) this.resetRequested = true;
+      if (!NON_RESET_KEYS.has(key as string)) this.refPass.reset();
     });
 
     const search = new URLSearchParams(window.location.search);
@@ -177,7 +157,7 @@ class ReferenceDemo implements Demo {
 
   private buildViewNode(mode: ViewMode) {
     const uv = screenUV;
-    const accum = texture(this.accumRT.texture, uv);
+    const accum = texture(this.refPass.outputTexture, uv);
     const ao = accum.a.div(this.uCount);
     const gi = accum.rgb.div(this.uCount).mul(this.uGiExposure);
     switch (mode) {
@@ -212,25 +192,23 @@ class ReferenceDemo implements Demo {
     }
   }
 
-  private cameraMoved(cam: PerspectiveCamera): boolean {
-    // Threshold must tolerate OrbitControls damping, which re-derives the camera
-    // pose every frame with tiny residual jitter even when visually static; too
-    // tight a threshold resets accumulation every frame (never converges).
-    const EPS = 2e-4;
-    const p = cam.position;
-    const q = cam.quaternion;
-    const fovHash = cam.fov * 1000 + cam.aspect;
-    const changed =
-      Math.abs(this.lastPose[0] - p.x) > EPS ||
-      Math.abs(this.lastPose[1] - p.y) > EPS ||
-      Math.abs(this.lastPose[2] - p.z) > EPS ||
-      Math.abs(this.lastPose[3] - q.x) > EPS ||
-      Math.abs(this.lastPose[4] - q.y) > EPS ||
-      Math.abs(this.lastPose[5] - q.z) > EPS ||
-      Math.abs(this.lastPose[6] - q.w) > EPS ||
-      Math.abs(this.lastPose[7] - fovHash) > EPS;
-    this.lastPose.set([p.x, p.y, p.z, q.x, q.y, q.z, q.w, fovHash]);
-    return changed;
+  private inputs(): ReferenceInputs {
+    return { depth: this.depthTex, normal: this.normalTex, beauty: this.beautyTex };
+  }
+
+  private refParams(v: ParamGroup<typeof schema>['values']): ReferenceParams {
+    return {
+      raysPerPixel: v.raysPerPixel,
+      stepsPerRay: v.stepsPerRay,
+      radius: v.radius,
+      thickness: v.thickness,
+      bias: v.bias,
+      maxLuminance: v.maxLuminance,
+      giStrength: v.giStrength,
+      skyIntensity: v.skyIntensity,
+      accumulate: v.accumulate,
+      maxAccumFrames: v.maxAccumFrames,
+    };
   }
 
   frame(ctx: HarnessContext, _dt: number): void {
@@ -240,87 +218,39 @@ class ReferenceDemo implements Demo {
     const { width, height } = ctx.renderSize();
 
     // 0. Sub-pixel jitter BEFORE the G-buffer rasterizes, so the scene and the
-    // marcher (which reads cam.projectionMatrix below) share the jittered
-    // projection. cameraMoved() hashes only pose/fov/aspect, so this never
-    // resets accumulation.
+    // marcher (which reads cam.projectionMatrix) share the jittered projection.
+    // The pass's cameraMoved() hashes only pose/fov/aspect, so this never resets
+    // accumulation.
     this.applyJitter(cam, width, height, v.jitterAA);
 
     // 1. G-buffer.
     this.gbufferPipeline.render();
 
-    // 2. Reset accumulation on camera move / param change / non-accumulate.
-    if (this.cameraMoved(cam) || this.resetRequested || !v.accumulate) {
-      this.sampleCount = 0;
-      this.resetRequested = false;
-    }
-
-    // 3. Marcher into the accumulation buffer (additive) unless frozen at max.
-    if (this.sampleCount < v.maxAccumFrames) {
-      const loadOp: GPULoadOp = this.sampleCount === 0 ? 'clear' : 'load';
-      this.fillMarcherUniform(cam, width, height, this.sampleCount, v);
-      this.marcher.execute(
-        this.accumRT,
-        [this.depthTex, this.normalTex, this.beautyTex, this.marcherData],
-        { loadOp, clearValue: { r: 0, g: 0, b: 0, a: 0 } },
-      );
-      this.sampleCount++;
-    }
-    this.uCount.value = Math.max(1, this.sampleCount);
+    // 2. Reference accumulation (owns its own pose-reset + sample count).
+    const params = this.refParams(v);
+    this.refPass.update(cam, this.inputs(), params, width, height);
+    this.uCount.value = Math.max(1, this.refPass.sampleCount);
     this.uGiExposure.value = v.giExposure;
 
-    // 4. Split view: 1-sample live pass + comparator.
+    // 3. Split view: 1-sample live pass + comparator (live vs converged accum).
     if (v.viewMode === 'split') {
-      this.fillMarcherUniform(cam, width, height, this.frameCounter, v);
-      this.marcher.execute(
-        this.liveRT,
-        [this.depthTex, this.normalTex, this.beautyTex, this.marcherData],
-        { loadOp: 'clear', clearValue: { r: 0, g: 0, b: 0, a: 0 } },
-      );
-      this.comparator.execute(this.compareRT, this.liveRT.texture, this.accumRT.texture, width, height, {
+      this.refPass.renderSingle(this.liveRT, cam, this.inputs(), params, width, height, this.frameCounter);
+      this.comparator.execute(this.compareRT, this.liveRT.texture, this.refPass.outputTexture, width, height, {
         mode: v.compareMode,
         splitX: this.compareState.splitX,
         amp: v.diffAmp,
         scaleA: 1, // live is a single sample
-        scaleB: 1 / Math.max(1, this.sampleCount), // accumulated sums -> mean
+        scaleB: 1 / Math.max(1, this.refPass.sampleCount), // accumulated sums -> mean
         channel: v.compareChannel,
       });
     }
 
-    // 5. Display.
+    // 4. Display.
     this.displayPipeline.render();
 
-    this.readout.samples = this.sampleCount;
+    this.readout.samples = this.refPass.sampleCount;
     this.countBinding.refresh();
     ctx.timing.sampleGPU(ctx.renderer);
-  }
-
-  private fillMarcherUniform(
-    cam: PerspectiveCamera,
-    width: number,
-    height: number,
-    seed: number,
-    v: ParamGroup<typeof schema>['values'],
-  ): void {
-    const d = this.marcherData;
-    const u = this.marcherU32;
-    d.set(cam.projectionMatrix.elements, 0);
-    d.set(cam.projectionMatrixInverse.elements, 16);
-    d[32] = width;
-    d[33] = height;
-    d[34] = cam.near;
-    d[35] = cam.far;
-    u[36] = v.raysPerPixel;
-    u[37] = v.stepsPerRay;
-    u[38] = this.sampleCount;
-    u[39] = seed >>> 0;
-    d[40] = v.radius;
-    d[41] = v.thickness;
-    d[42] = v.bias;
-    d[43] = v.maxLuminance;
-    d[44] = v.giStrength;
-    d[45] = v.skyIntensity;
-    d[46] = 0;
-    d[47] = 0;
   }
 
   private installDividerDrag(ctx: HarnessContext): void {
@@ -360,13 +290,11 @@ class ReferenceDemo implements Demo {
   resize(ctx: HarnessContext): void {
     const { width, height } = ctx.renderSize();
     this.scenePass.setSize(width, height);
-    this.accumRT.setSize(width, height);
+    this.refPass.setSize(width, height);
     this.liveRT.setSize(width, height);
     this.compareRT.setSize(width, height);
-    ensureRenderTarget(ctx.renderer, this.accumRT);
     ensureRenderTarget(ctx.renderer, this.liveRT);
     ensureRenderTarget(ctx.renderer, this.compareRT);
-    this.resetRequested = true;
   }
 
   dispose(): void {
@@ -377,7 +305,7 @@ class ReferenceDemo implements Demo {
     }
     // Camera is shared across demos — never leave a jittered projection behind.
     if (this.jitterActive && this.cam) clearCameraJitter(this.cam);
-    this.accumRT.dispose();
+    this.refPass.dispose();
     this.liveRT.dispose();
     this.compareRT.dispose();
   }

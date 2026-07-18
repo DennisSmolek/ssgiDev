@@ -89,8 +89,22 @@ importance, thickness normalize, accumulate/max frames, reference oracle) plus:
 - `GI strength` — composite multiplier on the albedo-modulated bounce.
 - `GI display gain` — view-only exposure for the (dim) raw-GI/`reference` debug
   views; does not affect stored values.
-- `A/B channel` — `rgb` (GI) or `alpha` (AO) for the comparator. URL: `?view=` /
-  `?cmp=split|diff`.
+- `A/B channel` — `rgb` (GI) or `alpha` (AO) for the comparator.
+- `diff amp` — diff-view amplification. Reference sampling params (`ref rays/
+  frame`, `ref steps`, `ref radius`) and these two live in the `reference`
+  sub-folder.
+
+## Reference views (`reference` / `split` / `diff`)
+
+The shared `ReferencePass` (`src/harness/reference-pass.ts`) drives three view
+modes: `reference` (converged brute-force GI on its own, × GI display gain),
+`split` (GT-VBGI | reference wipe), `diff` (`|GT-VBGI − reference|` × `diff amp`,
+in the `A/B channel`). **Lazy-run contract:** the marcher runs only while one of
+these three is the active view (parked otherwise, so `combined`/`gi`/`ao`/
+`beauty` pay zero reference cost); it restarts accumulation on activation,
+converges over ~2-4s on a static camera, resets on camera movement, and
+accumulates independently of GT-VBGI. URL: `?view=reference|split|diff`
+(`?cmp=split|diff` selects the matching view for back-compat).
 
 ## Decisions for review
 
@@ -117,8 +131,9 @@ importance, thickness normalize, accumulate/max frames, reference oracle) plus:
   marched backwards and produced a near-black frame — fixed via
   `d = select(-1.0, 1.0, unidirectional)`. Kept as a note because it's an easy
   regression to reintroduce.
-- **White-noise RNG**, background AO = 1 / GI = 0, reference marcher imported from
-  demo 02 — same rationale as demo 04 (see its README).
+- **White-noise RNG**, background AO = 1 / GI = 0, reference marcher via the shared
+  `ReferencePass` (`src/harness/reference-pass.ts`) — same rationale as demo 04
+  (see its README).
 - **Near-field short-box GI under-gather** (validation above) is a genuine
   screen-space-GI limitation, not a coordinate bug (the color bleed is seamless);
   documented rather than hidden.

@@ -3,8 +3,25 @@
 Mirko Salm's **cosine-weighted Ground-Truth Visibility-Bitmask AO** ported to our
 real perspective G-buffer as a raw WGSL fragment pass. GT-VBAO's founding claim is
 that it **converges to the same result a brute-force screen-space ray marcher
-converges to** — so this demo ships the reference marcher (demo 02) alongside it
-and A/B-diffs the two.
+converges to** — so this demo pairs it with the shared **ground-truth reference**
+(`src/harness/reference-pass.ts`, `ReferencePass`) and can show it directly,
+wipe it against GT-VBAO, or heat-map their difference.
+
+## Reference views (`reference` / `split` / `diff`)
+
+Three view modes drive the shared `ReferencePass`:
+
+- `reference` — the converged brute-force ground-truth AO on its own.
+- `split` — GT-VBAO (left of a draggable divider) | reference (right).
+- `diff` — `|GT-VBAO − reference|` amplified by `diff amp` (alpha/AO channel).
+
+**Lazy-run contract:** the reference marcher is expensive, so it only runs while
+one of these three views is the active view (parked otherwise — `combined`/`ao`/
+`beauty` pay zero reference cost). On activation it restarts accumulation from
+the current camera pose; it converges over ~2-4s on a static camera and resets on
+any camera movement. GT-VBAO and the reference accumulate **independently** (each
+divided by its own sample count). Reference sampling params live in the
+`reference` sub-folder (`ref rays/frame`, `ref steps`, `ref radius`, `diff amp`).
 
 Pinned to **three@0.185.1**.
 
@@ -16,7 +33,8 @@ Ported from **Mirko Salm / TinyTexel "GT-VBAO"** (Shadertoy
 2026-07-17 capture (post `GetQuaternion` +z→−z fix). Salm's shader renders a toy
 analytic g-buffer with a hand-rolled projection; here it drives three's real
 `projectionMatrix`/inverse + depth buffer + view-space normals (three MRT). The
-reference oracle is demo 02's `reference-marcher.wgsl`, imported unchanged.
+reference oracle is the shared `ReferencePass` (`src/harness/reference-pass.ts`,
+wrapping `reference-marcher.wgsl`), unchanged from demo 02's algorithm.
 
 Implemented as a **raw fragment pass** (`RawRenderPass`, additive-blend
 accumulation) — same mechanism demo 02 validated, and it keeps the door open to a
@@ -114,10 +132,12 @@ chromium-1228, `--enable-unsafe-webgpu`):
   finite-thickness assumption — Salm's own note, `threejs/notes.md`).
 - `accumulate` / `max frames` — frozen-camera convergence (reset on camera move /
   param change / resize).
-- `ref rays/frame`, `ref steps`, `ref radius` — the demo 02 oracle's params
-  (its `thickness` is slaved to GT-VBAO's for a fair AO comparison).
-- `A/B mode` (`split`/`diff`), `diff amp` — comparator. URL: `?view=<mode>` and
-  `?cmp=split|diff` for deterministic captures.
+- `ref rays/frame`, `ref steps`, `ref radius` — the shared oracle's params
+  (its `thickness` is slaved to GT-VBAO's for a fair AO comparison). Changing them
+  restarts only the reference accumulation, not GT-VBAO's.
+- `diff amp` — diff-view amplification. `split`/`diff` are now **view modes**
+  (not a separate `A/B mode` param). URL: `?view=reference|split|diff`;
+  `?cmp=split|diff` still selects the matching view for back-compat.
 
 ## Decisions for review
 
@@ -140,8 +160,9 @@ chromium-1228, `--enable-unsafe-webgpu`):
   outputs **0** for sky, so in `split`/`diff` the *empty void* (e.g. above the zoo
   back wall) reads as a spurious difference. Ignore the void — the geometry, which
   is what the AO comparison is about, agrees seamlessly.
-- **Reference marcher imported from demo 02** (`../02-reference/reference-marcher.wgsl`)
-  rather than duplicated, so the oracle can't drift from demo 02's validated one.
+- **Reference marcher is the shared `ReferencePass`** (`src/harness/reference-pass.ts`,
+  wrapping `src/harness/reference-marcher.wgsl`) rather than duplicated, so the
+  oracle can't drift from demo 02's validated one.
 - **Falloff** is a bench addition (not in Salm's GT-VBAO). Left at 0 by default so
   the converged result matches the reference; it exists for later quality tuning.
 

@@ -580,3 +580,77 @@ NOT the cure. Stage-(a) "edges super dark" residual likely shared this cause;
 re-check before treating it as a separate bug.
 Also: subpixel AA jitter now defaults OFF in all demos (02/04/05/06/10/11) —
 without a reprojecting TRAA/FSR resolve it never settles (Dennis request).
+
+## 2026-07-18 — Shared ReferencePass: ground-truth comparison as a harness feature
+
+Promoted demo 02's brute-force reference marcher into a shared harness pass so any
+demo can show a ground-truth comparison, and wired it into demos 04/05 with three
+new view modes.
+
+What moved where:
+- `bench/src/demos/02-reference/reference-marcher.wgsl` → `bench/src/harness/
+  reference-marcher.wgsl` (now the ONE copy).
+- New `bench/src/harness/reference-pass.ts` — `ReferencePass` class: owns the
+  marcher `RawRenderPass` (additive-blend), the accumulation `RenderTarget`
+  (`accumRT`, rgb = GI sum / a = AO sum), the running `sampleCount`, and the
+  camera-pose-reset logic (the float64 pose snapshot + 2e-4 EPS trap, copied
+  verbatim from demo 02). API: `setSize` / `configure` / `reset` / `update(camera,
+  inputs, params, w, h)` / `renderSingle(target, …, seed)` / `sampleCount` /
+  `outputTexture`. `ReferenceInputs` = {depth, normal, beauty}; `ReferenceParams`
+  = the marcher's tunables.
+- Demo 02 refactored to consume it: `update()` for the converged accumulation
+  (its primary output), `renderSingle()` for the 1-sample live split buffer.
+  Behaviour unchanged (verified: combined converges to 512, split shows live-vs-
+  converged wipe).
+- Demos 04/05: `VIEW_MODES` gained `reference` | `split` | `diff` (split/diff are
+  view modes now, not an `A/B mode` param). `viewMode` enum carries a `hint:`
+  explaining them. Reference sampling params moved into a `reference` sub-folder
+  via `group:`. Demo 11's marcher import repointed to the harness copy (one line,
+  to keep the one-copy invariant + build green).
+- Interop rule honoured: `ReferencePass` allocates its accumulation target as a
+  three `RenderTarget` (+`ensureRenderTarget`); the raw pass only writes into it.
+
+Lazy-run contract: `ReferencePass` does not decide when it runs — the host demo
+does. Demo 02 (reference IS its output) calls `update()` every frame. Demos 04/05
+call it ONLY while `viewMode ∈ {reference, split, diff}` and call `reset()` on the
+frame such a view is (re)activated (tracked via `wasRefActive`) so a parked pass
+never shows stale samples. GT-VBAO/VBGI and the reference accumulate independently,
+each divided by its own count (`uCount` vs new `uRefCount`).
+
+Verification (headed chromium, cornell, cam=0,2.4,8.8,0,2.6,0, 5-6s settle):
+- Demo 02 combined: converged Cornell (512 samples), AO + color bleed — unchanged.
+- Demo 02 split: noisy 1-sample live (left) | clean converged (right), divider OK.
+- Demo 04 split: GT-VBAO | reference AO wipe, divider visible, halves match.
+- Demo 04 diff (×12): bright along creases/box edges/contact shadows (structural
+  GT-VBAO-vs-reference divergence) + amplified residual MC noise.
+- Demo 05 split (rgb): GT-VBGI | reference GI, color bleed both sides.
+- Demo 05 diff (×12): red box face + ceiling show the largest GI divergence.
+- Perf gating: gpu ms (render) with reference PARKED vs ACTIVE — demo 04
+  4.74 → 9.13 ms, demo 05 6.52 → 11.59 ms. `combined`/`ao`/`beauty` pay zero
+  reference cost, confirming the lazy contract. (fps is vsync-capped at 60, so
+  gpu ms is the load signal.)
+- `npx tsc --noEmit` clean.
+
+Decisions for review:
+- **ReferencePass constructed eagerly, run lazily.** The task said "instantiate
+  lazily"; I read the intent (from its rationale — "the marcher is EXPENSIVE, so
+  it must only run while a reference view is active") as lazy *execution*, and
+  construct the object eagerly so its `outputTexture` is a stable node for the TSL
+  display graph (built once in `updateOutputNode`). The expensive per-frame
+  marcher is fully gated. If true deferred GPU-resource construction is wanted, it
+  needs the display nodes rebuilt on first activation — happy to switch.
+- **split/diff promoted from an `A/B mode` param to `viewMode` values** in 04/05
+  (kept as-is in 02, whose split is a different live-vs-converged comparison). The
+  old `?cmp=split|diff` URL still works (maps to the view).
+- **`diff` at the default amp is not pitch-black** on 04/05 — GT-VB* are horizon
+  approximations, so there is genuine systematic divergence from the brute-force
+  reference (creases, grazing edges, near-field GI), which is exactly what the
+  diff view should surface. The uniform grain is residual MC noise × amp.
+- **Independent accumulation counts** (uRefCount): when a reference view opens
+  mid-session the reference starts from 0 while GT-VB* may already be converged, so
+  the split briefly compares a noisy reference against a clean demo side until it
+  settles. Correct, but worth knowing when reading an early split.
+- **Local dev-env only (not committed):** the worktree lacked `bench/assets/` and
+  `bench/public/decoders/` (both gitignored), so the Sponza scene 500'd and vite's
+  error overlay covered the cornell canvas — symlinked them from the main checkout
+  to verify. Does not affect cornell/the shipped code.
