@@ -1353,3 +1353,35 @@ threaded), index.ts (compact buffers, de/interleave passes, `runDeinterleave`,
 subgroups detection, benchMarch/runChain branches), ssrt13-deinterleave.wgsl,
 ssrt13-interleave.wgsl, run-13.mjs (`--family phase3`, chain-ms columns, gates).
 Recorded verdict is the orchestrator's isolated run; do-not-commit per packet.
+
+## 2026-07-21 — P5.3 RECORDED VERDICT + Phase-O closing adjudication
+
+**deinterleave (CACAO must-do): recorded perf NEGATIVE, image correct.**
+Isolated: march 0.89×/0.76×, chain 0.92×/0.78× (C-wide/S-hall) at MSE-vs-base
+1.3e-4/3.2e-5. The 4-dispatch split + extract/scatter overhead exceeds the
+cache gain on an already-half-res march. Run for completeness per Dennis's
+must-do; the LSAO paper trail is now CLOSED end-to-end in
+research/sources/papers/lsao-timonen2013-notes.md: suggestion quoted → both
+readings tested (negative) → both modern heirs tested (deinterleave negative
+at our operating point, subgroups near-zero) → the win found in TIME
+(adaptive) not SPACE.
+**subgroups: recorded ~1.0× (0.99× both cells)** — the smoke 1.07-1.19× did
+not survive isolation. Value delivered anyway: bit-exact subgroup sharing
+proven on this adapter (MSE 4e-6), and the feature-gated variant-pair pattern
+(baseline as documented fallback) validated as practice. Kept available.
+
+**Phase-O closing adjudication (10 variants, one day, zero wrong images):**
+- GRADUATES: `adaptive` (3.17×/2.37× converged, fresh=baseline — the
+  flagship) + `trig` (free exact rider) + `light-mips` (stability tool).
+- PARKED with recorded reasons: loop, precision-f16, hiz-skip (scoped),
+  checkerboard (uncompacted dispatch), deinterleave, subgroups.
+- Demo 12 STAYS the unoptimized control (its role per NEXTGEN); the current
+  best shipping-shaped configuration is demo 13 `bandwidth-all` (adaptive +
+  light-mips + hiz-skip compose) + `trig`: estimated C-wide total ≈0.8 ms
+  converged vs demo 03's 2.15 — both ≥2× success measures met on converged
+  frames; fresh-frame floor = demo 12's 1.7×.
+- Integration into a consumable node = Phase I (NEXTGEN), the next phase
+  boundary — Dennis decides when to open it.
+
+Result files: demo13-all.*, demo13-phase3.*. Every number: config JSON +
+commit in the .json metas.
