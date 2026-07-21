@@ -1177,3 +1177,62 @@ is fetch-bound and ALU polish is not where demo 12's remaining gap lives.
 NEXTGEN principle 5 ("bandwidth before ALU") is now empirically validated on
 our own code, not just lab 09's forks. P5.2 (bandwidth family) is where the
 C-wide 2× gap should close.
+
+## 2026-07-21 — P5.2 BANDWIDTH family implemented (demo 13) — smoke verdict
+
+**Five new march variants (compile-time WGSL transforms, same mechanism as P5.1),
+plus runner `--family`.** All land against `baseline`'s byte-identical assertion:
+the extra fetch structures are **appended** as march bindings 10/11/12 (light mip
+pyramid, box-MAX depth pyramid, guides history N), so the pristine bindings 0–9 are
+untouched — every variant shares one 13-entry layout and a shader that reads a
+subset of the bound textures is valid WebGPU. Pyramids/guides build **lazily** (only
+when the active variant needs them), `ReferencePass`-style. tsc clean; all 10
+variants compile + render non-black; no WGSL errors.
+
+**Smoke A/B (`--quick --family bandwidth`, live rAF — NOT recorded numbers):**
+
+| variant | C-wide ms_ratio | S-hall ms_ratio | MSE-vs-base | stability Δ |
+|---|---|---|---|---|
+| light-mips | 1.11× | 1.00× | 1.6e-5 | −0.03 (fewer fireflies) |
+| hiz-skip | 1.08× | 0.96× | **7–11e-6 (bit-identical)** | ~0 |
+| checkerboard | 1.04× | 0.97× | 2.4e-5 | **+0.31…+0.41** |
+| adaptive | **3.39×** | **2.88×** | 5.9e-4 / 1.6e-4 | +0.11 / +0.05 |
+| bandwidth-all | 3.17× | 2.90× | 6.0e-4 / 1.7e-4 | +0.17 / +0.06 |
+
+All pass their correctness gates (hiz-skip held to the exact 1e-4; the in-motion-
+lossy trio to a 1e-3 CONVERGED-only gate — documented in the runner). MSE-vs-oracle
+unchanged for the fetch-exact variants; adaptive/bw-all nudge it +0.0006–0.0009
+(reduced effort on converged pixels, still within slack).
+
+**Verdict (smoke, awaiting orchestrator isolation):** the win is **adaptive effort
+(principle 6), not raw fetch reduction.** On this already-half-res march the pure
+bandwidth cuts are a wash-to-small — light-mips ~0–11%, hiz-skip bit-identical but
+~0× (the sector bitfield rarely fully saturates at stepCount 12, so the exact
+early-out fires seldom; it is a correctness-free freebie, not a lever). checkerboard's
+early-out saves little march ms (skipped invocations still dispatch; the workgroup
+schedules all 64 threads and half just `return`) while costing real in-motion
+stability (Δ +0.3–0.4) — a **documented negative**: the 2× it promises needs a
+compacted dispatch, not a per-thread early-out. **adaptive banks ~3× on stills**
+(converged pixels drop to rotationCount 1 / 0.4× steps via guides N) and honestly
+**degrades to ≈baseline when fresh** (deterministic `fresh` endpoint 0.67–0.97ms ≈
+baseline 0.75–0.92ms) — exactly principle 6's promise (coast when converged, full
+budget on disocclusion). This is the lever that closes the C-wide 2× gap NEXTGEN
+flagged, and it is *free on motion*.
+
+Measurement notes: adaptive ms is measured at both deterministic effort endpoints
+(`F_ADAPT_FRESH`/`F_ADAPT_CONVERGED` flag bits pin gEffort=1.0/0.4) AND via a live
+`window.__cam.set` teleport + immediate burst. The deterministic **fresh** endpoint
+is the reliable honest-worst-case; the teleport burst is a noisier live cross-check
+(the offset pose can land in a cheaper scene region and the 150 ms window may let the
+guides partially recover, so it read *lower* than fresh in some cells — recorded as
+`march_ms_teleport`, not used for the ratio). hiz-skip's AO-path coarse skip reads
+the MIN pyramid (assumes mipOptimization, on by default; the bandwidth path force-
+builds it otherwise); the full angular-interval Hi-Z traversal (the max pyramid's
+larger payoff) is scoped as a follow-up — the shipped exact wins are the bitfield-
+saturation break + beyond-radius AO skip. bandwidth-all = light-mips∘hiz-skip∘adaptive
+(disjoint edits); checkerboard is excluded from it (double-dips adaptive's temporal
+budget). Files: variants.ts (+5 transforms), index.ts (appended bindings, 2 pyramid
+passes + lazy TemporalGuidesPass, effort-mode bench hook), ssrt13-light-pyramid.wgsl,
+ssrt13-depth-pyramid-max.wgsl, run-13.mjs (`--family`, endpoint + teleport ms,
+stability delta, per-variant gates). Recorded verdict is the orchestrator's isolated
+run; do-not-commit per packet.

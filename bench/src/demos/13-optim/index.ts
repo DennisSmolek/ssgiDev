@@ -49,7 +49,7 @@ import type { Material, Scene } from 'three/webgpu';
 import type { AnyPixelFormat, DepthTexture, PerspectiveCamera, Texture, TextureDataType, WebGPURenderer } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawComputePass } from '../../harness/raw-compute-pass';
-import type { RawComputeBinding } from '../../harness/raw-compute-pass';
+import type { RawComputeBinding, RawComputeResource } from '../../harness/raw-compute-pass';
 import { Comparator } from '../../harness/compare';
 import type { CompareChannel } from '../../harness/compare';
 import { ReferencePass } from '../../harness/reference-pass';
@@ -57,8 +57,9 @@ import type { ReferenceInputs, ReferenceParams } from '../../harness/reference-p
 import { ensureTexture, ensureRenderTarget } from '../../harness/three-internals';
 import { buildParams } from '../../harness/params';
 import type { ParamGroup } from '../../harness/params';
-import { VARIANTS, buildAllVariants } from './variants';
+import { VARIANTS, buildAllVariants, needsLightPyramid, needsMaxPyramid, needsGuides } from './variants';
 import type { Variant, BuiltVariant } from './variants';
+import { TemporalGuidesPass } from '../../harness/temporal-guides';
 // FROZEN FORK (again): demo 13 copies demo 12's WGSL byte-for-byte into 13-optim/
 // (ssrt13-*.wgsl) rather than ?raw-importing demo 12 (cross-demo ?raw = silent
 // interface coupling — frozen-fork lesson, WORKLOG 2026-07-21). The ONLY addition
@@ -71,6 +72,8 @@ import copyDepthWgsl from './ssrt13-copydepth.wgsl?raw';
 import denoiseWgsl from './ssrt13-denoise.wgsl?raw';
 import lightmaskWgsl from './ssrt13-lightmask.wgsl?raw';
 import pyramidWgsl from './ssrt13-depth-pyramid.wgsl?raw';
+import pyramidMaxWgsl from './ssrt13-depth-pyramid-max.wgsl?raw';
+import lightPyramidWgsl from './ssrt13-light-pyramid.wgsl?raw';
 import downsampleWgsl from './ssrt13-downsample.wgsl?raw';
 import upsampleWgsl from './ssrt13-upsample.wgsl?raw';
 
@@ -132,6 +135,12 @@ const F_CONE_MIP = 256;
 const F_GI = 512;
 const F_SECTOR_REMAP = 1024;
 const F_BENT_NORMALS = 2048;
+// P5.2 adaptive: deterministic effort-endpoint flags (read only by the `adaptive`
+// march variant). Toggled by the bench hook so the paired ms measurement can pin
+// the fresh (full-effort, post-teleport worst case) and converged (min-effort)
+// endpoints without waiting on the live guides to settle.
+const F_ADAPT_FRESH = 65536;
+const F_ADAPT_CONVERGED = 131072;
 
 function sceneDefaults(sceneId: string): { radius: number; thickness: number } {
   if (sceneId === 'sponza') return { radius: 8, thickness: 2 };
@@ -208,6 +217,10 @@ interface BenchApi {
   variants(): Array<{ name: Variant; available: boolean; note: string }>;
   setVariant(name: Variant): { name: Variant; available: boolean };
   activeVariant(): Variant;
+  // P5.2 adaptive: pin the per-pixel effort to an endpoint for deterministic ms
+  // A/B — 'fresh' = full effort (post-teleport worst case), 'converged' = min
+  // effort (still/coasting), 'auto' = live guides. No-op for non-adaptive variants.
+  setEffortMode(mode: 'auto' | 'fresh' | 'converged'): { mode: string };
 }
 
 class OptimDemo implements Demo {
@@ -237,7 +250,11 @@ class OptimDemo implements Demo {
   private marchLight = this.makeStorage(HalfFloatType, RGBAFormat);
   private marchOut = this.makeStorage(HalfFloatType, RGBAFormat);   // main march output
   private marchBent = this.makeStorage(HalfFloatType, RGBAFormat);  // P4: xyz view-space bent normal, w visibleCone
-  private depthPyramid = this.makePyramid();                       // mip pyramid built from marchDepth
+  private depthPyramid = this.makePyramid(FloatType, RedFormat);   // box-MIN mip pyramid built from marchDepth
+  // P5.2 bandwidth family: box-MAX depth pyramid (hiz-skip) + prefiltered light mip
+  // pyramid (light-mips). Built lazily (only when the active variant needs them).
+  private depthPyramidMax = this.makePyramid(FloatType, RedFormat);
+  private lightPyramid = this.makePyramid(HalfFloatType, RGBAFormat);
 
   // P4 two-sided thickness: a back-face depth prepass at MARCH resolution.
   private backPass!: ReturnType<typeof pass>;
@@ -267,6 +284,11 @@ class OptimDemo implements Demo {
   private denoise!: RawComputePass;
   private lightmask!: RawComputePass;
   private pyramid!: RawComputePass;
+  private pyramidMax!: RawComputePass;       // P5.2 hiz-skip: box-MAX depth pyramid
+  private lightPyramidPass!: RawComputePass;  // P5.2 light-mips: box-average light pyramid
+  private guides!: TemporalGuidesPass;        // P5.2 adaptive: shared temporal-guides (lazy update)
+  private guidesActive = false;               // whether guides.update ran this frame
+  private benchEffortMode: 'auto' | 'fresh' | 'converged' = 'auto'; // adaptive ms A/B override
   private downsample!: RawComputePass;
   private upsample!: RawComputePass;
   private envSampler!: GPUSampler;
@@ -317,10 +339,10 @@ class OptimDemo implements Demo {
     t.generateMipmaps = false;
     return t;
   }
-  private makePyramid(): StorageTexture {
+  private makePyramid(type: TextureDataType, format: AnyPixelFormat): StorageTexture {
     const t = new StorageTexture(1, 1);
-    t.type = FloatType;
-    t.format = RedFormat;
+    t.type = type;
+    t.format = format;
     t.colorSpace = NoColorSpace;
     t.generateMipmaps = true;
     return t;
@@ -378,6 +400,17 @@ class OptimDemo implements Demo {
     this.pyramid = new RawComputePass(ctx.renderer, 'ssrt13-pyramid', pyramidWgsl, {
       bindings: [{ kind: 'tex' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
     });
+    // P5.2 hiz-skip: box-MAX depth pyramid (same layout as the min pyramid).
+    this.pyramidMax = new RawComputePass(ctx.renderer, 'ssrt13-pyramid-max', pyramidMaxWgsl, {
+      bindings: [{ kind: 'tex' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
+    });
+    // P5.2 light-mips: box-average (prefiltered) light pyramid.
+    this.lightPyramidPass = new RawComputePass(ctx.renderer, 'ssrt13-light-pyramid', lightPyramidWgsl, {
+      bindings: [{ kind: 'tex' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' }],
+    });
+    // P5.2 adaptive: shared TemporalGuidesPass (FSR3-BRIEF product). Cheap to
+    // construct/allocate; update() is LAZY — only when the active variant reads N.
+    this.guides = new TemporalGuidesPass(ctx.renderer, 'ssrt13-guides');
     // Main march (march res): march-res depth/normal/light + env + pyramid +
     // back-face depth (P4 two-sided) -> giao + bent normal (P4). The backDepth
     // and bentOut bindings are ALWAYS present (no pipeline permutation); they are
@@ -390,10 +423,16 @@ class OptimDemo implements Demo {
     this.hasF16 = ctx.capabilities.features['shader-f16'] === true
       || (ctx.device.features?.has?.('shader-f16') ?? false);
     this.variantBuild = buildAllVariants(mainWgsl, this.hasF16);
+    // Bindings 0–9 are the pristine march layout (baseline uses exactly these).
+    // 10–12 are APPENDED for the P5.2 bandwidth variants (light pyramid, max-depth
+    // pyramid, guides history N). They are ALWAYS bound (like backDepth): a variant
+    // that doesn't reference them simply ignores the entry — valid WebGPU — so one
+    // resources[] array drives every pipeline and baseline stays byte-identical.
     const marchBindings: RawComputeBinding[] = [
       { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'sampledTex' }, { kind: 'sampler', filtering: true },
       { kind: 'tex' }, { kind: 'depth' },
       { kind: 'storage', format: 'rgba16float' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
+      { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' }, // 10 lightPyramid, 11 depthPyramidMax, 12 historyLength
     ];
     for (const v of VARIANTS) {
       const b = this.variantBuild[v];
@@ -436,6 +475,9 @@ class OptimDemo implements Demo {
     this.lightmask.configure(this.lData.byteLength);
     this.downsample.configure(this.dsData.byteLength);
     this.pyramid.configure(this.pData.byteLength);
+    this.pyramidMax.configure(this.pData.byteLength);
+    this.lightPyramidPass.configure(this.pData.byteLength);
+    this.guides.configure(); // guides.setSize() ran inside resize()
     for (const v of VARIANTS) this.mainPasses[v]?.configure(this.mainData.byteLength);
     this.upsample.configure(this.upData.byteLength);
     this.temporal.configure(this.tData.byteLength);
@@ -509,6 +551,7 @@ class OptimDemo implements Demo {
         return { name: this.params.values.variant, available: b.available };
       },
       activeVariant: () => this.params.values.variant,
+      setEffortMode: (mode) => { this.benchEffortMode = mode; return { mode: this.benchEffortMode }; },
     };
     (window as unknown as { __bench13?: BenchApi }).__bench13 = api;
   }
@@ -708,7 +751,11 @@ class OptimDemo implements Demo {
     u[56] = v.rotationCount;
     u[57] = v.stepCount;
     u[58] = fc >>> 0;
-    u[59] = this.computeFlags();
+    // adaptive effort-endpoint override (only the adaptive variant reads these bits).
+    let effortBits = 0;
+    if (this.benchEffortMode === 'fresh') effortBits = F_ADAPT_FRESH;
+    else if (this.benchEffortMode === 'converged') effortBits = F_ADAPT_CONVERGED;
+    u[59] = this.computeFlags() | effortBits;
     d[60] = v.aoIntensity;
     d[61] = v.giIntensity;
     d[62] = v.backfaceLighting;
@@ -720,7 +767,10 @@ class OptimDemo implements Demo {
     d[68] = v.fallbackIntensity;
     d[69] = v.multiBounceGI;
     u[70] = ENV_MIPS;
-    d[71] = 0;
+    // pad1 repurposed as the full-res/march-res block scale so the `adaptive`
+    // variant can sample the FULL-res guides history N at march-res coords. Unused
+    // by every other variant (they never reference pad1).
+    d[71] = this.marchW > 0 ? this.fullW / this.marchW : 1;
     // demo 12 block.
     u[72] = v.noiseMode === 'white' ? 1 : 0;
     u[73] = v.thicknessHeuristic === 'two-sided' ? 3 : v.thicknessHeuristic === 'ottosson' ? 2 : v.thicknessHeuristic === 'linear' ? 1 : 0;
@@ -763,6 +813,70 @@ class OptimDemo implements Demo {
     (this.sceneRef as unknown as { overrideMaterial: Material | null }).overrideMaterial = prev;
   }
 
+  // P5.2 bandwidth family: build the extra fetch structures the active variant
+  // needs (LAZY — only the active variant's structures are produced). Called from
+  // runChain() (frame + chain/total bench) and prime() (march bench) so the march
+  // always sees consistent inputs. Assumes marchDepth/marchLight are current.
+  // Box-MIN depth pyramid (the base's mipOptimization structure). Extracted so the
+  // bandwidth path can guarantee it exists for hiz-skip's AO-path coarse test.
+  private buildMinPyramid(): void {
+    for (let mip = 0; mip < PYRAMID_LEVELS; mip++) {
+      this.pData[0] = this.marchW; this.pData[1] = this.marchH; this.pU32[2] = mip; this.pData[3] = 0;
+      const mw = Math.max(1, this.marchW >> mip);
+      const mh = Math.max(1, this.marchH >> mip);
+      this.pyramid.execute([this.marchDepth, this.depthPyramid, this.pData], mw, mh, { storageMip: mip });
+    }
+  }
+
+  private buildBandwidthInputs(cam: PerspectiveCamera): void {
+    const v = this.params.values.variant;
+    // hiz-skip's AO coarse test reads the MIN pyramid; build it here only if the
+    // base's mipOptimization path didn't already (avoid double-building per frame).
+    if (needsMaxPyramid(v) && !this.params.values.mipOptimization) this.buildMinPyramid();
+    if (needsMaxPyramid(v)) {
+      for (let mip = 0; mip < PYRAMID_LEVELS; mip++) {
+        this.pData[0] = this.marchW; this.pData[1] = this.marchH; this.pU32[2] = mip; this.pData[3] = 0;
+        const mw = Math.max(1, this.marchW >> mip);
+        const mh = Math.max(1, this.marchH >> mip);
+        this.pyramidMax.execute([this.marchDepth, this.depthPyramidMax, this.pData], mw, mh, { storageMip: mip });
+      }
+    }
+    if (needsLightPyramid(v)) {
+      for (let mip = 0; mip < PYRAMID_LEVELS; mip++) {
+        this.pData[0] = this.marchW; this.pData[1] = this.marchH; this.pU32[2] = mip; this.pData[3] = 0;
+        const mw = Math.max(1, this.marchW >> mip);
+        const mh = Math.max(1, this.marchH >> mip);
+        this.lightPyramidPass.execute([this.marchLight, this.lightPyramid, this.pData], mw, mh, { storageMip: mip });
+      }
+    }
+    this.guidesActive = false;
+    if (needsGuides(v)) {
+      this.guides.update(
+        cam,
+        { depth: this.depthTex, velocity: this.velocityTex },
+        {
+          reset: this.resetTemporal || this.frameCounter < 2,
+          disoccLo: 0.02, disoccHi: 0.1, disoccResetThreshold: 0.5,
+          historyCap: this.params.values.accumFrameCap, closestIsMin: true,
+        },
+      );
+      this.guidesActive = true;
+    }
+  }
+
+  // The march-res resource array (10 pristine + 3 appended bandwidth textures). The
+  // appended entries are always bound; a variant that doesn't reference them ignores
+  // the entry. historyLength falls back to marchDepth (a valid tex) when guides are
+  // inactive so the bind group is always complete.
+  private marchResources(backTex: DepthTexture, out: StorageTexture, bent: StorageTexture): RawComputeResource[] {
+    return [
+      this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler,
+      this.depthPyramid, backTex, out, bent, this.mainData,
+      this.lightPyramid, this.depthPyramidMax,
+      this.guidesActive ? this.guides.historyLengthTexture : this.marchDepth,
+    ];
+  }
+
   // The compute chain (downsample -> pyramid -> march -> upsample), shared by
   // frame() and the chain/total benchmarks. Assumes the light buffer is current.
   private runChain(cam: PerspectiveCamera): void {
@@ -775,17 +889,7 @@ class OptimDemo implements Demo {
       this.marchW, this.marchH,
     );
 
-    if (v.mipOptimization) {
-      for (let mip = 0; mip < PYRAMID_LEVELS; mip++) {
-        this.pData[0] = this.marchW;
-        this.pData[1] = this.marchH;
-        this.pU32[2] = mip;
-        this.pData[3] = 0;
-        const mw = Math.max(1, this.marchW >> mip);
-        const mh = Math.max(1, this.marchH >> mip);
-        this.pyramid.execute([this.marchDepth, this.depthPyramid, this.pData], mw, mh, { storageMip: mip });
-      }
-    }
+    if (v.mipOptimization) this.buildMinPyramid();
 
     // P4 two-sided: render the back-face depth prepass (march res) only when the
     // two-sided heuristic is active. Otherwise bind the (always-allocated) full-
@@ -797,9 +901,11 @@ class OptimDemo implements Demo {
       backTex = this.backDepthTex;
     }
 
+    // P5.2: build the active variant's extra fetch structures (lazy) then march.
+    this.buildBandwidthInputs(cam);
     this.fillMainUniform(cam);
     this.activeMain().execute(
-      [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, backTex, this.marchOut, this.marchBent, this.mainData],
+      this.marchResources(backTex, this.marchOut, this.marchBent),
       this.marchW, this.marchH,
     );
 
@@ -954,13 +1060,13 @@ class OptimDemo implements Demo {
   private async benchMarch(n: number): Promise<number> {
     const cam = this.currentCam();
     this.prime(cam, this.fullW, this.fullH);
+    // P5.2: build the active variant's fetch structures once (light/max pyramid,
+    // guides) so the fenced march measures the real bandwidth path.
+    this.buildBandwidthInputs(cam);
+    this.fillMainUniform(cam); // re-fill so effort-mode flags + guidesActive are current
     const pass = this.activeMain();
-    return this.fence(() => {
-      pass.execute(
-        [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.depthTex, this.marchOut, this.marchBent, this.mainData],
-        this.marchW, this.marchH,
-      );
-    }, n);
+    const res = this.marchResources(this.depthTex, this.marchOut, this.marchBent);
+    return this.fence(() => { pass.execute(res, this.marchW, this.marchH); }, n);
   }
 
   private async benchChain(n: number): Promise<number> {
@@ -1010,9 +1116,11 @@ class OptimDemo implements Demo {
       t.dispose();
       ensureTexture(this.rendererRef, t);
     }
-    this.depthPyramid.image = { width: this.marchW, height: this.marchH };
-    this.depthPyramid.dispose();
-    ensureTexture(this.rendererRef, this.depthPyramid);
+    for (const t of [this.depthPyramid, this.depthPyramidMax, this.lightPyramid]) {
+      t.image = { width: this.marchW, height: this.marchH };
+      t.dispose();
+      ensureTexture(this.rendererRef, t);
+    }
     // P4 two-sided: back-face depth pass renders at MARCH resolution.
     if (this.backPass) {
       this.backPass.setSize(this.marchW, this.marchH);
@@ -1034,6 +1142,7 @@ class OptimDemo implements Demo {
       ensureTexture(ctx.renderer, t);
     }
     this.applyScale();
+    this.guides.setSize(width, height); // P5.2 adaptive: guides run at FULL res
     this.refPass.setSize(width, height);
     this.compareRT.setSize(width, height);
     ensureRenderTarget(ctx.renderer, this.compareRT);
@@ -1049,7 +1158,9 @@ class OptimDemo implements Demo {
     this.refPass.dispose();
     this.compareRT.dispose();
     for (const t of [this.lightTex, this.giaoFull, this.histA, this.histB, this.finalTex, this.prevDepthTex, this.countA, this.countB,
-      this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.marchBent, this.depthPyramid]) t.dispose();
+      this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.marchBent, this.depthPyramid,
+      this.depthPyramidMax, this.lightPyramid]) t.dispose();
+    this.guides.dispose();
     this.envTex.dispose();
     this.backMat.dispose();
   }
@@ -1061,7 +1172,7 @@ const schema = {
     hint: 'Display-only multiplier on the gi view. Does NOT affect the composite.' },
   // --- Phase-O optimization variant (compile-time march specialization) ---
   variant: { type: 'enum', value: 'baseline' as Variant, options: VARIANTS, label: 'variant', group: 'optimization',
-    hint: 'Phase-O ALU variant family — each is a separate pipeline built from a transformed copy of the march WGSL. baseline = pristine demo-12 march (byte-identical control). trig = angle-sum slice recurrence + exact cos/sin(acos) identities + branchless vec2 acos. loop = invariant-reciprocal hoist + affine march-offset strength reduction. precision = f16 arithmetic for the [0,1] AO/sector/GI quantities (needs shader-f16; falls back to baseline when absent). alu-all = the three composed. Numbers come from run-13.mjs (paired vs baseline).' },
+    hint: 'Phase-O variant family — each is a separate pipeline built from a transformed copy of the march WGSL. ALU (P5.1): baseline (byte-identical control) / trig / loop / precision (needs shader-f16) / alu-all. BANDWIDTH (P5.2, where the fetch-bound march\'s wins live): light-mips = prefiltered light mip for far samples; hiz-skip = conservative empty-space skip (bit-identical output); checkerboard = frame-parity half-rate march refilled by the temporal accumulator; adaptive = guides-driven per-pixel effort (converged pixels coast); bandwidth-all = light-mips+hiz-skip+adaptive. Numbers come from run-13.mjs (paired vs baseline).' },
   // --- distillation levers ---
   marchScale: { type: 'enum', value: 'half' as MarchScale, options: MARCH_SCALES, label: 'march scale', group: 'distillation',
     hint: 'lab 09 verdict: march at half res + joint-bilateral upsample (3.8–5.4× on the dominant term). full = the demo-03-equal control; quarter = aggressive.' },
