@@ -135,6 +135,7 @@ class GtVbgiDemo implements Demo {
   private resetRequested = true;
   private lastPose = new Float64Array(8);
   private wasRefActive = false;
+  private device!: GPUDevice;
 
   private compareState = { splitX: 0.5 };
   private dragging = false;
@@ -143,6 +144,7 @@ class GtVbgiDemo implements Demo {
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
     this.cam = cam;
+    this.device = ctx.device;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(mrt({ output: output, albedo: diffuseColor, normal: normalView }));
@@ -198,6 +200,41 @@ class GtVbgiDemo implements Demo {
 
     this.installDividerDrag(ctx);
     this.updateOutputNode();
+
+    // Fenced GPU bench hook (TESTING.md Track B). Shape: window.__bench05 =
+    // { march, total }. GT-VBGI's entire per-frame SSGI GPU work is ONE raw
+    // pass: the additive VBGI march (the composite is a TSL display node, not a
+    // separable raw pass; the G-buffer is shared harness cost measured by demo
+    // 00, not re-counted here). So march and total both run that single pass and
+    // are intentionally equal —
+    //   march = one execution of the raw VBGI march with current uniforms
+    //   total = the demo's full per-frame SSGI work (== march for this demo)
+    // (A fenced loop that also re-rendered the TSL G-buffer/display would only
+    // add noise: those renders skip under three's per-frame render-list caching,
+    // see the __bench01 comment.)
+    // The march is a PROGRESSIVE accumulator: re-executing it (loadOp 'load')
+    // adds samples but never touches the demo's sampleCount, and the hook
+    // requests a clean reset afterwards (resetRequested) so interactive use
+    // resumes fresh. Fences on queue.onSubmittedWorkDone.
+    (window as unknown as { __bench05?: Record<string, (n: number) => Promise<number>> }).__bench05 = {
+      march: (n: number) => this.benchMarch(n),
+      total: (n: number) => this.benchMarch(n),
+    };
+  }
+
+  // One raw VBGI march, fenced. Reuses the last frame's filled uniforms (like
+  // demo 03's __ssrt3bench) and the primed G-buffer; loadOp 'load' matches the
+  // steady-state accumulation cost. Requests a reset once the loop returns.
+  private async benchMarch(n: number): Promise<number> {
+    this.gbufferPipeline.render(); // prime the G-buffer the march reads
+    await this.device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      this.vbgi.execute(this.vbgiRT, [this.depthTex, this.normalTex, this.beautyTex, this.vbgiData], { loadOp: 'load' });
+    }
+    await this.device.queue.onSubmittedWorkDone();
+    this.resetRequested = true;
+    return (performance.now() - t0) / n;
   }
 
   private updateOutputNode(): void {

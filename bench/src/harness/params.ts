@@ -99,13 +99,19 @@ export function buildParams<T extends ParamSchema>(
     },
     importJSON(json: string) {
       const parsed = JSON.parse(json) as Partial<ParamValues<T>>;
+      // Notify only keys whose value actually changed: blanket notification
+      // made every applyConfig fire ref-view listeners (refRays/refSteps/...)
+      // in demos 03/04/05, silently resetting the oracle's accumulation on
+      // unrelated config touches (caught by the Track A runner, 2026-07-21).
+      const changed: Array<keyof T> = [];
       for (const key of Object.keys(schema) as Array<keyof T>) {
         if (key in parsed && parsed[key] !== undefined) {
+          if ((values as Record<string, unknown>)[key as string] !== parsed[key]) changed.push(key);
           (values as Record<string, unknown>)[key as string] = parsed[key];
         }
       }
       for (const b of bindings.values()) b.refresh();
-      for (const cb of listeners) for (const key of Object.keys(schema) as Array<keyof T>) cb(key);
+      for (const cb of listeners) for (const key of changed) cb(key);
     },
   };
 

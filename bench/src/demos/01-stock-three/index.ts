@@ -105,9 +105,11 @@ class StockThreeDemo implements Demo {
 
   private params!: ParamGroup<typeof schema>;
   private ssgiAvailable = true;
+  private device!: GPUDevice;
 
   init(ctx: HarnessContext): void {
     this.camera = ctx.scene.camera;
+    this.device = ctx.device;
     this.ssgiAvailable = ctx.capabilities.features[REQUIRED_FEATURE] === true;
 
     // --- Scene pass with MRT (output / albedo / packed normal / velocity+MR). ---
@@ -204,6 +206,43 @@ class StockThreeDemo implements Demo {
 
     this.syncUniforms();
     this.rebuild();
+
+    // Fenced GPU bench hook (TESTING.md Track B). Shape: window.__bench01 =
+    // { total }. Demo 01 is a pure TSL node pipeline (SSGINode + optional SSR +
+    // TRAA/Denoise) rendered by ONE RenderPipeline (three's PostProcessing),
+    // so per-pass isolation is impractical: there are no separable raw passes to
+    // fence individually — the whole graph is one QuadMesh render. `total`
+    // therefore runs n fenced full renders (G-buffer + SSGI GI+AO + optional
+    // SSR + post AA/denoise + composite — that chain IS the stock-three cost),
+    // fenced on queue.onSubmittedWorkDone like demo 03's __ssrt3bench.
+    //
+    // CAVEAT (documented per the Track B fallback rule): this is the one demo
+    // where a *clean* fenced re-execution is genuinely impossible without
+    // touching three internals or pausing the harness. The TSL effect nodes'
+    // FRAME-type updateBefore work (the actual SSGI/TRAA passes) is baked into a
+    // per-frame render list; the live rAF loop already renders the pipeline once
+    // per animation frame, so an extra same-frame pipeline.render() here reuses
+    // that render list and re-executes only the un-cached tail (composite), NOT
+    // the gated effect passes. The fenced number therefore UNDER-reports the
+    // true per-frame SSGI cost — for demo 01's authoritative cost read the live
+    // gpu-ms timestamp-query readout (ctx.timing) instead. Kept as `total` for
+    // budget-map uniformity; flagged in the runner meta. Additive: nothing runs
+    // unless the hook is invoked.
+    (window as unknown as { __bench01?: Record<string, (n: number) => Promise<number>> }).__bench01 = {
+      total: (n: number) => this.benchTotal(n),
+    };
+  }
+
+  // Full-pipeline fenced bench (see the __bench01 comment, including the
+  // under-reporting caveat). Re-renders the pipeline n times; TRAA history
+  // advances across iters (harmless for timing), and the demo keeps rendering
+  // normally once the loop returns.
+  private async benchTotal(n: number): Promise<number> {
+    await this.device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) this.pipeline.render();
+    await this.device.queue.onSubmittedWorkDone();
+    return (performance.now() - t0) / n;
   }
 
   private syncUniforms(): void {

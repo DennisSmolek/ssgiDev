@@ -138,6 +138,7 @@ class SSHGIDemo implements Demo {
   private cam!: PerspectiveCamera;
   private resetRequested = true;
   private lastPose = new Float64Array(8);
+  private device!: GPUDevice;
 
   private compareState = { splitX: 0.5 };
   private dragging = false;
@@ -146,6 +147,7 @@ class SSHGIDemo implements Demo {
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
     this.cam = cam;
+    this.device = ctx.device;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(
@@ -217,6 +219,84 @@ class SSHGIDemo implements Demo {
 
     this.installDividerDrag(ctx);
     this.updateOutputNode();
+
+    // Fenced GPU bench hook (TESTING.md Track B). Shape: window.__bench06 =
+    // { source, march, accum, gcopy, compose, total }. SSHGI is a chain of five
+    // raw fragment passes, so every one is exposed as a separable entry (each
+    // re-runs ONE pass reusing the last frame's filled uniforms + primed input
+    // targets, exactly like demo 03's __ssrt3bench reuses its uniforms):
+    //   source  = radiance injection (beauty + damped multibounce feedback)
+    //   march   = bitmask horizon GI march
+    //   accum   = temporal accumulation + adaptive bilateral
+    //   gcopy   = G-buffer copy for next-frame reprojection rejection
+    //   compose = view composite into outRT
+    //   total   = the full source->march->accum->gcopy->compose chain per frame.
+    // The chain does NOT advance the history ping-pong (no advance()), so it
+    // never desyncs the accumulator; it does write histGI.current, so each hook
+    // requests a clean reset afterwards (resetRequested). Fences on
+    // queue.onSubmittedWorkDone. Returns avg ms/iter.
+    (window as unknown as { __bench06?: Record<string, (n: number) => Promise<number>> }).__bench06 = {
+      source: (n: number) => this.benchPass(n, () => this.execSource()),
+      march: (n: number) => this.benchPass(n, () => this.execMarch()),
+      accum: (n: number) => this.benchPass(n, () => this.execAccum()),
+      gcopy: (n: number) => this.benchPass(n, () => this.execGcopy()),
+      compose: (n: number) => this.benchPass(n, () => this.execCompose()),
+      total: (n: number) => this.benchPass(n, () => this.execChain()),
+    };
+  }
+
+  // --- fenced bench helpers (Track B) --------------------------------------
+  // Each exec* re-runs ONE pass with the bindings + uniforms frame() last
+  // filled (loadOp 'clear', matching the real pipeline). No advance() is called,
+  // so the ping-pong state is preserved across the loop.
+  private execSource(): void {
+    this.sourcePass.execute(
+      this.sourceRT,
+      [this.beautyTex, this.histGI.history.texture, this.velocityTex, this.histG.history.texture,
+        this.depthTex, this.normalTex, this.sourceData],
+      { loadOp: 'clear' },
+    );
+  }
+  private execMarch(): void {
+    this.marchPass.execute(
+      this.rawRT,
+      [this.depthTex, this.normalTex, this.sourceRT.texture, this.marchData],
+      { loadOp: 'clear' },
+    );
+  }
+  private execAccum(): void {
+    this.accumPass.execute(
+      this.histGI.current,
+      [this.depthTex, this.normalTex, this.albedoTex, this.rawRT.texture,
+        this.histGI.history.texture, this.velocityTex, this.histG.history.texture, this.accumData],
+      { loadOp: 'clear' },
+    );
+  }
+  private execGcopy(): void {
+    this.gcopyPass.execute(this.histG.current, [this.depthTex, this.normalTex, this.gcopyData], { loadOp: 'clear' });
+  }
+  private execCompose(): void {
+    this.composePass.execute(
+      this.outRT,
+      [this.histGI.current.texture, this.rawRT.texture, this.beautyTex, this.albedoTex, this.composeData],
+      { loadOp: 'clear' },
+    );
+  }
+  private execChain(): void {
+    this.execSource();
+    this.execMarch();
+    this.execAccum();
+    this.execGcopy();
+    this.execCompose();
+  }
+
+  private async benchPass(n: number, run: () => void): Promise<number> {
+    await this.device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) run();
+    await this.device.queue.onSubmittedWorkDone();
+    this.resetRequested = true; // re-ran passes mutated intermediate targets
+    return (performance.now() - t0) / n;
   }
 
   private updateOutputNode(): void {

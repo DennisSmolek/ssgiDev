@@ -89,6 +89,9 @@ class ReferenceDemo implements Demo {
   private readout = { samples: 0 };
 
   private frameCounter = 0;
+  private device!: GPUDevice;
+  private lastW = 1;
+  private lastH = 1;
   // Sub-pixel projection jitter (TAA-style). index cycles the Halton sequence;
   // active tracks whether a view offset is currently set so we clear it exactly
   // once when jitter is turned off (not every frame).
@@ -104,6 +107,7 @@ class ReferenceDemo implements Demo {
   init(ctx: HarnessContext): void {
     const cam = ctx.scene.camera;
     this.cam = cam;
+    this.device = ctx.device;
 
     this.scenePass = pass(ctx.scene.scene, cam);
     this.scenePass.setMRT(
@@ -148,6 +152,42 @@ class ReferenceDemo implements Demo {
 
     this.installDividerDrag(ctx);
     this.updateOutputNode();
+
+    // Fenced GPU bench hook (TESTING.md Track B). Shape: window.__bench02 =
+    // { accumFrame, total }. This demo's entire per-frame SSGI GPU work is ONE
+    // raw pass: the brute-force reference marcher (the composite is a TSL display
+    // node; the G-buffer is shared harness cost measured by demo 00, not
+    // re-counted here). So accumFrame and total both run that single march and
+    // are intentionally equal —
+    //   accumFrame = one progressive accumulation sample-frame of the marcher
+    //     (the ms-per-reference-sample number).
+    //   total = the demo's full per-frame SSGI work (== accumFrame here).
+    // Implemented via renderSingle into liveRT (loadOp 'clear'), which writes
+    // only liveRT and never the shared accumRT, so the interactive accumulation
+    // is undisturbed. (A loop that also re-rendered the TSL G-buffer/display
+    // would only add noise: those renders skip under three's per-frame
+    // render-list caching — see the __bench01 comment.) Fences on
+    // queue.onSubmittedWorkDone (matching demo 03's __ssrt3bench).
+    (window as unknown as { __bench02?: Record<string, (n: number) => Promise<number>> }).__bench02 = {
+      accumFrame: (n: number) => this.benchAccumFrame(n),
+      total: (n: number) => this.benchAccumFrame(n),
+    };
+  }
+
+  // One reference sample-frame, fenced. Primes the G-buffer once (the marcher
+  // reads it), then re-runs the single-sample march n times into liveRT.
+  private async benchAccumFrame(n: number): Promise<number> {
+    const params = this.refParams(this.params.values);
+    const w = this.lastW;
+    const h = this.lastH;
+    this.gbufferPipeline.render();
+    await this.device.queue.onSubmittedWorkDone();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      this.refPass.renderSingle(this.liveRT, this.cam, this.inputs(), params, w, h, this.frameCounter);
+    }
+    await this.device.queue.onSubmittedWorkDone();
+    return (performance.now() - t0) / n;
   }
 
   private updateOutputNode(): void {
@@ -251,6 +291,8 @@ class ReferenceDemo implements Demo {
     this.readout.samples = this.refPass.sampleCount;
     this.countBinding.refresh();
     ctx.timing.sampleGPU(ctx.renderer);
+    this.lastW = width;
+    this.lastH = height;
   }
 
   private installDividerDrag(ctx: HarnessContext): void {
