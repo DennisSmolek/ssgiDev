@@ -64,11 +64,15 @@ If M4 needs trimming, defer the TSL example, not the raw path.
 texture at bind time on our side, channel conventions (.r reads) noted.
 Reserved-channel rule acknowledged — we will never read unlisted fields.
 
-**One sync flag:** both specs cite an FSR3-BRIEF *SVGF addendum* (§A/§B/§E,
-`MomentPyramid`) that exists in the port repo's copy (`bench/docs/
-FSR3-BRIEF.md`), not in this repo's `FSR3-BRIEF.md`. Copy the addendum here
-(or declare the port-side copy canonical) so both sides review one
-producer-of-record before M1.
+**Producer-of-record confirmed:** the SVGF addendum (§A/§B/§E,
+`MomentPyramid`, the signal-&-space rule) is present in this repo's
+`FSR3-BRIEF.md` and matches what both specs cite. (An earlier draft of this
+response flagged a sync gap — retracted; it was a stale read on the consumer
+side.) One brief-side reconciliation was applied instead: the brief's
+"Consumption requirements v2" and bundle table now note that the accepted
+deviations D1 (UV-delta motion) and D4 (port-native formats) supersede the
+brief's suggested convention/formats — see the brief's "Contract resolution"
+note.
 
 ## SVGF-SPEC §8 pre-build decisions (recommendations)
 

@@ -1,4 +1,4 @@
-import { Clock, WebGPURenderer } from 'three/webgpu';
+import { Clock, PCFSoftShadowMap, WebGPURenderer } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Pane } from 'tweakpane';
 import { getDevice } from './three-internals';
@@ -44,6 +44,11 @@ export async function startApp(config: AppConfig): Promise<void> {
   // Shadow maps on for every scene: SSGI gathers from the beauty buffer, so a
   // shadowless beauty hands every GI technique a physically wrong input.
   renderer.shadowMap.enabled = true;
+  // PCF-soft (Dennis, 2026-07-21): with plain PCF the cornell boxes showed a
+  // hard aliased line at their bases (projective aliasing); soft PCF + the
+  // per-light bias/normalBias in cornell.ts removes it. Scene-wide because
+  // every technique gathers from the beauty — shadow acne becomes GI noise.
+  renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.setSize(window.innerWidth, window.innerHeight);
   mount.appendChild(renderer.domElement);

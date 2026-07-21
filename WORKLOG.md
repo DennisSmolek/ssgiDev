@@ -1418,3 +1418,27 @@ absolute-GT for cornell). Sync flag raised: the SVGF addendum (§A/§B/§E)
 exists only in the port repo's FSR3-BRIEF copy — needs syncing before M1.
 c7ba382's pass-boundary language is superseded by D5 (products, not passes);
 its demo-10 acceptance rig stands as M6's exit criterion.
+
+## 2026-07-21 — Cornell restore + shadow fix; brief reconciled for handoff
+
+**Retraction/restore:** the cornell.ts change I reverted during the SVGF
+cleanup was Dennis's own manual edit (mesh names for debugging), not agent
+work — discarded without reading it first, which is exactly the
+look-before-deleting rule. Recreated: mesh names (floor/ceiling/back-wall/
+left-wall-red/right-wall-green/tall-box/short-box/ceiling-light) + shadow
+fixes per Dennis: PCFSoftShadowMap renderer-wide (harness app.ts), cornell
+light bias −0.0002 / normalBias 0.005 / 2048 map. Verified headed at
+C-contact: the jagged shadow boundary is gone and the shadow hugs the base.
+The REMAINING 1px bright line traces the full base silhouette including lit
+edges → it is geometry-edge aliasing from antialias:false, not shadow bias;
+it is the no-AA artifact the FSR resolve (Req 2 / brief item 4) addresses.
+Do not chase it with more normalBias (light-leak territory).
+NOTE: shadow change alters the beauty input scene-wide → next recorded
+battery is a re-baseline boundary for cornell rows (flagged, not yet run).
+
+**Handoff reconciliation:** GUIDES-SPEC-RESPONSE sync-flag retracted (the
+SVGF addendum IS in this repo's FSR3-BRIEF — stale read on my side).
+FSR3-BRIEF now carries a "Contract resolution (M0)" note: D1 UV-delta and
+D4/D5 products-not-passes supersede the suggested convention/formats; Req 1
+reworded to match. Brief + response are now internally consistent and ready
+for Dennis to hand to the port side.

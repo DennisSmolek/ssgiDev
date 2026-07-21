@@ -35,11 +35,20 @@ still run them as its temporal-guides provider.
 
 ## Contracts this bench expects (the "temporal guides" bundle)
 
+> **Contract resolution (2026-07-21, M0):** the port's response
+> (`TEMPORAL-GUIDES-SPEC.md`) and the bench's review
+> (`GUIDES-SPEC-RESPONSE.md`) supersede two details below, by agreement:
+> **D1** — published motion is a **UV delta with the y-flip pre-applied**
+> (`prevUV = uv − motion`), not the raw NDC delta; **D4/D5** — formats are
+> the port's native ones (contract = named textures + documented
+> space/resolution/stage, not the suggested formats, and not pass
+> boundaries). The table's *semantics* columns remain the contract.
+
 Produced once per frame, post-G-buffer, pre-effects:
 
-| texture | format (suggested) | contents |
+| texture | format (suggested; superseded by D4) | contents |
 |---|---|---|
-| `dilatedVelocity` | rg16float | closest-depth-dilated NDC delta |
+| `dilatedVelocity` | rg16float | closest-depth-dilated motion (convention per D1: UV delta, pre-flipped) |
 | `disocclusion` | r16float | graded disocclusion 0 (stable) .. 1 (fresh) |
 | `historyLength` | r16float | per-pixel valid-history frame count N |
 | `reactive` | r8unorm | app/effect-flagged fast-changing pixels |
@@ -187,14 +196,17 @@ the recorded flagship optimization (3.17×/2.37× converged,
 `bench/results/demo13-all.md`). The port is not building on theory; it is
 replacing a working reference implementation behind a stable contract.
 
-## Req 1 — guides provider swap (passes 1–2)
-Ship passes 1–2 exactly per the contract table above. The bench consumes them
-by swapping out `bench/src/harness/temporal-guides.ts` behind the SAME four
-texture getters (dilatedVelocity rg16float / disocclusion r16float graded /
-historyLength r16float / reactive r8unorm merge-in). Acceptance = the live
-demo 10 rig: `?demo=10-denoise&stack=ssrt3-guides` must match or beat the
-harness pass's recorded stability, and `?view=guides` must show the same
-R/G/B behavior (disocclusion flare on teleport, history rebuild at rest).
+## Req 1 — guides provider swap (early-stage products)
+Ship the early-stage guide products per the contract table above **as
+resolved at M0** (products-not-passes per D5; UV-delta motion per D1;
+port-native formats per D4 — see `TEMPORAL-GUIDES-SPEC.md` +
+`GUIDES-SPEC-RESPONSE.md`). The bench consumes them by swapping out
+`bench/src/harness/temporal-guides.ts` behind the same texture getters
+(the bench aligns its harness pass to the D1 convention at swap time so the
+bundle is drop-in). Acceptance = the live demo 10 rig:
+`?demo=10-denoise&stack=ssrt3-guides` must match or beat the harness pass's
+recorded stability, and `?view=guides` must show the same R/G/B behavior
+(disocclusion flare on teleport, history rebuild at rest).
 
 ## Req 2 — accumulate + upsample (pass 3) as OUR display resolve
 The bench renders GI (and beauty) at render-res = 0.5–0.67× display-res and
