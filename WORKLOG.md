@@ -1460,3 +1460,22 @@ dither). Contact shadows stay attached (no peter-pan), bias/normalBias
 unchanged. app.ts comment corrected to say what shadowMap.type actually
 covers. Cornell re-baseline flag from the previous entry still stands —
 this widens the penumbra in the beauty input.
+
+## 2026-07-21 — cornell contact line: Dennis was right, it was shadow bias
+
+Follow-up to the radius fix: the bright line at the box bases was NOT
+(mainly) geometry aliasing — Dennis's bias=0.001 experiment proved it is
+shadow detachment. A/B'd headed at the contact close-up + wide room with
+amplified signed diffs:
+- bias +0.001 (Dennis): base line fully gone; side effect = thin dark rims
+  on the boxes' lit TOP edges (over-expanded self-shadow), rest of the room
+  ~untouched at radius 12.
+- normalBias 0.005 → 0.001: base line reduced (normalBias pushes contact
+  pixels out of shadow — it helped open the gap) but not eliminated alone.
+- Final: bias +0.0005, normalBias 0.001, radius 12 — base line gone, top-rim
+  darkening cut roughly in half vs 0.001, no room-wide acne (mean |Δ| < 1/255
+  outside the intended contact fix).
+mapSize stays 2048: the gap was bias-driven, not resolution; and radius is
+texel-relative, so 4096 would TIGHTEN the penumbra unless radius doubled.
+A genuine 1px geometry-alias hairline remains on silhouette edges (incl.
+fully lit ones) — that part is still the no-AA artifact for the FSR resolve.

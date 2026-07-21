@@ -100,11 +100,15 @@ export const cornellScene: SceneDef = {
     // Shadow softness: three r185 WebGPU point lights ignore shadowMap.type
     // (PointShadowNode always uses a 5-tap Vogel/IGN filter whose width is
     // shadow.radius in TEXELS — default 1 ≈ hard edge). radius is the real
-    // softness knob. Keep normalBias tiny (too much = light leak under the
-    // box), small negative bias for acne.
+    // softness knob; NOTE it is texel-relative, so raising mapSize tightens
+    // the penumbra unless radius scales with it.
+    // Positive bias closes the bright detachment line at the box bases
+    // (Dennis found 0.001; halved to limit dark rims on lit top edges).
+    // normalBias kept minimal — it pushes contact pixels out of shadow,
+    // which is what opened the base gap in the first place.
     light.shadow.radius = 12;
-    light.shadow.bias = -0.0002;
-    light.shadow.normalBias = 0.005;
+    light.shadow.bias = 0.0005;
+    light.shadow.normalBias = 0.001;
     scene.add(light);
     scene.add(new AmbientLight(0xffffff, 0.15));
 
