@@ -13,6 +13,7 @@ import { bandwidthDemo } from './09-bandwidth/index';
 import { denoiseLabDemo } from './10-denoise/index';
 import { samplingLabDemo } from './11-sampling/index';
 import { distilledDemo } from './12-distilled/index';
+import { optimDemo } from './13-optim/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -28,3 +29,4 @@ demoRegistry.register(bandwidthDemo);
 demoRegistry.register(denoiseLabDemo);
 demoRegistry.register(samplingLabDemo);
 demoRegistry.register(distilledDemo);
+demoRegistry.register(optimDemo);

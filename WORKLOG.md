@@ -1046,3 +1046,86 @@ demos 02/03/04/05 reference views, tsc, run-12 --quick.
 demo bent uses salm-caps' approximate direction reconstruction (→ ~24° oracle
 gap); demo bent normal un-denoised (temporal accumulation of the bent buffer is
 a follow-up). Not committed (per packet).
+
+---
+
+## 2026-07-21 — P5 phase 1/3: demo 13 optimization lab + ALU variant family
+
+Demo 12 frozen-forked AGAIN into `13-optim/` (`ssrt13-*.wgsl` = byte-identical
+copies of `ssrt12-*.wgsl`, verified `diff`), plus ONE addition: a compile-time
+`variant` mechanism specializing the MARCH kernel per NEXTGEN optimization
+principle. Phase 1 = the ALU family. Full detail in `13-optim/README.md`.
+
+**Variant mechanism (`13-optim/variants.ts`).** The pristine `ssrt13-main.wgsl`
+text is transformed into per-variant WGSL by anchoring on EXACT substrings with
+asserted occurrence counts (drift fails loudly at build, never silent no-op —
+frozen-fork lesson). Each variant compiles to its OWN `RawComputePass` pipeline
+(identical binding layout, so one resources[] drives any); active pipeline picked
+by a `variant` enum param (group "optimization") + `?variant=` override +
+`__bench13.setVariant()`. `baseline` = identity transform, ASSERTED byte-identical
+to the pristine source (`buildAllVariants` throws otherwise). Variants touch only
+the march; all P4 capabilities carried over at their P4 defaults.
+
+**ALU family + exact WGSL transforms:**
+- **`trig`** (principle 1): (1) per-slice `sin/cos(rotationAngle)` → angle-sum
+  recurrence (precompute cosΔ/sinΔ, rotate the slice vector per iter) — EXACT to
+  float, ≤3 rotations drift ~1e-7. (2) bent-normal per-bit + distant-light per-cap
+  `acos`-then-`cos/sin` → exact identity `c=2f−1; s=√(1−c²)` (removes fastAcos+
+  cos+sin; MORE accurate than baseline's fastAcos). (3) per-sample horizon
+  `fastAcos(fbh.x/.y)` → branchless vec2 `fastAcos2` (value-identical; the angle
+  is genuinely needed for the linear sector map, so only vectorize+debranch).
+- **`loop`** (principle 4): the named `pow(abs(stepRadius·(j+off)/radiusVS),
+  expFactor)·radiusVS` per step (both marchers) — hoist `radiusVSInv=1/radiusVS`,
+  `kStep=stepRadius·radiusVSInv`; the affine `argJ=kStep·(j+off)` advances by
+  adding kStep (strength-reduce the multiply), likewise `(j+1)`. pow stays. Drift
+  over 32 steps ~2e-6 rel, verified below noise.
+- **`precision`** (principle 3): `enable f16;` + f16 for the GI sector-weighted
+  radiance product (weight/ndl/lndl∈[0,1], lightColor firefly-clamped; accumulator
+  col stays f32) and the per-slice AO visibility fraction. Depth+position STAY f32
+  (load-bearing). Feature-gated: generated only when `shader-f16` present, else
+  reports `unavailable` + falls back to baseline pipeline (standing rule).
+  Conservative scope (positions/directions f32) — logged for review.
+- **`alu-all`**: trig∘loop∘precision (disjoint lines). Drops precision (→trig∘loop)
+  when f16 absent.
+
+**Runner `bench/scripts/run-13.mjs`.** Paired A/B per variant vs baseline,
+back-to-back (thermal), cells C-wide+S-hall: fenced `__bench13` march ms
+(warm-up + min-of-bursts, baseline-then-variant), screenshot MSE vs BASELINE's
+combined (primary correctness gate ≤1e-4), MSE vs oracle (quality-unchanged),
+stability. `writeResults('demo13-alu', …)` with pass_ms/pass_baseline/pass_oracle;
+a slower variant is recorded, not hidden. `--quick` (2 bursts). Registered:
+`demos/index.ts` (+optimDemo), `scripts/lib/harness.mjs` (`DEMO_IDS['13']`).
+
+**Verification (headed, live server 5180; tsc + build green).** Demo 13 resolves
+(`13-optim`); all 5 variants available (shader-f16 CONFIRMED on adapter); every
+variant renders non-black and visually indistinguishable from baseline (combined
+meanBright 106.33–106.34; MSE-vs-baseline 7–9e-6 = temporal-cycle noise floor).
+`precision` reports available here; the unavailable-path (no f16) verified by
+`buildAllVariants(src,false)` → precision available=false, alu-all drops precision.
+`run-13 --quick` completes; all correctness gates pass every cell.
+
+**Smoke finding (NOT a recorded number — orchestrator's isolated run is the
+verdict).** At FULL methodology (bursts=3×40 + warm-up) a base-vs-base control
+gives ratio 1.00 (no measurement-order bias), and `trig` vs baseline is ~equal
+(~2%). Exactly NEXTGEN principle 5's prediction: the march is fetch-bound, so
+pure-ALU rearrangement is ~0× (lab 09). The ALU family is shaping up as an honest
+near-zero/negative result; recorded per-variant numbers await isolation.
+
+### Decisions for review
+- **`precision` f16 scope is conservative** — only the GI radiance product +
+  AO visibility fraction (proven [0,1]) go f16; positions, depth, AND
+  direction-vectors-derived-from-positions stay f32. A deeper conversion
+  (normalized directions, sector-mapping arithmetic) is the follow-up IF the
+  scoped version shows any promise. Chose safety-first given string-transform
+  fragility + the fetch-bound prior (a null result either way).
+- **`trig`'s per-sample fbh `fastAcos` is NOT removed** — the horizon angle feeds a
+  linear cosine→sector-index map, so the angle itself is needed (no exact vector
+  identity). Only vectorized + debranched (value-identical). The exact-identity
+  wins land on the bent-normal / distant-light `cos/sin(acos)` sites instead.
+- **`--quick` bumped to 2 bursts** (run-12 uses 1) — a single rAF frame landing in
+  a 1-burst window doubles the reading and manufactures a fake ratio; min-of-2
+  filters it. Recorded run still uses 3×40.
+- **Committed a `--quick` `demo13-alu.{json,md}`** (stamped "quick smoke run — not
+  a recorded number"); orchestrator's isolated run overwrites it.
+
+**Open bugs:** none. **Not committed** (per packet).
