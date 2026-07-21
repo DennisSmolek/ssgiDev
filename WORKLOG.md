@@ -1442,3 +1442,21 @@ FSR3-BRIEF now carries a "Contract resolution (M0)" note: D1 UV-delta and
 D4/D5 products-not-passes supersede the suggested convention/formats; Req 1
 reworded to match. Brief + response are now internally consistent and ready
 for Dennis to hand to the port side.
+
+## 2026-07-21 — cornell shadow softness: shadow.radius was the real knob
+
+Dennis reported shadows still hard/aliased after the PCF-soft switch. Root
+cause found in three r185 source: `PointShadowNode.js:179` — point lights
+IGNORE `renderer.shadowMap.type` entirely (only Basic vs a 5-tap Vogel/IGN
+filter), and the filter's width is `shadow.radius / mapSize.x` — radius
+defaults to 1 texel, i.e. visually hard. The earlier PCF-soft change only
+affected spot/directional paths (sponza sun gets a fixed 16-tap gather
+kernel from it; that one ignores radius instead).
+
+Fix: `light.shadow.radius = 12` on the cornell ceiling light (A/B'd 8 vs 12
+vs 16 headed at Dennis's framing; 16 = widest but visible 5-tap dither
+mottling, 8 = clean but tight, 12 = soft area-light read with minimal
+dither). Contact shadows stay attached (no peter-pan), bias/normalBias
+unchanged. app.ts comment corrected to say what shadowMap.type actually
+covers. Cornell re-baseline flag from the previous entry still stands —
+this widens the penumbra in the beauty input.

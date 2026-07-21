@@ -97,10 +97,12 @@ export const cornellScene: SceneDef = {
     light.position.set(0, S - 0.4, 0);
     light.castShadow = true;
     light.shadow.mapSize.set(2048, 2048);
-    // Shadow-seam fix (Dennis): the bright line at the box bases is the shadow
-    // detaching at the contact edge. Keep normalBias tiny (too much = light
-    // leak under the box), small negative bias for acne, 2048 map for edge
-    // resolution; PCF-soft set renderer-wide in harness app.ts.
+    // Shadow softness: three r185 WebGPU point lights ignore shadowMap.type
+    // (PointShadowNode always uses a 5-tap Vogel/IGN filter whose width is
+    // shadow.radius in TEXELS — default 1 ≈ hard edge). radius is the real
+    // softness knob. Keep normalBias tiny (too much = light leak under the
+    // box), small negative bias for acne.
+    light.shadow.radius = 12;
     light.shadow.bias = -0.0002;
     light.shadow.normalBias = 0.005;
     scene.add(light);
