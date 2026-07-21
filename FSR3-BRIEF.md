@@ -82,3 +82,145 @@ Notes:
 - The bench will consume passes 1–2 in a lab (demo 10 extension) A/B-ing
   guides-fed SSGI temporal vs its private logic — that lab is the acceptance
   test for the decomposition being real and not cosmetic.
+
+## Addendum — data products SVGF wants (denoiser as first-class consumer)
+
+Motivation: the bench is adding an SVGF-style GI denoiser (variance-guided
+à-trous). Its temporal front-end is *identical* to FSR3's, and its missing
+half (per-pixel variance) reuses FSR3's luminance-statistics machinery. This
+addendum expands the decomposition so the port serves the denoiser directly.
+See `advantagous-concepts.md` (SVGF-style variance moments) for the
+consumer-side motivation; the bench SVGF lab is the acceptance test for the
+statistics primitive below being real and not cosmetic.
+
+**The one rule that governs this addendum — signal & space.** FSR3's
+frame-property outputs (motion, disocclusion, depth, history length) are
+*signal-agnostic*: correct for any temporal consumer. Its luminance-derived
+products are NOT — they live on tonemapped display-luminance of the full
+beauty, in FSR3's exposure/YCoCg conventions, sometimes at display res. SVGF
+variance must live on **GI irradiance: pre-albedo, linear HDR, render res**.
+So the denoiser consumes FSR3's *geometry/frame data* directly, but must NOT
+consume its *luminance buffers* — it reuses the luminance *pass* on a
+different input. Every luma-derived output MUST carry a space label so a
+consumer cannot mis-apply display-luma to a linear-HDR denoiser.
+
+### A. Promote three internals into the published contract
+
+These already exist inside passes 1–2 but aren't in the consumed bundle. SVGF,
+the SSGI march, and the temporal pass each re-derive them privately today;
+publish once.
+
+| texture | format (suggested) | contents | space |
+|---|---|---|---|
+| `dilatedDepth` | r32float | closest-depth 3×3 dilated depth (from pass 1) | linear eye-Z |
+| `prevDepth` | r32float | previous frame's depth (pass-1 owns the copy) | linear eye-Z |
+| `lockStatus` | rg16float | FSR3 lock state / trust (or nearest equivalent) | unitless |
+
+- `prevDepth`: the bench maintains ≥3 private copies right now
+  (`ssrt-copydepth.wgsl`, `ssrt12-copydepth.wgsl`, guides-commit). One
+  published copy retires all of them.
+- `lockStatus` feeds SVGF as an anti-ghost / history-rejection prior; if the
+  port has no clean lock equivalent, omit rather than approximate.
+
+### B. The reusable statistics primitive (SVGF's missing half)
+
+FSR3 already computes luminance moments/pyramids for its own stability and
+neighborhood-clamp logic. SVGF's variance stages want the SAME computation on
+a DIFFERENT signal. Factor it as a signal-agnostic pass, not a beauty-hardcoded
+internal:
+
+    Pass: MomentPyramid (or nearest FSR3 luma-pyramid refactor)
+      in:
+        source      : any texture (FSR3 passes beauty-luma; SVGF passes GI)
+        space       : enum { linear-irradiance, tonemapped-display, ycocg }
+        channel     : which channel(s) form the scalar "luminance"
+      out:
+        moments     : rg16float  — (E[x], E[x^2]) per pixel  → Var = E[x^2]-E[x]^2
+        pyramid     : optional mip chain of the above (spatial fallback,
+                      short-history pixels borrow a coarser level)
+
+    Contract: the pass reads `source`/`space` as parameters and hardcodes
+    NO exposure/tonemap/albedo assumption. FSR3 instantiates it on beauty-luma
+    for its stability term; the bench instantiates the same code on pre-albedo
+    GI irradiance for SVGF variance. One primitive, two consumers — the guides
+    thesis applied to statistics instead of geometry.
+
+If the accumulate stage already tracks a per-pixel accumulation weight /
+confidence distinct from `historyLength`, expose it too (`r16float`) — SVGF
+consumes it as a variance prior for freshly-accumulated pixels.
+
+### C. What SVGF does NOT need from the port (avoid over-serving)
+
+- **The à-trous / spatial wavelet filter** — SVGF builds its own; RCAS is a
+  display-res sharpen at the wrong stage and is not a substitute.
+- **Reconstructed-from-depth normals** — the bench has real G-buffer view
+  normals (`normalView`); FSR3's depth-reconstructed normals are strictly
+  worse. Do not consume them.
+- **Any display-res or post-tonemap luminance buffer** — see the space rule;
+  wrong signal, wrong space for GI denoising.
+
+### D. Reactive is bidirectional here too
+
+SVGF is a `reactive` PRODUCER as well as a consumer: high GI variance ⇒ flag
+reactive (fast-changing GI shouldn't lock/ghost in the upscaler). Same
+merge-not-overwrite contract as the base `reactive` note above.
+
+### E. Verification
+
+- The `MomentPyramid` primitive is verified standalone: instantiate on a known
+  synthetic input, assert `Var = E[x^2]-E[x]^2` matches a CPU reference within
+  tolerance, in BOTH a linear and a ycocg space, before any denoiser consumes
+  it. Numbers recorded with config + commit per TESTING.md.
+- The SVGF lab (bench, demo-13 candidate) A/Bs variance-guided denoise vs the
+  current fixed-radius bilateral — that lab is the acceptance test for this
+  addendum's statistics primitive being real and not cosmetic.
+
+---
+
+# Consumption requirements v2 (2026-07-21) — what the bench will actually consume
+
+Status update feeding these reqs: the guides-bundle thesis is now PROVEN on
+the bench side — a harness `TemporalGuidesPass` implementing the pass-1/2
+contract above beat per-effect private logic in A/B (stability 1.49 vs 2.06,
+`bench/results/lab10-stability.md`), and guides-driven adaptive marching is
+the recorded flagship optimization (3.17×/2.37× converged,
+`bench/results/demo13-all.md`). The port is not building on theory; it is
+replacing a working reference implementation behind a stable contract.
+
+## Req 1 — guides provider swap (passes 1–2)
+Ship passes 1–2 exactly per the contract table above. The bench consumes them
+by swapping out `bench/src/harness/temporal-guides.ts` behind the SAME four
+texture getters (dilatedVelocity rg16float / disocclusion r16float graded /
+historyLength r16float / reactive r8unorm merge-in). Acceptance = the live
+demo 10 rig: `?demo=10-denoise&stack=ssrt3-guides` must match or beat the
+harness pass's recorded stability, and `?view=guides` must show the same
+R/G/B behavior (disocclusion flare on teleport, history rebuild at rest).
+
+## Req 2 — accumulate + upsample (pass 3) as OUR display resolve
+The bench renders GI (and beauty) at render-res = 0.5–0.67× display-res and
+hands pass 3: color (post-composite, PRE-tonemap linear), depth, guides
+bundle, reactive. Pass 3 owns history and produces display-res output.
+Constraints the bench has already paid for:
+- Jitter protocol: Halton(2,3) via `camera.setViewOffset` (harness
+  `temporal.ts` helpers) — the port declares the jitter sequence/phase it
+  expects and the bench drives it. Our demos' `jitterAA` toggles (shipped
+  default-off because nothing resolved them) become default-ON under pass 3:
+  this is the bench finally getting AA.
+- Reactive write-back: GI passes will WRITE into the reactive mask
+  (fast-changing bounce/multibounce pixels) — pass 2 must accept a
+  pre-populated mask and MERGE (max), per the contract note above.
+- Internal-half-res compounding: demo 12/13 march internally at half of
+  render-res; with render-res at 0.5–0.67× display, the march sits at
+  ~0.25–0.33× display. Pass 3 must tolerate the joint-bilateral-upsampled GI
+  signal (already full render-res when it reaches the composite).
+## Req 3 — RCAS last, tonemap-agnostic
+Sharpen in the space FSR specifies, no baked display transform (the known
+ACES-in-RCAS bug from earlier port work; three applies output encoding).
+
+## Bench-side acceptance (built once passes land; runners exist)
+A demo/lab consuming passes 1–3: A/B at MATCHED GPU COST — native-res
+no-upscale vs render-res+pass-3 — reporting fenced ms, MSE vs the demo's own
+oracle, stability, and a thin-feature panel at S-column (banners/chains/vines
+— the lock mechanism's exam). Plus jitter-on vs jitter-off AA comparison
+(edge crawl on the zoo's geometry checklist). Same recorded-number
+discipline: config JSON + commit per row (TESTING.md).
