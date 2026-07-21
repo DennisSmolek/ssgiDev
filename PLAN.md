@@ -1,11 +1,12 @@
 # SSGI Bench — Build Plan
 
-> **Phase pointer (2026-07-19):** the build phase this plan describes is
-> COMPLETE (all 12 demos + labs merged and live-test hardened). The active
-> phase is documented in **TESTING.md**; the distillation/optimization phases
-> and their rules live in **NEXTGEN.md**; the FSR3-port decomposition contract
-> is **FSR3-BRIEF.md**; the improvement-concept backlog is
-> **advantagous-concepts.md**.
+> **Phase pointer (2026-07-21):** build, testing (TESTING.md), distillation
+> (demo 12) and optimization (demo 13) phases are all COMPLETE — rules in
+> **NEXTGEN.md**, recorded results in **bench/results/**, writeups in
+> **publication/**. **Start here: GUIDE.md** — the demo tour, what to fiddle,
+> and the status of every improvement concept. FSR3 contract: FSR3-BRIEF.md;
+> concept backlog: advantagous-concepts.md. Open boundaries: Phase I
+> (packaging), venue, P7 (FSR3 convergence).
 
 
 The "make a bunch of SSGI setups" pass. Goal: a three.js WebGPU test bench with many
