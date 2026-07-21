@@ -1129,3 +1129,24 @@ near-zero/negative result; recorded per-variant numbers await isolation.
   a recorded number"); orchestrator's isolated run overwrites it.
 
 **Open bugs:** none. **Not committed** (per packet).
+
+## 2026-07-21 — Sponza scene v2 (RE-BASELINE BOUNDARY)
+
+Dennis: the sponza cells were "pretty weak — under an overhang, the sun only
+barely goes into the hall" — correct, and it starved screen-space GI of bright
+beauty content (part of why trackA's sponza MSEs were suspiciously tiny).
+Changes (bench/src/scenes/sponza.ts):
+- Sun retargeted (picked visually from 3 candidates at S-hall + S-column):
+  (8,19,4)→(4,0,0) @ 4.0 — a real shaft on the corridor floor, right
+  colonnade directly lit, banners bounce-lit. New `?sun=px,py,pz,tx,ty,tz[,i]`
+  override (deterministic capture, same spirit as ?cam=).
+- Three static torch braziers at colonnade bases (emissive bowls + shadowless
+  point lights): strong LOCAL bounce sources — stress firefly clamps, GI
+  leak/halo around small emitters, lightmask multibounce. Pane: torches
+  intensity, flicker toggle (deterministic sin, DEFAULT OFF — flicker corrupts
+  the stability metric + oracle accumulation). `?torch=<i>` override, 0=off.
+
+**EVERY recorded sponza number before this entry is scene-v1.** Re-baseline
+battery (serial) re-records: lab09-bandwidth, trackB-budget, trackA-quality,
+trackC-temporal, demo12-acceptance(+thickAB), demo13-alu. Cornell/zoo rows
+re-record with them (same-commit freshness, no scene change there).

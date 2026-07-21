@@ -1,13 +1,18 @@
 import {
   AmbientLight,
   Box3,
+  CylinderGeometry,
   DirectionalLight,
+  Group,
   HemisphereLight,
+  Mesh,
+  MeshStandardMaterial,
   PerspectiveCamera,
+  PointLight,
   Scene,
+  SphereGeometry,
   Vector3,
 } from 'three/webgpu';
-import type { Mesh } from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -44,9 +49,24 @@ export const sponzaScene: SceneDef = {
     // Directional "sun" angled down through the atrium's long axis so the atrium
     // floor and one row of columns catch direct light while the arcades fall into
     // shadow — GI-relevant contrast for AO/GI to fill.
-    const sun = new DirectionalLight(0xfff4e0, 3.0);
-    sun.position.set(6, 14, 3); // high, angled across the atrium
-    sun.target.position.set(-4, 0, -1);
+    // Scene v2 (2026-07-21): steepened so a visible sun shaft strikes the
+    // atrium floor inside the S-hall/S-column framings — the corridor was
+    // almost entirely in shadow before, starving screen-space GI of bright
+    // beauty content to bounce (weak signal in every sponza grid cell).
+    // `?sun=px,py,pz,tx,ty,tz[,intensity]` overrides for deterministic capture
+    // and lighting experiments (same spirit as `?cam=`).
+    const sun = new DirectionalLight(0xfff4e0, 4.0);
+    sun.position.set(8, 19, 4); // v2c: shaft lands mid-corridor, right colonnade lit
+    sun.target.position.set(4, 0, 0);
+    const sunParam = new URLSearchParams(window.location.search).get('sun');
+    if (sunParam) {
+      const n = sunParam.split(',').map(Number);
+      if (n.length >= 6 && n.slice(0, 6).every((x) => Number.isFinite(x))) {
+        sun.position.set(n[0], n[1], n[2]);
+        sun.target.position.set(n[3], n[4], n[5]);
+        if (n.length >= 7 && Number.isFinite(n[6])) sun.intensity = n[6];
+      }
+    }
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     // Bounds cover the whole ~30x18x12 atrium from the sun's angle.
@@ -65,6 +85,48 @@ export const sponzaScene: SceneDef = {
     const hemi = new HemisphereLight(0xbcd0ff, 0x2b2115, 0.35);
     scene.add(hemi);
     scene.add(new AmbientLight(0xffffff, 0.06));
+
+    // --- Torches (scene v2) ---------------------------------------------------
+    // Static warm emitters at colonnade bases near the S-column pose: strong
+    // LOCAL bounce sources the sun can't provide — they stress firefly clamps,
+    // GI leak/halo behavior around small bright emitters, and the lightmask
+    // multibounce path. STATIC by default: flicker would corrupt the
+    // still-camera stability metric and the oracle's accumulation, so it is an
+    // opt-in pane toggle (deterministic sin, not random). `?torch=<intensity>`
+    // overrides (0 disables) for deterministic capture.
+    const TORCH_POS: Array<[number, number, number]> = [
+      [4.5, 0, -2.9],
+      [7.5, 0, -2.9],
+      [6.0, 0, 2.9],
+    ];
+    const torchGroup = new Group();
+    const torchLights: PointLight[] = [];
+    const torchBowls: MeshStandardMaterial[] = [];
+    const poleGeo = new CylinderGeometry(0.04, 0.06, 1.0, 8);
+    const bowlGeo = new SphereGeometry(0.12, 16, 12);
+    const poleMat = new MeshStandardMaterial({ color: 0x2a2118, roughness: 0.9, metalness: 0.3 });
+    for (const [tx, ty, tz] of TORCH_POS) {
+      const bowlMat = new MeshStandardMaterial({
+        color: 0x140a04,
+        emissive: 0xff7722,
+        emissiveIntensity: 6,
+        roughness: 1,
+      });
+      const pole = new Mesh(poleGeo, poleMat);
+      pole.position.set(tx, ty + 0.5, tz);
+      pole.castShadow = pole.receiveShadow = true;
+      const bowl = new Mesh(bowlGeo, bowlMat);
+      bowl.position.set(tx, ty + 1.1, tz);
+      const light = new PointLight(0xff8844, 10, 8, 2);
+      light.position.set(tx, ty + 1.25, tz);
+      light.castShadow = false; // local pools only; shadow cost not worth it
+      torchGroup.add(pole, bowl, light);
+      torchLights.push(light);
+      torchBowls.push(bowlMat);
+    }
+    scene.add(torchGroup);
+    const torchParam = new URLSearchParams(window.location.search).get('torch');
+    const torchBase = torchParam !== null && Number.isFinite(Number(torchParam)) ? Number(torchParam) : 1;
 
     // --- Camera (eye-level at one end of the atrium, looking down the long X
     //     axis — the classic Sponza corridor shot) ---------------------------
@@ -111,18 +173,45 @@ export const sponzaScene: SceneDef = {
       },
     );
 
-    const state = { sunIntensity: 3.0 };
+    const state = { sunIntensity: sun.intensity, torch: torchBase, flicker: false };
+    const applyTorch = () => {
+      const s = Math.max(0, state.torch);
+      torchGroup.visible = s > 0;
+      for (const l of torchLights) l.intensity = 10 * s;
+      for (const m of torchBowls) m.emissiveIntensity = 6 * s;
+    };
+    applyTorch();
     const folder = ctx.pane.addFolder({ title: 'Scene (Sponza)' });
     folder
       .addBinding(state, 'sunIntensity', { label: 'sun', min: 0, max: 8, step: 0.1 })
       .on('change', () => (sun.intensity = state.sunIntensity));
+    folder
+      .addBinding(state, 'torch', { label: 'torches', min: 0, max: 3, step: 0.1 })
+      .on('change', applyTorch);
+    folder.addBinding(state, 'flicker', { label: 'torch flicker (breaks stills!)' });
     const status = { loaded: false };
     folder.addBinding(status, 'loaded', { readonly: true, label: 'model loaded' });
     const statusTimer = setInterval(() => (status.loaded = loaded), 250);
 
+    // Deterministic flicker (opt-in): fixed-frequency sin mix per torch, phase
+    // by index — repeatable, no RNG, so an intentional temporal stress test can
+    // still be described exactly.
+    let flickerT = 0;
     return {
       scene,
       camera,
+      update(dt: number): void {
+        if (!state.flicker || state.torch <= 0) return;
+        flickerT += dt;
+        for (let i = 0; i < torchLights.length; i++) {
+          const f =
+            1 +
+            0.22 * Math.sin(flickerT * 9.0 + i * 2.1) +
+            0.12 * Math.sin(flickerT * 23.0 + i * 4.7);
+          torchLights[i].intensity = 10 * state.torch * f;
+          torchBowls[i].emissiveIntensity = 6 * state.torch * f;
+        }
+      },
       dispose(): void {
         clearInterval(statusTimer);
         folder.dispose();
