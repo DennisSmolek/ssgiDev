@@ -34,6 +34,7 @@ import { denoise } from 'three/addons/tsl/display/DenoiseNode.js';
 import type { DepthTexture, PerspectiveCamera, Texture } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawComputePass } from '../../harness/raw-compute-pass';
+import { TemporalGuidesPass } from '../../harness/temporal-guides';
 import { HALTON_JITTER, applyCameraJitter, clearCameraJitter } from '../../harness/temporal';
 import { ensureTexture, ensureRenderTarget } from '../../harness/three-internals';
 import { Comparator } from '../../harness/compare';
@@ -47,6 +48,9 @@ import mainWgsl from '../03-ssrt3/ssrt-main.wgsl?raw';
 // with the frame-count-accumulation rewrite (c77e960) and this lab wants the
 // faithful SSRT3 EMA temporal regardless. See the fork's header.
 import ssrtTemporalWgsl from './ssrt3-temporal-ema.wgsl?raw';
+// Guides-fed fork of the EMA temporal — identical except history-validity comes
+// from the shared TemporalGuidesPass (the FSR3-BRIEF acceptance test, NEXTGEN P2).
+import ssrtGuidesTemporalWgsl from './ssrt3-guides-temporal.wgsl?raw';
 import ssrtDenoiseWgsl from '../03-ssrt3/ssrt-denoise.wgsl?raw';
 import mathisWgsl from './denoise-mathis.wgsl?raw';
 import xeSpatialWgsl from './denoise-xegtao-spatial.wgsl?raw';
@@ -60,10 +64,10 @@ import blitWgsl from './blit.wgsl?raw';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Node = any;
 
-const STACKS = ['none', 'ssrt3', 'mathis', 'xegtao', 'denoise-node'] as const;
+const STACKS = ['none', 'ssrt3', 'ssrt3-guides', 'mathis', 'xegtao', 'denoise-node'] as const;
 type Stack = (typeof STACKS)[number];
 
-const VIEW_MODES = ['combined', 'gi', 'ao', 'raw-gi', 'reference', 'split'] as const;
+const VIEW_MODES = ['combined', 'gi', 'ao', 'raw-gi', 'reference', 'split', 'guides'] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
 
 // Producer flags (mirror ssrt-main.wgsl): bitmask | jitter | gi. Deliberately
@@ -145,6 +149,12 @@ const schema = {
   denoisingRadius: { type: 'number', value: 0.5, min: 0, max: 1, step: 0.01, label: 'ssrt denoisingRadius' },
   ssrtTemporal: { type: 'boolean', value: true, label: 'ssrt temporal on' },
   ssrtDenoise: { type: 'boolean', value: true, label: 'ssrt bilateral on' },
+  // --- ssrt3-guides stack (shared TemporalGuidesPass; A/B vs ssrt3) ---
+  guidesDisoccLo: { type: 'number', value: 0.02, min: 0, max: 0.5, step: 0.005, label: 'guides disocc lo' },
+  guidesDisoccHi: { type: 'number', value: 0.1, min: 0.01, max: 1, step: 0.005, label: 'guides disocc hi' },
+  guidesResetThresh: { type: 'number', value: 0.5, min: 0.05, max: 1, step: 0.01, label: 'guides N-reset disocc' },
+  guidesHistoryCap: { type: 'number', value: 64, min: 4, max: 256, step: 1, label: 'guides history cap' },
+  guidesVelScale: { type: 'number', value: 20, min: 1, max: 200, step: 1, label: 'guides debug |vel| gain' },
   // --- Mathis stack ---
   mathisCap: { type: 'number', value: 64, min: 4, max: 256, step: 1, label: 'mathis accum cap' },
   mathisBilateral: { type: 'number', value: 1, min: 0.5, max: 3, step: 0.1, label: 'mathis bilateral' },
@@ -183,6 +193,10 @@ class DenoiseLabDemo implements Demo {
   private ssrtHistA = this.makeStorage();
   private ssrtHistB = this.makeStorage();
   private ssrtFinal = this.makeStorage(); // stable display source
+  // ssrt3-guides stack (dedicated history so switching stacks stays clean).
+  private guidesHistA = this.makeStorage();
+  private guidesHistB = this.makeStorage();
+  private guidesFinal = this.makeStorage(); // stable display source
   // Mathis stack.
   private mathisColorA = this.makeStorage();
   private mathisColorB = this.makeStorage();
@@ -207,6 +221,8 @@ class DenoiseLabDemo implements Demo {
 
   private main!: RawComputePass;
   private ssrtTemporal!: RawComputePass;
+  private ssrtGuidesTemporal!: RawComputePass;
+  private guides!: TemporalGuidesPass;
   private ssrtDenoise!: RawComputePass;
   private mathis!: RawComputePass;
   private xeSpatialPass!: RawComputePass;
@@ -244,6 +260,9 @@ class DenoiseLabDemo implements Demo {
   private sceneId = 'cornell';
 
   private uGiExposure = uniform(1);
+  // guides debug view: history normaliser + |dilatedVelocity| display gain.
+  private uGuidesCap = uniform(64);
+  private uGuidesVelScale = uniform(20);
   private denoiseNode: (Node & { index: Node; dispose?(): void }) | null = null;
   private traaNode: { dispose?(): void } | null = null;
   private camera!: PerspectiveCamera;
@@ -332,6 +351,17 @@ class DenoiseLabDemo implements Demo {
         { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
       ],
     });
+    // ssrt3-guides stack: shared TemporalGuidesPass + a guides-fed temporal fork
+    // (bindings differ from the ema fork: dilatedVel + graded disocc replace the
+    // raw velocity + depth the private world-pos test used). Constructed eagerly
+    // (cheap) like ReferencePass; update() is gated to when it is consumed.
+    this.guides = new TemporalGuidesPass(ctx.renderer, 'd10-guides');
+    this.ssrtGuidesTemporal = new RawComputePass(ctx.renderer, 'd10-ssrt-guides-temporal', ssrtGuidesTemporalWgsl, {
+      bindings: [
+        { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' },
+        { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
+      ],
+    });
     this.ssrtDenoise = new RawComputePass(ctx.renderer, 'd10-ssrt-denoise', ssrtDenoiseWgsl, {
       bindings: [
         { kind: 'tex' }, { kind: 'depth' }, { kind: 'tex' },
@@ -376,6 +406,8 @@ class DenoiseLabDemo implements Demo {
     this.resize(ctx);
     this.main.configure(this.mainData.byteLength);
     this.ssrtTemporal.configure(this.stData.byteLength);
+    this.ssrtGuidesTemporal.configure(this.stData.byteLength); // same TParams layout as the ema fork
+    this.guides.configure();
     this.ssrtDenoise.configure(this.sdData.byteLength);
     this.mathis.configure(this.mData.byteLength);
     this.xeSpatialPass.configure(this.xsData.byteLength);
@@ -391,6 +423,9 @@ class DenoiseLabDemo implements Demo {
       // Toggling jitter (or TRAA, which forces jitter off) changes what the
       // camera rasterizes with, so restart the converged accumulate reference.
       if (key === 'jitterAA' || key === 'traa') this.reset = true;
+      // Switching stacks: clear temporal history so the new stack (incl. the
+      // guides pass) starts from a clean state instead of another stack's frames.
+      if (key === 'stack') this.reset = true;
     });
 
     // URL overrides for deterministic captures.
@@ -425,6 +460,8 @@ class DenoiseLabDemo implements Demo {
     switch (stack) {
       case 'ssrt3':
         return texture(this.ssrtFinal, uv);
+      case 'ssrt3-guides':
+        return texture(this.guidesFinal, uv);
       case 'denoise-node':
         return this.ensureDenoiseNode();
       // none / mathis / xegtao all resolve through the stable stackOut bridge.
@@ -453,6 +490,17 @@ class DenoiseLabDemo implements Demo {
     }
     if (v.viewMode === 'raw-gi') {
       this.displayPipeline.outputNode = vec4(texture(this.giAoTex, uv).rgb.mul(this.uGiExposure), float(1));
+      return;
+    }
+    if (v.viewMode === 'guides') {
+      // Eyeball the shared TemporalGuidesPass: R = graded disocclusion (0..1,
+      // lights up on teleport), G = historyLength/cap (climbs to 1 when still),
+      // B = |dilatedVelocity| * gain (bright under motion). The guides pass runs
+      // this frame because frame() gates its update() on this view too.
+      const disocc = texture(this.guides.disocclusionTexture, uv).r;
+      const histN = texture(this.guides.historyLengthTexture, uv).r.div(this.uGuidesCap).clamp(0, 1);
+      const velMag = texture(this.guides.dilatedVelocityTexture, uv).rg.length().mul(this.uGuidesVelScale).clamp(0, 1);
+      this.displayPipeline.outputNode = vec4(disocc, histN, velMag, float(1));
       return;
     }
 
@@ -542,6 +590,27 @@ class DenoiseLabDemo implements Demo {
     const moved = this.cameraMoved();
     const reset = moved || this.reset || this.frameCounter < 2 ? 1 : 0;
 
+    // 3b. Temporal guides (shared FSR3-BRIEF product). LAZY like ReferencePass:
+    // update() runs only when consumed — the ssrt3-guides stack, or the guides
+    // debug view. Same `reset` the other temporal stacks use, so the A/B stays
+    // isolated to the guides. Post-G-buffer, pre-effects (before runStack).
+    if (v.stack === 'ssrt3-guides' || v.viewMode === 'guides') {
+      this.uGuidesCap.value = v.guidesHistoryCap;
+      this.uGuidesVelScale.value = v.guidesVelScale;
+      this.guides.update(
+        cam,
+        { depth: this.depthTex, velocity: this.velocityTex },
+        {
+          reset: reset !== 0,
+          disoccLo: v.guidesDisoccLo,
+          disoccHi: v.guidesDisoccHi,
+          disoccResetThreshold: v.guidesResetThresh,
+          historyCap: v.guidesHistoryCap,
+          closestIsMin: true,
+        },
+      );
+    }
+
     // 4. Accumulate converged reference (always; CPU-driven count).
     this.invViewProj.multiplyMatrices(cam.matrixWorld, cam.projectionMatrixInverse);
     if (reset) this.accumCount = 0;
@@ -559,8 +628,9 @@ class DenoiseLabDemo implements Demo {
     // 6. Split A/B: active stack output vs converged reference.
     if (v.viewMode === 'split') {
       const aTex = v.stack === 'ssrt3' ? this.ssrtFinal
-        : v.stack === 'denoise-node' ? this.giAoTex // node not a texture; show raw vs ref (documented)
-          : this.stackOut;
+        : v.stack === 'ssrt3-guides' ? this.guidesFinal
+          : v.stack === 'denoise-node' ? this.giAoTex // node not a texture; show raw vs ref (documented)
+            : this.stackOut;
       this.comparator.execute(this.compareRT, aTex, this.refOut, width, height, {
         mode: v.compareMode, splitX: this.compareState.splitX, amp: v.diffAmp,
         scaleA: v.giExposure, scaleB: v.giExposure, channel: 'rgb',
@@ -608,6 +678,32 @@ class DenoiseLabDemo implements Demo {
       this.sdData[0] = width; this.sdData[1] = height; this.sdData[2] = cam.near; this.sdData[3] = cam.far;
       this.sdData[4] = v.denoisingRadius; this.sdU32[5] = v.ssrtDenoise ? 1 : 0; this.sdData[6] = 0; this.sdData[7] = 0;
       this.ssrtDenoise.execute([histWrite, this.depthTex, this.normalTex, this.ssrtFinal, this.sdData], width, height);
+      return;
+    }
+    if (stack === 'ssrt3-guides') {
+      // Identical to the ssrt3 stack EXCEPT the temporal pass is fed by the
+      // shared TemporalGuidesPass (already run this frame in frame()): the
+      // guides' dilatedVelocity + graded disocclusion replace the ema fork's
+      // private per-pixel velocity + world-position reject. Same TParams fill,
+      // same bilateral, so the A/B isolates the guides.
+      const histRead = this.ping ? this.guidesHistB : this.guidesHistA;
+      const histWrite = this.ping ? this.guidesHistA : this.guidesHistB;
+      this.stData.set(this.invViewProj.elements, 0);
+      this.stData.set(this.prevInvViewProj.elements, 16);
+      this.stData[32] = width; this.stData[33] = height; this.stData[34] = cam.near; this.stData[35] = cam.far;
+      this.stData[36] = v.temporalResponse;
+      let tflags = 0;
+      if (v.ssrtTemporal) tflags |= 1;
+      if (reset) tflags |= 2;
+      this.stU32[37] = tflags; this.stData[38] = 0; this.stData[39] = 0;
+      this.ssrtGuidesTemporal.execute(
+        [this.giAoTex, histRead, this.guides.dilatedVelocityTexture, this.guides.disocclusionTexture, histWrite, this.stData],
+        width, height,
+      );
+      // Same bilateral -> guidesFinal (stable).
+      this.sdData[0] = width; this.sdData[1] = height; this.sdData[2] = cam.near; this.sdData[3] = cam.far;
+      this.sdData[4] = v.denoisingRadius; this.sdU32[5] = v.ssrtDenoise ? 1 : 0; this.sdData[6] = 0; this.sdData[7] = 0;
+      this.ssrtDenoise.execute([histWrite, this.depthTex, this.normalTex, this.guidesFinal, this.sdData], width, height);
       return;
     }
     if (stack === 'mathis') {
@@ -681,6 +777,22 @@ class DenoiseLabDemo implements Demo {
         [this.depthTex, this.normalTex, this.beautyTex, this.envTex, this.envSampler, this.depthPyramid, this.giAoTex, this.mainData],
         w, h,
       );
+      // The guides stack's cost includes the shared TemporalGuidesPass (3
+      // dispatches) — fence it too so its row is a fair producer+stack number.
+      if (v.stack === 'ssrt3-guides') {
+        this.guides.update(
+          cam,
+          { depth: this.depthTex, velocity: this.velocityTex },
+          {
+            reset: false,
+            disoccLo: v.guidesDisoccLo,
+            disoccHi: v.guidesDisoccHi,
+            disoccResetThreshold: v.guidesResetThresh,
+            historyCap: v.guidesHistoryCap,
+            closestIsMin: true,
+          },
+        );
+      }
       this.runStack(v.stack, cam, w, h, 0);
     }
     await this.device.queue.onSubmittedWorkDone();
@@ -720,6 +832,7 @@ class DenoiseLabDemo implements Demo {
     this.scenePass.setSize(width, height);
     const storages = [
       this.giAoTex, this.ssrtHistA, this.ssrtHistB, this.ssrtFinal,
+      this.guidesHistA, this.guidesHistB, this.guidesFinal,
       this.mathisColorA, this.mathisColorB, this.xeSpatial, this.xeHistA, this.xeHistB,
       this.accA, this.accB, this.stackOut, this.refOut,
       this.mathisCountA, this.mathisCountB, this.depthPyramid,
@@ -729,6 +842,7 @@ class DenoiseLabDemo implements Demo {
       t.dispose();
       ensureTexture(ctx.renderer, t);
     }
+    this.guides.setSize(width, height);
     this.compareRT.setSize(width, height);
     ensureRenderTarget(ctx.renderer, this.compareRT);
     this.reset = true;
@@ -745,11 +859,13 @@ class DenoiseLabDemo implements Demo {
     this.denoiseNode?.dispose?.();
     const all = [
       this.giAoTex, this.ssrtHistA, this.ssrtHistB, this.ssrtFinal,
+      this.guidesHistA, this.guidesHistB, this.guidesFinal,
       this.mathisColorA, this.mathisColorB, this.mathisCountA, this.mathisCountB,
       this.xeSpatial, this.xeHistA, this.xeHistB, this.accA, this.accB,
       this.stackOut, this.refOut, this.depthPyramid, this.envTex,
     ];
     for (const t of all) t.dispose();
+    this.guides.dispose();
     this.compareRT.dispose();
   }
 }

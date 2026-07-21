@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "commit": "9071f9c-dirty",
+    "date": "2026-07-21T07:50:02.737Z",
+    "baseUrl": "http://localhost:5180/",
+    "settleMs": 2000,
+    "gapMs": 1000,
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell",
+    "reconvergence": {
+      "stacks": [
+        "ssrt3",
+        "ssrt3-guides"
+      ],
+      "camWide": "0,2.4,8.8,0,2.6,0",
+      "camGraze": "1.4,3.6,4.6,0.95,1.3,0.7",
+      "reconvWindowMs": 3000,
+      "captureIntervalMs": 500,
+      "rule": "first k where diff[k] <= threshold AND diff[k+1] <= threshold, threshold = max(still*1.5, still+0.3); reported = frame[k+1].t (real elapsed s).",
+      "note": "ghosting/smear is a visual judgment — reconv frames saved under bench/results/shots/lab10/<stack>/ for human review, not scored here."
+    },
+    "note": "quick smoke run — not a recorded number"
+  },
+  "rows": [
+    {
+      "demo": "10-denoise",
+      "stack": "none",
+      "view": "combined",
+      "stability": 7.118813244047619,
+      "config": "{\"stack\":\"none\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "none",
+      "view": "gi",
+      "stability": 33.942738508597884,
+      "config": "{\"stack\":\"none\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "03-ssrt3",
+      "stack": "accumMode=ssrt3-ema",
+      "view": "gi",
+      "stability": 3.127665343915344,
+      "config": "{\"viewMode\":\"gi\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "ssrt3",
+      "view": "reconv",
+      "stability": 1.4028579695767196,
+      "reconvergeSeconds": "",
+      "reconverged": false,
+      "threshold": 2.1042869543650795,
+      "diffsJson": "[{\"t\":0.767,\"diff\":2.1446},{\"t\":1.67,\"diff\":2.1852},{\"t\":2.561,\"diff\":0.7609}]",
+      "config": "{\"stack\":\"ssrt3\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "ssrt3-guides",
+      "view": "reconv",
+      "stability": 0.8527620701058201,
+      "reconvergeSeconds": "",
+      "reconverged": false,
+      "threshold": 1.27914310515873,
+      "diffsJson": "[{\"t\":0.762,\"diff\":1.9594},{\"t\":1.524,\"diff\":1.5105},{\"t\":2.29,\"diff\":2.7638}]",
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    }
+  ]
+}

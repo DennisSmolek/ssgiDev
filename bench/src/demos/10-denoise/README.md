@@ -23,6 +23,7 @@ different points (needed for the temporal stacks to converge).
 |---|---|---|
 | `none` | control — raw producer, no denoise | — |
 | `ssrt3` | temporal reprojection + 16-tap bilateral | `ssrt3-temporal-ema.wgsl` (frozen fork of demo 03's pre-rewrite temporal at c77e960^ — demo 03's live file moved to the frame-count layout and no longer fits this lab's wiring) + demo 03 `ssrt-denoise.wgsl` reused verbatim; exposes `temporalResponse` + `denoisingRadius` |
+| `ssrt3-guides` | `ssrt3` with history validity fed by the shared `TemporalGuidesPass` | `ssrt3-guides-temporal.wgsl` (fork of `ssrt3-temporal-ema.wgsl`, ONLY the history-validity logic changed) + same `ssrt-denoise.wgsl`. The NEXTGEN P2 / FSR3-BRIEF acceptance test — see "Temporal guides A/B" below |
 | `mathis` | count-based accumulation + adaptive bilateral | `denoise-mathis.wgsl`, adapted from demo 06 `sshgi-accum.wgsl` |
 | `xegtao` | 5×5 symmetric depth-aware spatial + light temporal EMA | `denoise-xegtao-{spatial,temporal}.wgsl`, best-effort port of Intel XeGTAO's denoiser (see fidelity note) |
 | `denoise-node` | three's stock `DenoiseNode` (TSL) over the raw GI texture | `three/addons/tsl/display/DenoiseNode.js` |
@@ -37,6 +38,45 @@ output feeds an unmodified TSL post node with no special casing.
 composite is fed to three's stock `TRAANode`. `traa()` wraps its beauty input in
 `convertToTexture` (→ RTT), so the composite node is passed directly (as demo 01
 does). Measures how each stack's output feeds a TAA consumer.
+
+## Temporal guides A/B (`ssrt3` vs `ssrt3-guides`) — FSR3-BRIEF acceptance test
+
+This lab is the acceptance test for the FSR3-BRIEF decomposition (NEXTGEN P2):
+does exposing disocclusion + dilated motion + history length as a **standalone
+shared pass** (`harness/temporal-guides.ts`, `TemporalGuidesPass`) actually feed
+a temporal effect as well as the effect's own privately-derived logic? If the
+decomposition is real and not cosmetic, `ssrt3-guides` must match or beat
+`ssrt3` while computing the same frame properties **once** instead of per-effect.
+
+- **`ssrt3`** (control): the frozen SSRT3 EMA temporal derives history validity
+  privately — per-pixel motion vector, then a world-position reject
+  (`posSimilarity = clamp(1 - distance(prevWorld, curWorld), 0, 1)`).
+- **`ssrt3-guides`**: byte-for-byte the same pass EXCEPT the two swapped inputs —
+  it reprojects with the guides' **closest-depth-dilated** velocity and reads the
+  guides' **graded disocclusion** directly. The substitution is
+  `blendWeight = mix(temporalResponse, 1, disocclusion)`, exactly equivalent to
+  the control's `mix(1, temporalResponse, posSimilarity)` since
+  `posSimilarity == 1 - disocclusion`. `temporalResponse` semantics are identical,
+  so any A/B delta isolates the shared guides vs the private test. The full
+  substitution is documented at the top of `ssrt3-guides-temporal.wgsl`.
+
+The `TemporalGuidesPass` runs **lazily** (like `ReferencePass`): only when the
+`ssrt3-guides` stack is active or the `guides` debug view is selected. It owns
+its prev-depth + prev-history copies (refreshed after the reproject consumes
+them, the demo 03 copydepth pattern) and produces, per FSR3-BRIEF:
+`dilatedVelocity` (rg16float), `disocclusion` (r16float, graded 0..1),
+`historyLength` (r16float, N), `reactive` (r8unorm, merge-in, default 0).
+
+**`?view=guides` debug view:** R = graded disocclusion (lights up on a camera
+teleport), G = historyLength / cap (climbs toward 1 when the camera is still),
+B = |dilatedVelocity| · gain (bright under motion). Tunables:
+`guides disocc lo/hi` (grading thresholds on relative eye-depth error),
+`guides N-reset disocc` (history resets above this), `guides history cap`.
+
+**Runner:** `scripts/run-10.mjs` adds `ssrt3-guides` to the stability sweep and a
+teleport reconvergence A/B (C-wide → C-graze) for `ssrt3` and `ssrt3-guides`
+only; reconv frames land in `bench/results/shots/lab10/<stack>/` for human
+ghost-trail judgment.
 
 ## Reference (`?view=reference`)
 
@@ -56,7 +96,8 @@ converged pseudo-ground-truth the stacks are scored against under a static camer
   texture without a per-frame recompile (same ping-pong→stable bridge demo 06's
   compose pass does).
 - Views: `combined` (beauty·AO + albedo·GI), `gi`, `ao`, `raw-gi`, `reference`,
-  `split` (active stack vs reference, draggable divider / abs-diff). URL:
+  `split` (active stack vs reference, draggable divider / abs-diff), `guides`
+  (TemporalGuidesPass debug: disocc R / historyLength G / |dilatedVel| B). URL:
   `?demo=10-denoise&scene=&stack=&view=&traa=1`.
 
 ## Fidelity notes (best-effort ports)
