@@ -1,42 +1,41 @@
 {
   "meta": {
-    "commit": "104aea5-dirty",
-    "date": "2026-07-21T08:30:20.323Z",
+    "commit": "32bbd5e-dirty",
+    "date": "2026-07-21T08:35:16.026Z",
     "baseUrl": "http://localhost:5180/",
     "viewport": "1280x800",
-    "bursts": 1,
-    "itersPerBurst": 10,
-    "note": "P4 thickness A/B (ottosson vs two-sided). MSE vs the SAME (thickness-independent) converged oracle per cell; march_half_ms is the fenced main-march-only cost (min-of-bursts). Two-sided adds one back-face depth-only pass at march res. Z-zoo carries the thin-fence/thick-plate artifacts.",
-    "quick": "smoke run — not a recorded number"
+    "bursts": 3,
+    "itersPerBurst": 40,
+    "note": "P4 thickness A/B (ottosson vs two-sided). MSE vs the SAME (thickness-independent) converged oracle per cell; march_half_ms is the fenced main-march-only cost (min-of-bursts). Two-sided adds one back-face depth-only pass at march res. Z-zoo carries the thin-fence/thick-plate artifacts."
   },
   "rows": [
     {
       "cell": "C-wide",
       "scene": "cornell",
       "thickness": "ottosson",
-      "mse_vs_ref": 0.06569132328403719,
-      "march_half_ms": 1.7900000005960464
+      "mse_vs_ref": 0.06617700263841274,
+      "march_half_ms": 0.6649999998509883
     },
     {
       "cell": "C-wide",
       "scene": "cornell",
       "thickness": "two-sided",
-      "mse_vs_ref": 0.06567035963350605,
-      "march_half_ms": 1.85
+      "mse_vs_ref": 0.06620727330151654,
+      "march_half_ms": 0.7699999999254942
     },
     {
       "cell": "Z-zoo",
       "scene": "artifact-zoo",
       "thickness": "ottosson",
-      "mse_vs_ref": 0.11159508329117127,
-      "march_half_ms": 1.25
+      "mse_vs_ref": 0.112654780034786,
+      "march_half_ms": 0.625
     },
     {
       "cell": "Z-zoo",
       "scene": "artifact-zoo",
       "thickness": "two-sided",
-      "mse_vs_ref": 0.11164898620856285,
-      "march_half_ms": 1.6600000008940696
+      "mse_vs_ref": 0.11267393279120454,
+      "march_half_ms": 0.6875
     }
   ]
 }
