@@ -8,14 +8,11 @@ self-contained claim + evidence unit that works as a blog post, a paper
 section, or a talk slide, in any order.
 
 Six candidate contributions, in the order the bench actually produced them.
-Five have full drafts today (`draft-methodology.md`, `draft-lsao.md`,
+**All six now have full drafts** (`draft-methodology.md`, `draft-lsao.md`,
 `draft-accumulation.md`, `draft-upsample.md`, `draft-adaptive.md`, added
-2026-07-21 once P2/P5.2 landed); one (§6, the distilled SSGI system itself) is
-outline-only because its evidence is still mid-flight — P3/P4/P5.1/P5.2 have
-all landed with real numbers (see §6 below), but P5.3 (the integration pass
-that makes `adaptive` demo 12's default and re-synthesizes the E-table) hasn't
-run yet, so there is no single combined-system number to draft the "our own
-SSGI" narrative against.
+2026-07-21 once P2/P5.2 landed; `draft-distillation.md`, added at P6 once
+P5.3 landed and closed out §6's isolated-variant evidence — see §6 below for
+what it does and doesn't claim).
 
 ---
 
@@ -304,18 +301,26 @@ unscheduled.
 
 ---
 
-## 6. Demo 12/13 — the distilled SSGI (Phase D/O) — PENDING
+## 6. Demo 12/13 — the distilled SSGI (Phase D/O) — DRAFTED (`draft-distillation.md`)
 
 **Thesis.** Combine every measured winner from §1–5 into one new
 implementation — not a port, not faithful to any single source — first
 unoptimized (demo 12, the control: same academic-style code as its parents,
-proving it reproduces their quality against the oracle), then with
-optimization families applied one at a time, each with a paired
-ms/MSE/stability measurement (demo 13 variants). This is the actual
-deliverable NEXTGEN.md is building toward; §1–5 are its evidence base.
+proving it reproduces their quality against the oracle), then with ten
+optimization variants applied one at a time against that frozen control, each
+with a paired ms/MSE-vs-baseline/MSE-vs-oracle/stability gate (demo 13). This
+is the actual deliverable NEXTGEN.md is building toward; §1–5 are its
+evidence base, and this section is their synthesis: distill-then-optimize
+banked most of the win at the ingredient level (1.7–2.8× pre-optimization),
+and of ten optimization variants tested against that control in one day, one
+(`adaptive`, guides-driven per-pixel effort — §4's mechanism, now shown as
+the flagship of a ten-way field rather than in isolation) closed the
+remaining C-wide gap while eight came back near-zero or negative and one
+(`trig`) was a free exact rider — the harness's paired-gate discipline is
+what let all ten be adjudicated honestly in a single day.
 
-**Evidence available today (refreshed at P6 — P3/P4/P5.1/P5.2 have all
-landed since this section was first outlined):**
+**Evidence available today (P3/P4/P5.1/P5.2/P5.3 have all landed and closed
+Phase O; full synthesis drafted in `draft-distillation.md`):**
 - The ingredient list, locked at the P1 gate: `WORKLOG.md` 2026-07-21 "P1
   Tracks B/A/C/E" entry, final paragraph — "SSRT3-compute base + frame-count
   accumulation + IGN-under-denoiser + half-res joint-bilateral chain +
@@ -350,31 +355,59 @@ landed since this section was first outlined):**
   (`WORKLOG.md` "P5.2 bandwidth family RECORDED VERDICT";
   `bench/results/demo13-all.md`, commit `eacdc2d-dirty`): `adaptive`
   (guides-driven effort) adjudicated the flagship optimization, 3.17×/2.37×
-  converged, fully drafted as its own section — see §4 / `draft-adaptive.md`.
-  light-mips/hiz-skip near-zero, checkerboard a documented negative.
+  converged, fresh-pixel cost = baseline, mechanism drafted at §4 /
+  `draft-adaptive.md`. light-mips/hiz-skip near-zero, checkerboard a
+  documented negative (uncompacted dispatch costs stability for no real ms
+  win).
+- **P5.3 — scheduled-heir family + Phase-O closing adjudication, RECORDED
+  VERDICT** (`WORKLOG.md` "P5.3 SCHEDULED-HEIR family" + "P5.3 RECORDED
+  VERDICT + Phase-O closing adjudication"; `bench/results/demo13-phase3.md`,
+  commit `46abb76-dirty`): `deinterleave` (CACAO-style phase-bucket
+  marching, Dennis's must-do — the named production heir to LSAO's own
+  coherence goal, run for completeness) recorded a perf **negative**, correct
+  on image (march 0.89×/0.76×, chain 0.92×/0.78× C-wide/S-hall) — the
+  4-dispatch overhead outweighs the cache gain on an already-half-res march,
+  closing the LSAO paper trail end-to-end (§2's suggestion tested literally
+  and structurally, now its modern heir tested and also negative, for a
+  different documented reason each time). `subgroups` recorded ~1.0× both
+  cells, bit-exact — a verified, zero-risk freebie like `trig`, not a lever.
+  The closing adjudication: **ten variants, one control, one day, zero wrong
+  images** — 8 near-zero-or-negative, 1 free rider (`trig`), 1 flagship
+  (`adaptive`); demo 12 stays the unoptimized control per its permanent role;
+  the best shipping-shaped configuration is demo 13's `bandwidth-all` +
+  `trig`, estimated ≈0.8 ms converged C-wide vs demo 03's 2.145 ms — both
+  ≥2× success measures met on converged frames.
 - The success bar: `NEXTGEN.md` "Measures of success" section (quality ≤ best
   faithful demo's MSE, perf ≥2× at equal-or-better MSE, stability ≤
   frame-count demo 03, realism = bent-normal verification, consumability =
   zero-bench-dependency three.js node).
+- Full synthesis, all sources above woven together: `draft-distillation.md`.
 
-**Evidence still needed:** the *combined-system* number — demo 12 with
-`adaptive` actually wired in as its default march variant, and the E-table
-re-synthesized around it — does not exist yet. This is explicitly P5.3
-(`WORKLOG.md` "P5.2 bandwidth family RECORDED VERDICT," final line:
-"integration decision deferred to post-P5.3 so the E-table updates once").
-Everything that exists today is per-ingredient (§1–5, each independently
-drafted) or per-variant (P5.1/P5.2, isolated march measurements) — no single
-number yet answers "what does the finished, fully-optimized demo 12 cost end
-to end."
+**Evidence still needed:** the *combined-system, shipped-default* number —
+demo 12 with `adaptive` (or `bandwidth-all`) actually wired in as its
+*default* march variant, and the bake-off table re-synthesized around that
+one configuration — does not exist yet, and P5.3's closing adjudication
+explicitly did not create it: demo 12 stays the unoptimized control by
+design, and integration into a single consumable configuration is
+`NEXTGEN.md` Phase I, unscheduled, opened when Dennis decides. What exists
+today is per-ingredient (§1–5), per-variant (P5.1/P5.2/P5.3, isolated march
+measurements against the frozen control), and the closing adjudication's
+*estimated* combined total (≈0.8 ms C-wide, arithmetic from separately-
+measured pieces, not a single fenced run of a fused pipeline) — no measured
+number yet answers "what does one shipped, fully-optimized demo 12 cost
+end to end, fenced as one pipeline."
 
 **Packet:** P3 (demo 12 distillation, **done**) → P4 (capability adds,
-**done**) → P5.1/P5.2 (demo 13 optimization variants, **done**, verdicts
-recorded and independently drafted at §4) → P5.3 (integration of the
-winning variants into demo 12's shipped default, **pending**) → P6 finishes
-the combined-system writeup once P5.3 lands (this packet's own governing
-document, NEXTGEN.md, says as much). **Per-ingredient and per-variant
-results (§1–5, P5.1, P5.2) are now fully evidenced and drafted; no prose
-should claim a finished, combined demo 12/13 number until P5.3 lands.**
+**done**) → P5.1/P5.2/P5.3 (demo 13's ten optimization variants across ALU,
+bandwidth, and scheduled-heir families, **done**, verdicts recorded and the
+flagship independently drafted at §4) → this section's own synthesis,
+**done** (`draft-distillation.md`) → Phase I (packaging the winning
+configuration as a consumable, zero-bench-dependency node; re-running the
+bake-off table against one fused, fenced pipeline number), **unscheduled,
+Dennis's call to open.** Per-ingredient, per-variant, and the Phase-D/O
+synthesis (§1–6) are now fully evidenced and drafted; no prose should claim
+a measured (as opposed to estimated) finished-pipeline number until Phase I
+runs it.
 
 ---
 
@@ -383,11 +416,42 @@ should claim a finished, combined demo 12/13 number until P5.3 lands.**
 - Every number cites its file. Where a number spans two files (e.g. the same
   metric run twice, before/after a bug fix), both are cited.
 - Negative results get the same prominence as wins — §2 and the lab-10 bug
-  story in §3 are written as findings, not apologies.
-- No claim in §6 is asserted as fact beyond what P3/P4/P5.1/P5.2 actually
-  measured — the section is explicitly pending its P5.3 integration number,
-  and no draft should borrow the *intended* combined-system result before
-  P5.3 lands. §4 graduated out of this rule at P6: P2 and P5.2 both landed,
-  so its adaptive-effort numbers are now asserted as fact in
-  `draft-adaptive.md`, cited to `bench/results/demo13-all.md` and
-  `lab10-stability.md`.
+  story in §3 are written as findings, not apologies; §6's own field of ten
+  Phase-O variants carries eight honest failures at the same level of detail
+  as its one flagship, for the same reason.
+- No claim in any draft is asserted as fact beyond what its cited results
+  file actually measured. §6 in particular distinguishes *measured*
+  per-ingredient and per-variant numbers (P3/P4/P5.1/P5.2/P5.3, all landed)
+  from the *estimated* fused-pipeline total (≈0.8 ms converged C-wide,
+  arithmetic over separately-measured pieces) — the latter is labeled an
+  estimate in `draft-distillation.md`, not presented as a fenced measurement,
+  because no single run has fenced `adaptive` wired in as demo 12's actual
+  default. §4 and §6 both graduated out of "pending" at P6 once their
+  respective gates (P2+P5.2 for §4; P3–P5.3 for §6) landed.
+
+---
+
+## Status (updated at P6)
+
+**All six sections are now drafted** (`draft-methodology.md`,
+`draft-lsao.md`, `draft-accumulation.md`, `draft-adaptive.md`,
+`draft-upsample.md`, `draft-distillation.md`). Remaining work before
+external publication:
+
+1. **Venue decision** — blog series vs paper vs talk; Dennis's call, deferred
+   since this outline's first draft (see header).
+2. **External citations flagged TODO-EVIDENCE** — each draft names its own
+   gap inline rather than asserting an unsourced claim: `draft-accumulation.md`
+   (count-based/TAA-history-buffer industry citation, e.g. Karis 2014 or an
+   FSR2/TAA reference), `draft-adaptive.md` (adaptive-sample-count/effort
+   citation, e.g. Schied et al. 2017 SVGF or a production adaptive-sampling
+   writeup), `draft-upsample.md` (a post-denoiser ablation isolating the
+   upsample's own MSE contribution — an in-repo measurement gap, not an
+   external citation, but named the same way). None of these block internal
+   consistency; they block only external, cited publication.
+3. **Phase-I packaging** — the one piece of work still unmeasured rather than
+   merely uncited: wiring the winning demo-13 configuration into demo 12 as
+   its shipped default and fencing one combined-pipeline number, then
+   extracting the upsample (§5) and the eventual distilled SSGI (§6) as
+   consumable, zero-bench-dependency three.js nodes. `NEXTGEN.md` Phase I,
+   unscheduled, opened when Dennis decides.
