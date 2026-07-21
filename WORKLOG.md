@@ -901,3 +901,46 @@ cam, identical across variants (not a defect).
   temporal, that's a new stack id, not a re-point of `ssrt3`.
 - `bench/results/` (incl. ~28 MB of shots) is committed — same precedent as
   bench/screenshots; every claim re-runnable from the runners regardless.
+
+## 2026-07-21 — P1 Tracks B/A/C/E: testing phase COMPLETE
+
+**Tooling (committed 7f80b84):** fenced hooks `__bench01/02/04/05/06` (Opus
+agent; demo 06 fully separable — source/march/accum/gcopy/compose; demo 01
+total-only and documented INVALID under TSL render-list caching — same-frame
+re-renders skip the real work, so demo 01's cost = live gpu-ms readout);
+runners run-bench-all / run-quality / run-temporal (Sonnet agent);
+`window.__cam` teleport hook (track C disocclusion event); params.ts
+importJSON now notifies only actually-changed keys (blanket notify was firing
+ref-view listeners on every applyConfig → silent oracle resets; caught by the
+Track A runner).
+
+**Recorded runs (serial, headed):** trackB-budget / trackA-quality /
+trackC-temporal + synthesis trackE-bakeoff.md, all in bench/results/.
+
+**Headlines (full reasoning in trackE-bakeoff.md + DEMOS.md verdicts):**
+- Demo 03 wins quality-per-ms: 2.15/4.56 ms (C-wide/S-hall default) INCLUDING
+  temporal+denoise, vs 4.7-8.8 ms march-only for GT-VBAO/VBGI and 13.6/31.3 ms
+  for SSHGI. Phase D base = SSRT3-style compute march.
+- Count-based accumulation beats EMA in every appearance: Track C stills
+  frame-count 0.31 / SSHGI 0.34 vs EMA 1.06; lab 10 mathis 0.10 vs ssrt3 2.07.
+- The march dominates every demo's budget → lab 09's half-res+joint-bilateral
+  lever (re-validated 3.8-5.4×) attacks the dominant term.
+- GT-VBGI = the quality bar (cleanest cornell diffs, 3-5× cost); SSHGI's cost
+  (31 ms S-hall default, 68 heavy) is the measured cause of Dennis's observed
+  fps drag — bench exonerated.
+- Reconvergence ≤2 s for ALL demos = the metric's floor (0.5 s cadence,
+  2-interval hold), not a differentiator. Tighten cadence if Phase D needs it.
+
+### Decisions for review
+- Track A MSEs compare per-demo-different quantities (composite vs
+  alpha/AO/rgb-scale oracle) — recorded per row; treated as within-demo
+  profiles + visual diff evidence, NOT a cross-demo ranking. Follow-up if
+  Phase D wants ranking: channel-matched captures (ao view vs oracle alpha).
+- Demo 01 heavy config skipped (fixed stock pipeline), demo 02 heavy skipped
+  (rays/steps are a convergence dial, not a per-frame tier).
+
+**GATE: TESTING.md complete. Phase D (demo 12 distillation) ingredient list is
+now measurable-fact-backed: SSRT3-compute base + frame-count accumulation +
+IGN-under-denoiser + half-res joint-bilateral chain + Ottosson thickness +
+salm-caps distant light + §3.2 fallback; GT-VBGI as the quality acceptance
+bar. Awaiting Dennis's go for P2/P3.**

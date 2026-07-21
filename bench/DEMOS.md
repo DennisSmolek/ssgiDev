@@ -145,3 +145,24 @@ A useful comparison protocol: pick a scene + bookmark pose → converge 02 → A
 01/03/04/05/06 against it (split + 8× diff) → then judge the *un*-converged single-frame +
 denoised versions against each other, because real-time is the un-converged case, and labs
 10/11 say the denoiser and noise choice change that ranking.
+
+---
+
+## Bake-off verdicts (testing phase, 2026-07-21)
+
+Measured at commit 7f80b84 via the committed runners; full table + caveats in
+`bench/results/trackE-bakeoff.md`, raw tracks in `bench/results/`.
+
+| Demo | Verdict |
+|---|---|
+| 01 | The floor, as intended. Fenced timing invalid under TSL render-list caching — use live gpu-ms. |
+| 02 | Referee confirmed: 3.6/5.5 ms per accumulation frame (C-wide/S-hall). |
+| 03 | **Winner on quality-per-ms and the Phase D base.** 2.15/4.56 ms default *including* temporal+denoise; near-oracle sponza cells; mip toggle worth 2× at heavy. Pair with frame-count accumulation (stability 0.31 vs EMA 1.06). |
+| 04 | AO correctness anchor; march-only 4.7/5.5 ms but heavy configs blow to 27–34 ms. |
+| 05 | Quality bar, not the base: cleanest cornell diff profile at 3–5× demo 03's cost (heavy up to 50 ms). Demo 12 must match it, not build on it. |
+| 06 | March cost prohibitive (13.6/31.3 ms default, 68 ms heavy — the measured cause of the observed fps drag), but its count-based accumulation is the stability winner (0.34) — take the idea, not the march. |
+
+Cross-cutting: the march dominates every budget (lab 09's half-res lever
+applies to the dominant term everywhere); count-based accumulation beats EMA
+in every appearance (Track C + lab 10); reconvergence ≤2 s for all demos at
+the metric's resolution.

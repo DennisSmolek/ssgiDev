@@ -103,12 +103,17 @@ One table: demo × (MSE-AO, MSE-GI, gpu ms, stability, artifact-zoo pass/fail
 notes) at C-wide + S-hall defaults. This table + the WORKLOG decisions log is
 the input to NEXTGEN phase D.
 
-## Order of work
+## Order of work — **ALL TRACKS COMPLETE 2026-07-21**
 
-1. **D first** (re-validate labs on the fixed base — everything else cites them)
-2. Camera bookmarks for the grid; then **B** (cheap, scriptable)
-3. **A**, then **C**
-4. **E** synthesis + verdict column update in bench/DEMOS.md
+1. ~~**D first**~~ done (see §D above; WORKLOG Track D entry)
+2. ~~Camera bookmarks; **B**~~ done — GRID_CAMS committed; budget map in
+   `bench/results/trackB-budget.*` (fenced hooks `__bench01/02/04/05/06` added)
+3. ~~**A**, then **C**~~ done — `trackA-quality.*` (+ `shots/trackA/` diffs;
+   MSE cross-demo comparability caveat recorded in meta), `trackC-temporal.*`
+   (reconvergence hit the metric floor ≤2 s for all demos)
+4. ~~**E**~~ done — **`bench/results/trackE-bakeoff.md`** (the deliverable) +
+   verdicts in bench/DEMOS.md. Known follow-up: channel-matched MSE captures
+   (ao-view vs oracle-alpha) if Phase D needs cross-demo MSE ranking.
 
 ## Rules during this phase
 

@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "commit": "7f80b84-dirty",
+    "date": "2026-07-21T04:57:31.810Z",
+    "baseUrl": "http://localhost:5180/",
+    "camWide": "0,2.4,8.8,0,2.6,0",
+    "camGraze": "1.4,3.6,4.6,0.95,1.3,0.7",
+    "stillMethodology": "settleMs=6000, gapMs=2000 (WORKLOG 2026-07-18 methodology)",
+    "reconvWindowMs": 8000,
+    "captureIntervalMs": 500,
+    "reconvergeRule": "first interval index k where diff[k] <= threshold AND diff[k+1] <= threshold, threshold = max(still * 1.5, still + 0.3); reported time = frame[k+1].t (real elapsed ms since teleport, not nominal 0.5s slots).",
+    "timingNote": "consecutive captures use settle(500) between grabContent() calls; actual cadence drifts with screenshot cost, so each frame is timestamped with Date.now() and the reconvergence calc uses real elapsed seconds, not nominal 0.5s slots.",
+    "cameraNote": "window.__cam.set(...) calls controls.update() once with no OrbitControls damping — poses land instantly; no extra motion is injected around the teleport.",
+    "ghostingNote": "Ghosting/smear is a visual judgment — frames are saved under bench/results/shots/trackC/ for human review, not scored here."
+  },
+  "rows": [
+    {
+      "demo": "03-ssrt3",
+      "mode": "ssrt3-ema",
+      "still": 1.0575487764550264,
+      "reconvergeSeconds": 1.947,
+      "reconverged": true,
+      "threshold": 1.5863231646825398,
+      "frameCount": 13,
+      "diffsJson": "[{\"t\":0.651,\"diff\":1.7132},{\"t\":1.304,\"diff\":0.8748},{\"t\":1.947,\"diff\":1.036},{\"t\":2.583,\"diff\":1.352},{\"t\":3.234,\"diff\":1.0342},{\"t\":3.884,\"diff\":1.3555},{\"t\":4.532,\"diff\":1.0316},{\"t\":5.181,\"diff\":1.0942},{\"t\":5.82,\"diff\":0.8689},{\"t\":6.467,\"diff\":1.0331},{\"t\":7.113,\"diff\":1.109},{\"t\":7.754,\"diff\":0.8739}]",
+      "files": "bench/results/shots/trackC/03-ssrt3-ema-reconv-0.00.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-0.65.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-1.30.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-1.95.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-2.58.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-3.23.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-3.88.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-4.53.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-5.18.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-5.82.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-6.47.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-7.11.png;bench/results/shots/trackC/03-ssrt3-ema-reconv-7.75.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "03-ssrt3",
+      "mode": "frame-count",
+      "still": 0.30582919973544975,
+      "reconvergeSeconds": 1.916,
+      "reconverged": true,
+      "threshold": 0.6058291997354497,
+      "frameCount": 13,
+      "diffsJson": "[{\"t\":0.65,\"diff\":3.0937},{\"t\":1.283,\"diff\":0.2988},{\"t\":1.916,\"diff\":0.2784},{\"t\":2.542,\"diff\":0.2712},{\"t\":3.185,\"diff\":0.2716},{\"t\":3.813,\"diff\":0.2732},{\"t\":4.441,\"diff\":0.2739},{\"t\":5.091,\"diff\":0.2765},{\"t\":5.707,\"diff\":0.2683},{\"t\":6.328,\"diff\":0.2706},{\"t\":6.965,\"diff\":0.2726},{\"t\":7.592,\"diff\":0.2233}]",
+      "files": "bench/results/shots/trackC/03-frame-count-reconv-0.00.png;bench/results/shots/trackC/03-frame-count-reconv-0.65.png;bench/results/shots/trackC/03-frame-count-reconv-1.28.png;bench/results/shots/trackC/03-frame-count-reconv-1.92.png;bench/results/shots/trackC/03-frame-count-reconv-2.54.png;bench/results/shots/trackC/03-frame-count-reconv-3.19.png;bench/results/shots/trackC/03-frame-count-reconv-3.81.png;bench/results/shots/trackC/03-frame-count-reconv-4.44.png;bench/results/shots/trackC/03-frame-count-reconv-5.09.png;bench/results/shots/trackC/03-frame-count-reconv-5.71.png;bench/results/shots/trackC/03-frame-count-reconv-6.33.png;bench/results/shots/trackC/03-frame-count-reconv-6.96.png;bench/results/shots/trackC/03-frame-count-reconv-7.59.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "04-gt-vbao",
+      "mode": "default",
+      "still": 0.7975946593915344,
+      "reconvergeSeconds": 1.893,
+      "reconverged": true,
+      "threshold": 1.1963919890873016,
+      "frameCount": 13,
+      "diffsJson": "[{\"t\":0.626,\"diff\":3.3714},{\"t\":1.268,\"diff\":0.5649},{\"t\":1.893,\"diff\":0.394},{\"t\":2.523,\"diff\":0.3032},{\"t\":3.144,\"diff\":0.3235},{\"t\":3.771,\"diff\":0.2833},{\"t\":4.389,\"diff\":0.2266},{\"t\":5.006,\"diff\":0.2542},{\"t\":5.622,\"diff\":0.3029},{\"t\":6.239,\"diff\":0.3091},{\"t\":6.85,\"diff\":0.2919},{\"t\":7.473,\"diff\":0.2649}]",
+      "files": "bench/results/shots/trackC/04-reconv-0.00.png;bench/results/shots/trackC/04-reconv-0.63.png;bench/results/shots/trackC/04-reconv-1.27.png;bench/results/shots/trackC/04-reconv-1.89.png;bench/results/shots/trackC/04-reconv-2.52.png;bench/results/shots/trackC/04-reconv-3.14.png;bench/results/shots/trackC/04-reconv-3.77.png;bench/results/shots/trackC/04-reconv-4.39.png;bench/results/shots/trackC/04-reconv-5.01.png;bench/results/shots/trackC/04-reconv-5.62.png;bench/results/shots/trackC/04-reconv-6.24.png;bench/results/shots/trackC/04-reconv-6.85.png;bench/results/shots/trackC/04-reconv-7.47.png",
+      "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
+    },
+    {
+      "demo": "05-gt-vbgi",
+      "mode": "default",
+      "still": 0.9171267361111111,
+      "reconvergeSeconds": 1.916,
+      "reconverged": true,
+      "threshold": 1.3756901041666665,
+      "frameCount": 13,
+      "diffsJson": "[{\"t\":0.64,\"diff\":3.7713},{\"t\":1.278,\"diff\":0.6229},{\"t\":1.916,\"diff\":0.4333},{\"t\":2.561,\"diff\":0.3331},{\"t\":3.198,\"diff\":0.3517},{\"t\":3.846,\"diff\":0.3003},{\"t\":4.49,\"diff\":0.2443},{\"t\":5.13,\"diff\":0.2786},{\"t\":5.774,\"diff\":0.31},{\"t\":6.403,\"diff\":0.3144},{\"t\":7.041,\"diff\":0.2943},{\"t\":7.674,\"diff\":0.2703}]",
+      "files": "bench/results/shots/trackC/05-reconv-0.00.png;bench/results/shots/trackC/05-reconv-0.64.png;bench/results/shots/trackC/05-reconv-1.28.png;bench/results/shots/trackC/05-reconv-1.92.png;bench/results/shots/trackC/05-reconv-2.56.png;bench/results/shots/trackC/05-reconv-3.20.png;bench/results/shots/trackC/05-reconv-3.85.png;bench/results/shots/trackC/05-reconv-4.49.png;bench/results/shots/trackC/05-reconv-5.13.png;bench/results/shots/trackC/05-reconv-5.77.png;bench/results/shots/trackC/05-reconv-6.40.png;bench/results/shots/trackC/05-reconv-7.04.png;bench/results/shots/trackC/05-reconv-7.67.png",
+      "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "06-sshgi-mathis",
+      "mode": "default",
+      "still": 0.3407961309523809,
+      "reconvergeSeconds": 1.936,
+      "reconverged": true,
+      "threshold": 0.6407961309523809,
+      "frameCount": 13,
+      "diffsJson": "[{\"t\":0.645,\"diff\":1.4904},{\"t\":1.289,\"diff\":0.547},{\"t\":1.936,\"diff\":0.5325},{\"t\":2.583,\"diff\":0.408},{\"t\":3.232,\"diff\":0.5303},{\"t\":3.867,\"diff\":0.5243},{\"t\":4.497,\"diff\":0.5288},{\"t\":5.136,\"diff\":0.4484},{\"t\":5.778,\"diff\":0.5256},{\"t\":6.415,\"diff\":0.5254},{\"t\":7.049,\"diff\":0.4613},{\"t\":7.692,\"diff\":0.534}]",
+      "files": "bench/results/shots/trackC/06-reconv-0.00.png;bench/results/shots/trackC/06-reconv-0.65.png;bench/results/shots/trackC/06-reconv-1.29.png;bench/results/shots/trackC/06-reconv-1.94.png;bench/results/shots/trackC/06-reconv-2.58.png;bench/results/shots/trackC/06-reconv-3.23.png;bench/results/shots/trackC/06-reconv-3.87.png;bench/results/shots/trackC/06-reconv-4.50.png;bench/results/shots/trackC/06-reconv-5.14.png;bench/results/shots/trackC/06-reconv-5.78.png;bench/results/shots/trackC/06-reconv-6.42.png;bench/results/shots/trackC/06-reconv-7.05.png;bench/results/shots/trackC/06-reconv-7.69.png",
+      "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
+    }
+  ]
+}
