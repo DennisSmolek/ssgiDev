@@ -22,7 +22,7 @@ different points (needed for the temporal stacks to converge).
 | id | what | source |
 |---|---|---|
 | `none` | control — raw producer, no denoise | — |
-| `ssrt3` | temporal reprojection + 16-tap bilateral | demo 03 `ssrt-temporal.wgsl` + `ssrt-denoise.wgsl`, **reused verbatim**; exposes `temporalResponse` + `denoisingRadius` |
+| `ssrt3` | temporal reprojection + 16-tap bilateral | `ssrt3-temporal-ema.wgsl` (frozen fork of demo 03's pre-rewrite temporal at c77e960^ — demo 03's live file moved to the frame-count layout and no longer fits this lab's wiring) + demo 03 `ssrt-denoise.wgsl` reused verbatim; exposes `temporalResponse` + `denoisingRadius` |
 | `mathis` | count-based accumulation + adaptive bilateral | `denoise-mathis.wgsl`, adapted from demo 06 `sshgi-accum.wgsl` |
 | `xegtao` | 5×5 symmetric depth-aware spatial + light temporal EMA | `denoise-xegtao-{spatial,temporal}.wgsl`, best-effort port of Intel XeGTAO's denoiser (see fidelity note) |
 | `denoise-node` | three's stock `DenoiseNode` (TSL) over the raw GI texture | `three/addons/tsl/display/DenoiseNode.js` |

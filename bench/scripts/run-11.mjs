@@ -30,6 +30,11 @@ async function main() {
   });
 
   console.log(`[lab11] measuring (opts=${measureOpts ? JSON.stringify(measureOpts) : 'defaults'})...`);
+  // measure() freezes the demo's rAF loop for its duration (the `measuring`
+  // guard in the demo) — without it, live-loop dispatches land inside
+  // measure's readback awaits and clear/pollute every count after the first
+  // (seen 2026-07-21: clean mse8, polluted mse24/32/48, batch hit varying by
+  // run — the await-window race signature).
   const json = await page.evaluate((opts) => window.__lab11.measure(opts), measureOpts);
   const result = JSON.parse(json);
   console.log(`[lab11] LAB11_MSE ${json}`);

@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "commit": "6f5b91e-dirty",
+    "date": "2026-07-21T03:37:21.888Z",
+    "baseUrl": "http://localhost:5180/",
+    "scene": "cornell",
+    "cam": "1.4,3.6,4.6,0.95,1.3,0.7",
+    "settleMs": 6000
+  },
+  "rows": [
+    {
+      "src": "A",
+      "fallback": "on",
+      "file": "bench/results/shots/lab07/A-on.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"A-equirect\",\"fallbackEnabled\":true,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    },
+    {
+      "src": "A",
+      "fallback": "off",
+      "file": "bench/results/shots/lab07/A-off.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"A-equirect\",\"fallbackEnabled\":false,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    },
+    {
+      "src": "B",
+      "fallback": "on",
+      "file": "bench/results/shots/lab07/B-on.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"B-sh-grid\",\"fallbackEnabled\":true,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    },
+    {
+      "src": "B",
+      "fallback": "off",
+      "file": "bench/results/shots/lab07/B-off.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"B-sh-grid\",\"fallbackEnabled\":false,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    },
+    {
+      "src": "C",
+      "fallback": "on",
+      "file": "bench/results/shots/lab07/C-on.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"C-global-sh\",\"fallbackEnabled\":true,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    },
+    {
+      "src": "C",
+      "fallback": "off",
+      "file": "bench/results/shots/lab07/C-off.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"ambientSource\":\"C-global-sh\",\"fallbackEnabled\":false,\"fallbackIntensity\":1,\"fallbackPower\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":false,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"denoising\":true,\"denoisingRadius\":0.5}"
+    }
+  ]
+}

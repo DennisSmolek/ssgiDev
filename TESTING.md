@@ -75,19 +75,28 @@ in both `ssrt3-ema` and `frame-count`). Motion: orbit ~5 s, stop, measure
 time-to-reconverge (screenshots at 0.5 s intervals until stability metric
 drops below the still-camera value) and note ghosting/smear visually.
 
-### D. Lab re-validation on the fixed base (IMPORTANT, do first)
+### D. Lab re-validation on the fixed base — **DONE 2026-07-21** (commit + `bench/results/`)
 Labs 07/09/10/11 concluded **before** the y-mirror fix (6adb392) and the
-per-frame jitter advance (c77e960). Their marchers are forks that received the
-y-fix, but their *recorded findings* predate it:
-- **Lab 09**: perf ratios are fetch-count driven — safe. Spot-check only.
-- **Lab 10**: the "pure temporal mean is noisier because rand(uv) is
-  frame-static" finding is now stale for demo 03 (jitter advances). Re-run the
-  stack comparison against demo 03's current temporal; confirm the
-  SSRT3-temporal+bilateral verdict still holds, and re-rank vs `frame-count`.
-- **Lab 11**: re-run the IGN-vs-gradient-noise MSE table on the fixed marcher;
-  phantom-sector noise polluted the pre-fix error field.
-- **Lab 07/08**: spot re-verify headline findings (fallback directionality;
-  Ottosson thickness + salm-caps) — screenshots only unless something moved.
+per-frame jitter advance (c77e960). Re-validated via the P0 runners; full
+verdicts in WORKLOG 2026-07-21 (Track D entry). Summary:
+- **Lab 09 — HOLDS.** Half-res chain lever 3.8–5.4× (recorded 4.1–6.3×),
+  quarter ~22×, machinery <0.5 ms, dispatch-mode parity within noise (one
+  1.13× outlier cornell-heavy fragment). `lab09-bandwidth.*`.
+- **Lab 10 — verdict refined.** Stability re-rank (combined view): mathis
+  0.10 < xegtao 0.21 < ssrt3-EMA 2.07 < denoise-node 4.83 < raw 10.05; demo 03
+  cross-refs ema 4.90 vs frame-count 1.50. Count-based accumulation is the
+  stability winner everywhere. Found+fixed: the lab's ssrt3 stack had been
+  silently broken by demo 03's temporal rewrite (shared WGSL import) — now a
+  frozen fork `ssrt3-temporal-ema.wgsl`. `lab10-stability.*`.
+- **Lab 11 — REPRODUCES.** MSE + shimmer tables match the recorded findings
+  within ~3% on the current base (IGN best early, hilbert/blue best late,
+  STBN plateaus, shimmer ranking identical). Found+fixed: `measure()` raced
+  the live rAF loop (buffer clears inside readback awaits) — `measuring`
+  guard added. `lab11-noise-mse.*`.
+- **Lab 07/08 — HOLD (visual).** Fallback directionality visible (green pickup
+  on the box face toward the green wall; no box-top speckle at C-graze);
+  salm-caps directional warm distant light vs flat wash distinguishable.
+  `lab07-shots.*` / `lab08-shots.*` + `results/shots/`.
 
 ### E. Cross-demo bake-off (the deliverable)
 One table: demo × (MSE-AO, MSE-GI, gpu ms, stability, artifact-zoo pass/fail

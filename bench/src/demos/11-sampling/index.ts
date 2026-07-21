@@ -133,6 +133,7 @@ class SamplingLabDemo implements Demo {
 
   private sampleCount = 0;
   private refCount = 0;
+  private measuring = false; // frame() no-ops while measure() owns the RTs
   private jitterIndex = 0;
   private jitterActive = false;
   private cam!: PerspectiveCamera;
@@ -236,7 +237,12 @@ class SamplingLabDemo implements Demo {
           ensureTexture(ctx.renderer, tex);
           // expose the measurement hook once the atlas exists.
           (window as unknown as Record<string, unknown>).__lab11 = {
-            measure: (opts?: { frames?: number[]; refFrames?: number }) => this.measure(ctx, opts),
+            measure: (opts?: { frames?: number[]; refFrames?: number }) => {
+              this.measuring = true;
+              return this.measure(ctx, opts).finally(() => {
+                this.measuring = false;
+              });
+            },
           };
           resolve();
         },
@@ -302,6 +308,13 @@ class SamplingLabDemo implements Demo {
 
   frame(ctx: HarnessContext, _dt: number): void {
     if (!this.atlasTex) return; // still loading
+    // measure() owns vbaoRT/refRT and awaits GPU readbacks between its
+    // accumulation batches; a live frame landing inside one of those awaits
+    // clears/rewrites the buffers and corrupts every count after the first
+    // (caught 2026-07-21: deterministically-clean mse8 but polluted
+    // mse24/32/48 in the run-11 Track D re-run). Freeze the loop entirely —
+    // the live jitter would also perturb the camera matrices measure reads.
+    if (this.measuring) return;
     const cam = ctx.scene.camera;
     const v = this.params.values;
     const denoiseView = v.viewMode === 'denoised';

@@ -43,7 +43,10 @@ import type { ParamGroup } from '../../harness/params';
 // Producer + two stacks are REUSED verbatim from demo 03 (the experimental
 // control: identical noisy input signal for every denoiser stack).
 import mainWgsl from '../03-ssrt3/ssrt-main.wgsl?raw';
-import ssrtTemporalWgsl from '../03-ssrt3/ssrt-temporal.wgsl?raw';
+// Frozen fork, NOT demo 03's live file: that file's binding layout changed
+// with the frame-count-accumulation rewrite (c77e960) and this lab wants the
+// faithful SSRT3 EMA temporal regardless. See the fork's header.
+import ssrtTemporalWgsl from './ssrt3-temporal-ema.wgsl?raw';
 import ssrtDenoiseWgsl from '../03-ssrt3/ssrt-denoise.wgsl?raw';
 import mathisWgsl from './denoise-mathis.wgsl?raw';
 import xeSpatialWgsl from './denoise-xegtao-spatial.wgsl?raw';

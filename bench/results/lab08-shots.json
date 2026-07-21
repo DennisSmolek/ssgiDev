@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "commit": "6f5b91e-dirty",
+    "date": "2026-07-21T03:38:50.720Z",
+    "baseUrl": "http://localhost:5180/",
+    "settleMs": 6000
+  },
+  "rows": [
+    {
+      "axis": "method",
+      "value": "ottosson-perbin",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/method-ottosson-perbin-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "method",
+      "value": "ottosson-perbin",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/method-ottosson-perbin-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "method",
+      "value": "salm-caps",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/method-salm-caps-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"salm-caps\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "method",
+      "value": "salm-caps",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/method-salm-caps-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"salm-caps\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "method",
+      "value": "flat-fallback",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/method-flat-fallback-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"flat-fallback\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "method",
+      "value": "flat-fallback",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/method-flat-fallback-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"flat-fallback\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "constant",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/heuristic-constant-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "constant",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/heuristic-constant-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"constant\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "linear-dist",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/heuristic-linear-dist-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"linear-dist\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "linear-dist",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/heuristic-linear-dist-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"linear-dist\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "ottosson-3clGWB",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/heuristic-ottosson-3clGWB-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"ottosson-3clGWB\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "ottosson-3clGWB",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/heuristic-ottosson-3clGWB-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"ottosson-3clGWB\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "light-occluder-wcBGRz",
+      "scene": "cornell",
+      "file": "bench/results/shots/lab08/heuristic-light-occluder-wcBGRz-cornell.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"light-occluder-wcBGRz\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    },
+    {
+      "axis": "heuristic",
+      "value": "light-occluder-wcBGRz",
+      "scene": "artifact-zoo",
+      "file": "bench/results/shots/lab08/heuristic-light-occluder-wcBGRz-artifact-zoo.png",
+      "config": "{\"viewMode\":\"distant\",\"method\":\"ottosson-perbin\",\"heuristic\":\"light-occluder-wcBGRz\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"linearThickK\":0.15,\"occluderThicknessScale\":1,\"occluderCosLimit\":0.9,\"bitsPerSector\":4,\"bias\":0.03,\"distantIntensity\":1,\"ambientIntensity\":0.05,\"envLod\":1,\"giExposure\":1.5,\"giStrength\":1,\"acosApprox\":true,\"importanceSampling\":true,\"accumulate\":true,\"maxAccumFrames\":512}"
+    }
+  ]
+}

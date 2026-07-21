@@ -836,3 +836,68 @@ post-y-fix even in the 1×10-iter smoke (half-res march ~4.6× cheaper at
 default config); lab 11's shimmer ordering already matches the pre-fix
 qualitative ranking (ign highest, hilbert/blue lowest) at truthFrames=16.
 Track D full runs are next and are the recorded numbers.
+
+## 2026-07-21 — P1 Track D: lab re-validation on the fixed base (COMPLETE)
+
+All via the P0 runners, full methodology, strictly serial (no GPU contention).
+Results committed under `bench/results/` (tables stamped with commit + page-
+exported config; screenshots under `results/shots/`).
+
+**Lab 09 — HOLDS.** Post-y-fix: half-res chain 3.8–5.4× vs recorded 4.1–6.3×
+(sponza heavy 23.97→4.66 ms, cornell heavy 11.96→2.23 ms), quarter ~22×,
+down/up machinery still <0.5 ms, frag/comp within noise except one 1.13×
+outlier (cornell heavy fragment march). Absolutes drifted up on sponza heavy
+(20→24 ms) — fixed marcher does more correct grazing-angle work + thermal
+±15%; ratios are the recorded signal and they hold. Verdict unchanged: ship
+half-res + joint bilateral.
+
+**Lab 10 — verdict refined + bench bug found/fixed.** run-10's first pass
+returned stability 0.0000 for the ssrt3 stack — black canvas, not
+convergence: lab 10 imports demo 03's `ssrt-temporal.wgsl` verbatim and
+c77e960's frame-count rewrite changed that file's binding layout (bindings
+0-8, prev-depth + count textures), silently killing the lab's pass. Fix:
+frozen fork `10-denoise/ssrt3-temporal-ema.wgsl` at c77e960^ (the faithful
+SSRT3 EMA is what the lab wants anyway), README updated. Post-fix stability
+re-rank (combined / gi): mathis 0.10/0.46, xegtao 0.21/1.11, ssrt3-EMA
+2.07/6.83, denoise-node 4.83/8.42, raw 10.05/47.51. Demo 03 cross-refs same
+methodology: ema 4.90, frame-count 1.50. The pre-fix "Mathis and SSRT3
+cleanest" headline splits: count-based accumulation (mathis / our
+frame-count) is decisively steadier than EMA; EMA's boil is now quantified,
+not just visible. LESSON (standing): cross-demo `?raw` WGSL imports are
+interface coupling — when a source file's bindings change, forks must be
+frozen copies (demo 07 pattern) or they break silently.
+
+**Lab 11 — REPRODUCES + measure-hook race found/fixed.** First runs showed
+non-monotone MSE (mse32 > mse8 every noise) with a false trail: I first
+blamed rAF pollution, "fixed" it by backgrounding the tab, and the numbers
+didn't change — because playwright's newPage opens a separate WINDOW, so the
+demo kept rendering (retracted). The truth-size experiment (truthFrames 64 vs
+512, frames [8,24,48,96]) showed the polluted batch VARIES by run/noise while
+mse8 is always clean — the await-window race signature: measure() shares
+vbaoRT with the live frame loop, and any live frame landing inside a readback
+await clears/rewrites the accumulator (loadOp 'clear' when accumulate is
+off). mse8 is enqueued with no interior await -> always clean. Fix: a
+`measuring` flag set around measure() (at the __lab11 hook site, cleared in
+.finally) makes frame() a no-op for the duration — also stops live jitter
+perturbing the camera matrices measure reads. Post-fix, full 512-frame truth:
+monotone, and within ~3% of the recorded table (×10⁻³ — white 3.59/2.04/1.40
+vs 3.49/2.00/1.38; ign 2.07/1.64/1.36; hilbert 2.40/1.63/1.33; blue same;
+stbn 3.65/2.61/2.34; shimmer ranking identical, ign 0.139 top, hilbert/blue
+0.095 floor). All Salm-claim verdicts stand on the fixed base. (Expected:
+lab 11's marcher is the demo 04 fork, which never had the y-bug — now
+empirically confirmed rather than assumed.)
+
+**Lab 07/08 — HOLD (visual spot-check).** Lab 07 A-source: fallback-on lifts
+shadowed faces with directionally-correct color (green pickup toward the
+green wall) vs flat dark fallback-off; C-graze framing shows no box-top
+speckle (y-fix confirmed in the 07 fork). Lab 08: salm-caps shows warm
+directional distant light with occlusion grading; flat-fallback washes it
+uniformly. Black strip at frame left = the room's open face at the default
+cam, identical across variants (not a defect).
+
+### Decisions for review
+- Lab 10's ssrt3 stack now uses the frozen EMA fork rather than tracking demo
+  03's live temporal. If we ever want the lab to ALSO A/B the frame-count
+  temporal, that's a new stack id, not a re-point of `ssrt3`.
+- `bench/results/` (incl. ~28 MB of shots) is committed — same precedent as
+  bench/screenshots; every claim re-runnable from the runners regardless.

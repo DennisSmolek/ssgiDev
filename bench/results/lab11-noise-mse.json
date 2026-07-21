@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "commit": "6f5b91e-dirty",
+    "date": "2026-07-21T03:48:39.597Z",
+    "baseUrl": "http://localhost:5180/",
+    "scene": "cornell",
+    "truthFrames": 512,
+    "frames": [
+      8,
+      32,
+      128
+    ],
+    "config": "{\"viewMode\":\"combined\",\"noise\":\"white\",\"temporalAdvance\":true,\"slicesPerFrame\":1,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":128,\"denoiseRadius\":3,\"denoiseSpatial\":2.5,\"denoiseDepth\":0.2,\"denoiseNormalPow\":16,\"refRays\":8,\"refSteps\":32,\"refRadius\":6,\"compareMode\":\"diff\",\"diffAmp\":8}"
+  },
+  "rows": [
+    {
+      "noise": "white",
+      "mse8": 0.0035900323085334093,
+      "mse32": 0.0020370609578058067,
+      "mse128": 0.0013977666509708798,
+      "shimmer": 0.10355038452148438
+    },
+    {
+      "noise": "ign",
+      "mse8": 0.0020688678786937088,
+      "mse32": 0.0016356222623107896,
+      "mse128": 0.001363500496485358,
+      "shimmer": 0.13927264404296874
+    },
+    {
+      "noise": "hilbert",
+      "mse8": 0.002402962126008788,
+      "mse32": 0.0016342608841914625,
+      "mse128": 0.0013325216525081488,
+      "shimmer": 0.09551165771484375
+    },
+    {
+      "noise": "blue",
+      "mse8": 0.002399764404337475,
+      "mse32": 0.0016336470840578841,
+      "mse128": 0.0013324999013238994,
+      "shimmer": 0.095424560546875
+    },
+    {
+      "noise": "stbn",
+      "mse8": 0.0036485304526831896,
+      "mse32": 0.0026128005394093633,
+      "mse128": 0.002344075252472976,
+      "shimmer": 0.10325857543945313
+    }
+  ]
+}

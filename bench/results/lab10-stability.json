@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "commit": "6f5b91e-dirty",
+    "date": "2026-07-21T03:45:36.473Z",
+    "baseUrl": "http://localhost:5180/",
+    "settleMs": 6000,
+    "gapMs": 2000,
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell"
+  },
+  "rows": [
+    {
+      "demo": "10-denoise",
+      "stack": "none",
+      "view": "combined",
+      "stability": 10.053117972883598,
+      "config": "{\"stack\":\"none\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "none",
+      "view": "gi",
+      "stability": 47.51237309854498,
+      "config": "{\"stack\":\"none\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "ssrt3",
+      "view": "combined",
+      "stability": 2.0662570271164022,
+      "config": "{\"stack\":\"ssrt3\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "ssrt3",
+      "view": "gi",
+      "stability": 6.83377273478836,
+      "config": "{\"stack\":\"ssrt3\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.09591104497354497,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "mathis",
+      "view": "gi",
+      "stability": 0.4590744874338624,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "xegtao",
+      "view": "combined",
+      "stability": 0.2087181712962963,
+      "config": "{\"stack\":\"xegtao\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "xegtao",
+      "view": "gi",
+      "stability": 1.1103249007936509,
+      "config": "{\"stack\":\"xegtao\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "denoise-node",
+      "view": "combined",
+      "stability": 4.830335648148148,
+      "config": "{\"stack\":\"denoise-node\",\"viewMode\":\"combined\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "10-denoise",
+      "stack": "denoise-node",
+      "view": "gi",
+      "stability": 8.418513558201058,
+      "config": "{\"stack\":\"denoise-node\",\"viewMode\":\"gi\",\"traa\":false,\"jitterAA\":false,\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"ssrtTemporal\":true,\"ssrtDenoise\":true,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"xeRadius\":1,\"xeSharpness\":40,\"xeAlpha\":0.1,\"xeDepthThresh\":0.1,\"dnLumaPhi\":5,\"dnDepthPhi\":5,\"dnNormalPhi\":5,\"dnRadius\":5,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "03-ssrt3",
+      "stack": "accumMode=ssrt3-ema",
+      "view": "gi",
+      "stability": 4.895020667989418,
+      "config": "{\"viewMode\":\"gi\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "03-ssrt3",
+      "stack": "accumMode=frame-count",
+      "view": "gi",
+      "stability": 1.4991683201058201,
+      "config": "{\"viewMode\":\"gi\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    }
+  ]
+}
