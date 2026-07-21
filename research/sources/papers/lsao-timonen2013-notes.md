@@ -104,5 +104,10 @@ treatments that actually shipped in the following decade.
   mips on light/normal (the fetch classes lab 09 identified as the ceiling).
 - **WebGPU subgroups** (shipping in browsers now): intra-wave sample sharing
   (subgroup broadcast/shuffle) — a barrier-free micro-realization of
-  cooperative fetching worth re-testing when three exposes it; the LDS
-  experiment's overhead argument does not automatically transfer.
+  cooperative fetching; the LDS experiment's overhead argument does not
+  automatically transfer. NOTE: usable in this repo TODAY — three r185
+  auto-requests all adapter features and our marchers are raw WGSL
+  (`enable subgroups;`), no three/TSL support needed. Scheduled as a Phase O
+  variant (NEXTGEN.md P5), alongside deinterleaved phase-bucket marching
+  (CACAO-style), the other scheduled heir. Radiance caching and ReSTIR are
+  deliberately deferred (see P5 note).

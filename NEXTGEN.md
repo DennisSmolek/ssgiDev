@@ -166,7 +166,16 @@ Additive capability, not optimization — allowed in Phase D.
 One family per variant, each with paired measurement (ms + MSE + stability):
 trig-identity pass (noacos), branch/specialization pass, precision pass, loop
 strength-reduction pass, half-res chain integration, guides-driven adaptive
-effort, checkerboard, Hi-Z skipping, light/normal mips. Opus implements,
+effort, checkerboard, Hi-Z skipping, light/normal mips, deinterleaved
+phase-bucket marching (CACAO-style — the production heir to SSILVB's LSAO
+suggestion; spatial fetch coherence, bitmask-compatible), and a subgroup
+sample-sharing experiment (raw WGSL can `enable subgroups;` today — three
+auto-requests all adapter features; barrier-free, so lab 09's LDS-overhead
+argument does not transfer). Unscheduled by choice, revisit if P5 misses
+targets: screen-space radiance caching (GI-1.0/Lumen family — an architecture,
+not a variant; overlaps the deferred radiance-cascades track) and ReSTIR
+reservoir resampling (wins concentrate in many-light regimes our scenes don't
+stress). Opus implements,
 Sonnet measures via P0 runners, Fable adjudicates every accept/reject.
 
 **P6 — publication track (runs alongside P3–P5).**
