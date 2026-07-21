@@ -104,6 +104,14 @@ Recorded per TESTING.md grid; v1.0 of demo 12 must hit, vs the Phase T table:
   review" — never silently.
 - The bench (00–11 + labs + oracle) is the permanent regression harness for
   everything Phase D onward.
+- **Feature-gated paths need a fallback (Dennis, 2026-07-19).** Chrome-only
+  adapter features (`subgroups`, `shader-f16`, ...) are fine for research
+  variants, but the shipped single "solution" must runtime-detect
+  (`adapter.features.has(...)`) and fall back to a no-feature variant with
+  documented quality/perf deltas. Every feature-dependent optimization is
+  therefore built as a WGSL variant pair from day one (we already generate
+  shader text in TS — specialization is cheap), and the fallback path stays in
+  the P0 regression matrix so it can't rot.
 
 ---
 
@@ -167,11 +175,15 @@ One family per variant, each with paired measurement (ms + MSE + stability):
 trig-identity pass (noacos), branch/specialization pass, precision pass, loop
 strength-reduction pass, half-res chain integration, guides-driven adaptive
 effort, checkerboard, Hi-Z skipping, light/normal mips, deinterleaved
-phase-bucket marching (CACAO-style — the production heir to SSILVB's LSAO
-suggestion; spatial fetch coherence, bitmask-compatible), and a subgroup
-sample-sharing experiment (raw WGSL can `enable subgroups;` today — three
-auto-requests all adapter features; barrier-free, so lab 09's LDS-overhead
-argument does not transfer). Unscheduled by choice, revisit if P5 misses
+phase-bucket marching (CACAO-style — **MUST-DO, Dennis 2026-07-19**: the
+production heir to SSILVB's LSAO suggestion; spatial fetch coherence,
+bitmask-compatible; run it for completeness even if other levers already hit
+target), and a subgroup sample-sharing experiment (**availability CONFIRMED
+2026-07-19 by live probe**: Chrome 149 / Apple metal-3 adapter exposes
+`subgroups` and a device requesting it succeeds; also present: `shader-f16`
+— real f16 arithmetic for the precision pass, not just storage — and
+`timestamp-query`, a GPU-timestamp option for the P0 runners. Barrier-free,
+so lab 09's LDS-overhead argument does not transfer). Unscheduled by choice, revisit if P5 misses
 targets: screen-space radiance caching (GI-1.0/Lumen family — an architecture,
 not a variant; overlaps the deferred radiance-cascades track) and ReSTIR
 reservoir resampling (wins concentrate in many-light regimes our scenes don't

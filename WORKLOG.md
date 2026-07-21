@@ -771,3 +771,17 @@ Wrote the three phase documents Dennis requested:
   A/B-ing guides-fed temporal vs private logic.
 PLAN.md got a phase pointer at the top. advantagous-concepts.md (Dennis's
 paste of the improvement inventory) is referenced as the concept backlog.
+
+## 2026-07-19 — WebGPU capability probe (live, Chrome 149 / Apple metal-3)
+
+Headed probe of the actual dev machine adapter: `subgroups` PRESENT and
+device-grantable (plus WGSL `subgroup_id`/`subgroup_uniformity`);
+`shader-f16` PRESENT (real f16 arithmetic available for the NEXTGEN precision
+pass); `timestamp-query` PRESENT (GPU-timestamp option for P0 runners);
+also `chromium-experimental-subgroup-matrix`. Consequences folded into
+NEXTGEN P5: subgroup experiment confirmed viable today; CACAO-style
+deinterleaved marching promoted to MUST-DO (Dennis); new standing rule:
+feature-gated optimizations ship as variant pairs with runtime detection and
+a fallback that stays in the regression matrix. Probe script:
+scratchpad/probe-subgroups.mjs (trivially re-runnable on other browsers to
+fill the support matrix — Safari/Firefox status unverified).
