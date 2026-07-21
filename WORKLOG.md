@@ -1264,3 +1264,92 @@ Adjudication: `adaptive` becomes demo 12's headline Phase-O graduate
 (integration decision deferred to post-P5.3 so the E-table updates once);
 light-mips graduates as a stability option; checkerboard/hiz-skip parked
 with recorded reasons.
+
+## 2026-07-21 — P5.3 SCHEDULED-HEIR family (demo 13): deinterleave + subgroups — smoke verdict
+
+**Two new march variants — the two production heirs the LSAO notes name — plus
+runner `--family phase3`.** Both land against `baseline`'s byte-identical
+assertion (verified: all families still load clean, no WGSL/pipeline errors,
+overlay=false). tsc clean.
+
+**`deinterleave` (CACAO-style phase-bucket marching — Dennis's MUST-DO).** Split
+the march-res grid into 4 (2×2) phase buckets; each bucket marches its OWN
+compact quarter-res image (a stride-2 phase subsample of the downsampled
+G-buffer) so its fetches have 4× tighter spatial locality — the production heir
+(Intel ASSAO → AMD FidelityFX CACAO) to LSAO's coherence goal, bitmask-compatible
+(reorganizes WHERE fetches land, not the estimator). Realized HOST-side
+(index.ts `runDeinterleave`): a deinterleave EXTRACT pass (ssrt13-deinterleave.wgsl)
+→ 4 dispatches of the PRISTINE baseline march on the compact buffers → an
+interleave SCATTER pass (ssrt13-interleave.wgsl) back to march res → shared
+upsample. The variant's WGSL is therefore byte-identical baseline — the CACAO
+reorganization is entirely in the driver, so nothing in the frozen march is
+touched. Runner reports march_ms (the 4 compact dispatches) AND chain_ms (incl.
+the de/interleave passes).
+
+**`subgroups` (barrier-free intra-wave sample sharing — feature-gated PAIR).**
+`enable subgroups;` + `diagnostic(off, subgroup_uniformity);`; the GI light fetch
+shares one representative fetch across the subgroup ONLY when `subgroupAll` agrees
+every active lane wants the same texel (one lane `subgroupElect`s + fetches,
+`subgroupBroadcastFirst` distributes) — else each lane fetches itself. Provably
+identical ⇒ bit-exact vs baseline. Built only when `adapter.features.has('subgroups')`
+(CONFIRMED on this adapter); when absent it reports `unavailable` and the BASELINE
+is the documented fallback (the pair requirement is satisfied by baseline being the
+feature-free path). Bring-up caught one WGSL error — `coherent` is a reserved
+keyword (renamed `allSame`); notably the subgroup builtins sit inside the GI
+gather's data-dependent (non-uniform) control flow and, with the uniformity
+diagnostic off, compile + run correctly on ACTIVE-lane semantics — the guard makes
+that safe.
+
+**Smoke A/B (`--quick --family phase3`, live rAF — NOT recorded numbers):**
+
+| variant | cell | march ratio | chain ratio | MSE-vs-base | gate | stability Δ |
+|---|---|---|---|---|---|---|
+| deinterleave | C-wide | 0.77–1.07× (noisy) | **0.93×** | 1.5e-4 | 1e-3 ✓ | +0.15 |
+| deinterleave | S-hall | **0.79×** | **0.78×** | 3.5e-5 | 1e-3 ✓ | +0.03 |
+| subgroups | C-wide | 1.19× | — | **1.0e-5** | 1e-4 ✓ | +0.01 |
+| subgroups | S-hall | 1.07× | — | 1.2e-5 | 1e-4 ✓ | −0.02 |
+
+MSE-vs-oracle unchanged for both (≤ baseline + noise) on both cells.
+
+**Verdict (smoke, awaiting orchestrator isolation):**
+- **deinterleave = honest NEGATIVE on perf, correct on image.** The converged
+  image matches baseline within the relaxed gate (1.5e-4 / 3.5e-5) and leaves
+  oracle MSE unchanged — the CACAO reorganization is faithful. But the **chain is
+  consistently SLOWER** (0.93× C-wide, 0.78× S-hall): the 4-dispatch split + the
+  extract/scatter passes cost more than the cache-locality gain banks on an
+  ALREADY-half-res bitmask march at these resolutions (the compact quarter-res
+  images already fit L2, so there is little miss penalty left to recover — the
+  same ceiling lab 09's LDS experiment hit). march-only hovers near 1× and is
+  smoke-noisy (0.77–1.07× across two C-wide runs); the CHAIN, which carries the
+  unavoidable de/interleave overhead, is the honest signal and it is <1×. This is
+  the LSAO story's actual ending re-confirmed: CACAO is the *scheduled* production
+  heir, and run-for-completeness (Dennis) shows it does not bank on OUR half-res
+  march — the win we already have is temporal (P5.2 `adaptive`), not fetch
+  reorganization. Documented sources of the residual vs baseline: per-bucket
+  stride-2 depth DECIMATION (each pixel effectively marches a quarter-res-of-full
+  depth field), a half-compact-texel phase-registration offset (the pristine march
+  reconstructs from compact uv, not the bucket's exact march-res uv), mipOpt
+  disabled on the compact pass, and a decorrelated per-bucket noise seed (the
+  converged image is noise-phase-independent — Monte-Carlo expectation — so this
+  costs transient stability, +0.03..+0.15, not converged accuracy). A compacted
+  single-dispatch bucket layout (quadrant-tiled) would remove the 4-dispatch
+  overhead and is the natural follow-up if deinterleave is ever revisited.
+- **subgroups = honest small WIN, bit-exact.** Passes the EXACT 1e-4 gate
+  (MSE ~1e-5 both cells) — the provably-identical guarded broadcast is correct,
+  never a wrong image. Small consistent march win (1.07–1.19×, zero-risk) — the
+  same profile as `trig`: a freebie, not a lever, because coherent far-fetch
+  hit-rate is low on this per-pixel march (the sector fetches scatter across phases
+  as a ray crosses the screen). Availability path exercised: subgroups IS available
+  on this Chrome-149/Apple-metal-3 adapter, the pipeline builds with `enable
+  subgroups;` and produces correct output; the feature-gated fallback pair (baseline)
+  is wired for adapters without it.
+
+Adjudication (smoke): `subgroups` kept AVAILABLE (exact, zero-risk, small win —
+like `trig`); NOT defaulted (the coherent-fetch win is marginal). `deinterleave`
+recorded as a NEGATIVE for completeness (Dennis's must-do run), parked with the
+compacted-dispatch follow-up noted — it does not close any gap `adaptive` already
+banks. Files: variants.ts (+`applySubgroups`, 2 build cases, `hasSubgroups`
+threaded), index.ts (compact buffers, de/interleave passes, `runDeinterleave`,
+subgroups detection, benchMarch/runChain branches), ssrt13-deinterleave.wgsl,
+ssrt13-interleave.wgsl, run-13.mjs (`--family phase3`, chain-ms columns, gates).
+Recorded verdict is the orchestrator's isolated run; do-not-commit per packet.

@@ -76,6 +76,8 @@ import pyramidMaxWgsl from './ssrt13-depth-pyramid-max.wgsl?raw';
 import lightPyramidWgsl from './ssrt13-light-pyramid.wgsl?raw';
 import downsampleWgsl from './ssrt13-downsample.wgsl?raw';
 import upsampleWgsl from './ssrt13-upsample.wgsl?raw';
+import deinterleaveWgsl from './ssrt13-deinterleave.wgsl?raw';
+import interleaveWgsl from './ssrt13-interleave.wgsl?raw';
 
 // Demo 13 — OPTIMIZATION LAB (NEXTGEN Phase O). Demo 12 (distilled SSGI v0)
 // frozen-forked again, plus a compile-time `variant` family that specializes the
@@ -256,6 +258,17 @@ class OptimDemo implements Demo {
   private depthPyramidMax = this.makePyramid(FloatType, RedFormat);
   private lightPyramid = this.makePyramid(HalfFloatType, RGBAFormat);
 
+  // P5.3 deinterleave (CACAO-style): 4 (2×2) phase buckets, each a compact
+  // quarter-res image reused per bucket (extract → compact march → scatter). One
+  // set of compact buffers is reused across the 4 buckets (sequential dispatches).
+  private compactDepth = this.makeStorage(FloatType, RedFormat);     // r32float
+  private compactNormal = this.makeStorage(HalfFloatType, RGBAFormat);
+  private compactLight = this.makeStorage(HalfFloatType, RGBAFormat);
+  private compactOut = this.makeStorage(HalfFloatType, RGBAFormat);  // compact march output
+  private compactBent = this.makeStorage(HalfFloatType, RGBAFormat);
+  private compactW = 1;
+  private compactH = 1;
+
   // P4 two-sided thickness: a back-face depth prepass at MARCH resolution.
   private backPass!: ReturnType<typeof pass>;
   private backPipeline!: RenderPipeline;
@@ -279,6 +292,7 @@ class OptimDemo implements Demo {
   private mainPasses = {} as Record<Variant, RawComputePass | null>;
   private variantBuild = {} as Record<Variant, BuiltVariant>;
   private hasF16 = false;
+  private hasSubgroups = false;
   private temporal!: RawComputePass;
   private copyDepth!: RawComputePass;
   private denoise!: RawComputePass;
@@ -286,6 +300,8 @@ class OptimDemo implements Demo {
   private pyramid!: RawComputePass;
   private pyramidMax!: RawComputePass;       // P5.2 hiz-skip: box-MAX depth pyramid
   private lightPyramidPass!: RawComputePass;  // P5.2 light-mips: box-average light pyramid
+  private deinterleavePass!: RawComputePass;   // P5.3 deinterleave: extract one phase bucket
+  private interleavePass!: RawComputePass;      // P5.3 deinterleave: scatter one phase bucket back
   private guides!: TemporalGuidesPass;        // P5.2 adaptive: shared temporal-guides (lazy update)
   private guidesActive = false;               // whether guides.update ran this frame
   private benchEffortMode: 'auto' | 'fresh' | 'converged' = 'auto'; // adaptive ms A/B override
@@ -296,6 +312,12 @@ class OptimDemo implements Demo {
 
   private mainData = new Float32Array(U_FLOATS);
   private mainU32 = new Uint32Array(this.mainData.buffer);
+  // P5.3 deinterleave: compact-march uniform (a per-bucket copy of mainData with
+  // resolution/halfProjScale/frameSeed/flags overridden) + the de/interleave params.
+  private compactMainData = new Float32Array(U_FLOATS);
+  private compactMainU32 = new Uint32Array(this.compactMainData.buffer);
+  private diData = new Float32Array(8);
+  private diU32 = new Uint32Array(this.diData.buffer);
   private tData = new Float32Array(T_FLOATS);
   private tU32 = new Uint32Array(this.tData.buffer);
   private dData = new Float32Array(D_FLOATS);
@@ -408,6 +430,22 @@ class OptimDemo implements Demo {
     this.lightPyramidPass = new RawComputePass(ctx.renderer, 'ssrt13-light-pyramid', lightPyramidWgsl, {
       bindings: [{ kind: 'tex' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' }],
     });
+    // P5.3 deinterleave (CACAO-style): extract one 2×2 phase bucket to a compact
+    // quarter-res G-buffer, and scatter its compact march output back to march res.
+    this.deinterleavePass = new RawComputePass(ctx.renderer, 'ssrt13-deinterleave', deinterleaveWgsl, {
+      bindings: [
+        { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' },
+        { kind: 'storage', format: 'r32float' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'storage', format: 'rgba16float' },
+        { kind: 'uniform' },
+      ],
+    });
+    this.interleavePass = new RawComputePass(ctx.renderer, 'ssrt13-interleave', interleaveWgsl, {
+      bindings: [
+        { kind: 'tex' }, { kind: 'tex' },
+        { kind: 'storage', format: 'rgba16float' }, { kind: 'storage', format: 'rgba16float' },
+        { kind: 'uniform' },
+      ],
+    });
     // P5.2 adaptive: shared TemporalGuidesPass (FSR3-BRIEF product). Cheap to
     // construct/allocate; update() is LAZY — only when the active variant reads N.
     this.guides = new TemporalGuidesPass(ctx.renderer, 'ssrt13-guides');
@@ -422,7 +460,11 @@ class OptimDemo implements Demo {
     // is asserted byte-identical to mainWgsl inside buildAllVariants.
     this.hasF16 = ctx.capabilities.features['shader-f16'] === true
       || (ctx.device.features?.has?.('shader-f16') ?? false);
-    this.variantBuild = buildAllVariants(mainWgsl, this.hasF16);
+    // P5.3 subgroups: `subgroups` is not in the harness OPTIONAL_FEATURES probe, so
+    // detect it straight off the (three-auto-requested-all-features) device.
+    this.hasSubgroups = ctx.capabilities.features['subgroups'] === true
+      || (ctx.device.features?.has?.('subgroups') ?? false);
+    this.variantBuild = buildAllVariants(mainWgsl, this.hasF16, this.hasSubgroups);
     // Bindings 0–9 are the pristine march layout (baseline uses exactly these).
     // 10–12 are APPENDED for the P5.2 bandwidth variants (light pyramid, max-depth
     // pyramid, guides history N). They are ALWAYS bound (like backDepth): a variant
@@ -477,6 +519,8 @@ class OptimDemo implements Demo {
     this.pyramid.configure(this.pData.byteLength);
     this.pyramidMax.configure(this.pData.byteLength);
     this.lightPyramidPass.configure(this.pData.byteLength);
+    this.deinterleavePass.configure(this.diData.byteLength);
+    this.interleavePass.configure(this.diData.byteLength);
     this.guides.configure(); // guides.setSize() ran inside resize()
     for (const v of VARIANTS) this.mainPasses[v]?.configure(this.mainData.byteLength);
     this.upsample.configure(this.upData.byteLength);
@@ -877,6 +921,81 @@ class OptimDemo implements Demo {
     ];
   }
 
+  // P5.3 deinterleave (CACAO-style) — the compact-march resource array. Reuses the
+  // PRISTINE baseline pipeline's 13-entry layout; the compact G-buffer feeds bindings
+  // 0–2, and every OTHER entry is a harmless placeholder (never read: mipOptimization
+  // is cleared for the compact pass so the pyramid binding 5 is unused; two-sided is
+  // off so back-depth binding 6 is unused; bindings 10–12 are not referenced by the
+  // pristine march at all). The depth-typed binding 6 needs a real depth texture.
+  private compactMarchResources(): RawComputeResource[] {
+    return [
+      this.compactDepth, this.compactNormal, this.compactLight, this.envTex, this.envSampler,
+      this.compactDepth, this.depthTex, this.compactOut, this.compactBent, this.compactMainData,
+      this.compactDepth, this.compactDepth, this.compactDepth,
+    ];
+  }
+
+  // Fill the extract/scatter params for one bucket (bx,by). Layout matches DIParams
+  // in ssrt13-deinterleave.wgsl / ssrt13-interleave.wgsl (both read the same 8-slot
+  // block; interleave ignores the ordering difference since each field is re-derived).
+  private fillDeinterUniform(bucket: number): void {
+    const bx = bucket & 1, by = (bucket >> 1) & 1;
+    // deinterleave DIParams: marchRes, compactRes, bucket(u32), pad, pad
+    this.diData[0] = this.marchW; this.diData[1] = this.marchH;
+    this.diData[2] = this.compactW; this.diData[3] = this.compactH;
+    this.diU32[4] = bx; this.diU32[5] = by;
+    this.diData[6] = 0; this.diData[7] = 0;
+  }
+  private fillInterUniform(bucket: number): void {
+    const bx = bucket & 1, by = (bucket >> 1) & 1;
+    // interleave DIParams: compactRes, bucket(u32), marchRes, pad, pad
+    this.diData[0] = this.compactW; this.diData[1] = this.compactH;
+    this.diU32[2] = bx; this.diU32[3] = by;
+    this.diData[4] = this.marchW; this.diData[5] = this.marchH;
+    this.diData[6] = 0; this.diData[7] = 0;
+  }
+
+  // Build the compact-march uniform for bucket b from the current (march-res) mainData:
+  // override resolution + halfProjScale to compact res, decorrelate the per-bucket
+  // noise seed, and CLEAR mipOptimization (no compact pyramid — the compact image is
+  // already coarse; keeps the pyramid binding unused). Everything else (radius,
+  // thickness heuristic, GI, bent normals, distant light) is inherited verbatim.
+  private fillCompactMarchUniform(cam: PerspectiveCamera, bucket: number): void {
+    this.compactMainData.set(this.mainData);
+    const d = this.compactMainData, u = this.compactMainU32;
+    d[48] = this.compactW;
+    d[49] = this.compactH;
+    d[55] = (this.compactH / (Math.tan(cam.fov * MathUtils.DEG2RAD * 0.5) * 2)) * 0.5;
+    // Decorrelate the 4 buckets' noise (else adjacent output pixels share a pattern);
+    // still advances per frame so the temporal frame-count accumulator converges.
+    u[58] = (this.mainU32[58] * 4 + bucket) >>> 0;
+    u[59] = (this.mainU32[59] & ~F_MIPOPT) >>> 0; // compact pass: mipOptimization off
+  }
+
+  // One bucket: extract → compact march (pristine baseline pipeline) → scatter.
+  private runDeinterleaveBucket(baseP: RawComputePass, cam: PerspectiveCamera, bucket: number): void {
+    this.fillDeinterUniform(bucket);
+    this.deinterleavePass.execute(
+      [this.marchDepth, this.marchNormal, this.marchLight, this.compactDepth, this.compactNormal, this.compactLight, this.diData],
+      this.compactW, this.compactH,
+    );
+    this.fillCompactMarchUniform(cam, bucket);
+    baseP.execute(this.compactMarchResources(), this.compactW, this.compactH);
+    this.fillInterUniform(bucket);
+    this.interleavePass.execute(
+      [this.compactOut, this.compactBent, this.marchOut, this.marchBent, this.diData],
+      this.compactW, this.compactH,
+    );
+  }
+
+  // Full deinterleave march: fill march-res mainData once, then run the 4 phase
+  // buckets. Leaves marchOut/marchBent fully repopulated for the shared upsample.
+  private runDeinterleave(cam: PerspectiveCamera): void {
+    this.fillMainUniform(cam);
+    const baseP = this.mainPasses.baseline!;
+    for (let b = 0; b < 4; b++) this.runDeinterleaveBucket(baseP, cam, b);
+  }
+
   // The compute chain (downsample -> pyramid -> march -> upsample), shared by
   // frame() and the chain/total benchmarks. Assumes the light buffer is current.
   private runChain(cam: PerspectiveCamera): void {
@@ -888,6 +1007,21 @@ class OptimDemo implements Demo {
       [this.depthTex, this.normalTex, this.lightTex, this.marchDepth, this.marchNormal, this.marchLight, this.dsData],
       this.marchW, this.marchH,
     );
+
+    // P5.3 deinterleave: the CACAO reorganization replaces the single march with the
+    // 4-bucket compact chain (extract → compact march → scatter), then rejoins the
+    // shared upsample/temporal/denoise path below.
+    if (v.variant === 'deinterleave') {
+      this.runDeinterleave(cam);
+      if (block > 1) {
+        this.fillUpsample(cam);
+        this.upsample.execute(
+          [this.marchOut, this.marchDepth, this.marchNormal, this.depthTex, this.normalTex, this.giaoFull, this.upData],
+          this.fullW, this.fullH,
+        );
+      }
+      return;
+    }
 
     if (v.mipOptimization) this.buildMinPyramid();
 
@@ -1060,6 +1194,25 @@ class OptimDemo implements Demo {
   private async benchMarch(n: number): Promise<number> {
     const cam = this.currentCam();
     this.prime(cam, this.fullW, this.fullH);
+    // P5.3 deinterleave: march-only = the 4 compact dispatches (the de/interleave
+    // passes are measured in the CHAIN, not here). Populate the compact G-buffer
+    // once (bucket 0) so the fenced marches read valid inputs; the march cost is
+    // data-independent so this is a faithful march-only number.
+    if (this.params.values.variant === 'deinterleave') {
+      this.fillMainUniform(cam);
+      this.fillDeinterUniform(0);
+      this.deinterleavePass.execute(
+        [this.marchDepth, this.marchNormal, this.marchLight, this.compactDepth, this.compactNormal, this.compactLight, this.diData],
+        this.compactW, this.compactH,
+      );
+      const baseP = this.mainPasses.baseline!;
+      return this.fence(() => {
+        for (let b = 0; b < 4; b++) {
+          this.fillCompactMarchUniform(cam, b);
+          baseP.execute(this.compactMarchResources(), this.compactW, this.compactH);
+        }
+      }, n);
+    }
     // P5.2: build the active variant's fetch structures once (light/max pyramid,
     // guides) so the fenced march measures the real bandwidth path.
     this.buildBandwidthInputs(cam);
@@ -1121,6 +1274,14 @@ class OptimDemo implements Demo {
       t.dispose();
       ensureTexture(this.rendererRef, t);
     }
+    // P5.3 deinterleave: compact quarter-res (2×2 bucket) buffers.
+    this.compactW = Math.max(1, Math.ceil(this.marchW / 2));
+    this.compactH = Math.max(1, Math.ceil(this.marchH / 2));
+    for (const t of [this.compactDepth, this.compactNormal, this.compactLight, this.compactOut, this.compactBent]) {
+      t.image = { width: this.compactW, height: this.compactH };
+      t.dispose();
+      ensureTexture(this.rendererRef, t);
+    }
     // P4 two-sided: back-face depth pass renders at MARCH resolution.
     if (this.backPass) {
       this.backPass.setSize(this.marchW, this.marchH);
@@ -1159,7 +1320,8 @@ class OptimDemo implements Demo {
     this.compareRT.dispose();
     for (const t of [this.lightTex, this.giaoFull, this.histA, this.histB, this.finalTex, this.prevDepthTex, this.countA, this.countB,
       this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.marchBent, this.depthPyramid,
-      this.depthPyramidMax, this.lightPyramid]) t.dispose();
+      this.depthPyramidMax, this.lightPyramid,
+      this.compactDepth, this.compactNormal, this.compactLight, this.compactOut, this.compactBent]) t.dispose();
     this.guides.dispose();
     this.envTex.dispose();
     this.backMat.dispose();
@@ -1172,7 +1334,7 @@ const schema = {
     hint: 'Display-only multiplier on the gi view. Does NOT affect the composite.' },
   // --- Phase-O optimization variant (compile-time march specialization) ---
   variant: { type: 'enum', value: 'baseline' as Variant, options: VARIANTS, label: 'variant', group: 'optimization',
-    hint: 'Phase-O variant family — each is a separate pipeline built from a transformed copy of the march WGSL. ALU (P5.1): baseline (byte-identical control) / trig / loop / precision (needs shader-f16) / alu-all. BANDWIDTH (P5.2, where the fetch-bound march\'s wins live): light-mips = prefiltered light mip for far samples; hiz-skip = conservative empty-space skip (bit-identical output); checkerboard = frame-parity half-rate march refilled by the temporal accumulator; adaptive = guides-driven per-pixel effort (converged pixels coast); bandwidth-all = light-mips+hiz-skip+adaptive. Numbers come from run-13.mjs (paired vs baseline).' },
+    hint: 'Phase-O variant family — each is a separate pipeline built from a transformed copy of the march WGSL. ALU (P5.1): baseline (byte-identical control) / trig / loop / precision (needs shader-f16) / alu-all. BANDWIDTH (P5.2, where the fetch-bound march\'s wins live): light-mips = prefiltered light mip for far samples; hiz-skip = conservative empty-space skip (bit-identical output); checkerboard = frame-parity half-rate march refilled by the temporal accumulator; adaptive = guides-driven per-pixel effort (converged pixels coast); bandwidth-all = light-mips+hiz-skip+adaptive. PHASE3 (P5.3): deinterleave = CACAO-style 4-bucket (2×2) phase-split marching, each bucket a compact quarter-res dispatch (host-orchestrated de/interleave; measured march + chain); subgroups = barrier-free intra-wave GI-light fetch sharing (feature-gated on `subgroups`, baseline is the fallback pair). Numbers come from run-13.mjs (paired vs baseline).' },
   // --- distillation levers ---
   marchScale: { type: 'enum', value: 'half' as MarchScale, options: MARCH_SCALES, label: 'march scale', group: 'distillation',
     hint: 'lab 09 verdict: march at half res + joint-bilateral upsample (3.8–5.4× on the dominant term). full = the demo-03-equal control; quarter = aggressive.' },

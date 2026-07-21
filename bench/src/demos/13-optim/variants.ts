@@ -53,6 +53,43 @@
 //                   orthogonal temporal-rate trade that double-dips adaptive's
 //                   stability budget, so it stays a standalone measured variant.
 //
+// P5.3 SCHEDULED-HEIR family (NEXTGEN P5 — the two production heirs LSAO's notes name):
+//   deinterleave  — CACAO-style phase-bucket marching (Intel ASSAO → AMD FidelityFX
+//                   CACAO), Dennis's MUST-DO. Split the march-res grid into 4 (2×2)
+//                   phase buckets; each bucket marches its OWN compact quarter-res
+//                   image (a stride-2 phase subsample of the G-buffer), so its fetches
+//                   have 4× tighter spatial locality (neighbouring compact threads
+//                   sample neighbouring world positions at the SAME phase — the
+//                   production heir to LSAO's coherence goal, and bitmask-compatible
+//                   since it reorganizes WHERE fetches land, not the estimator). This
+//                   is a HOST-orchestrated variant (index.ts runDeinterleave): a
+//                   deinterleave EXTRACT pass (ssrt13-deinterleave.wgsl) → 4 compact
+//                   dispatches of the PRISTINE baseline march (so the variant's WGSL
+//                   is byte-identical baseline — the reorganization is in the driver,
+//                   not the shader) → an interleave SCATTER pass (ssrt13-interleave)
+//                   back to march res. Noise: each bucket advances a decorrelated
+//                   per-bucket frameSeed; the CONVERGED image is noise-phase-
+//                   independent (Monte-Carlo expectation), so the converged output
+//                   matches baseline up to the per-bucket depth DECIMATION (each pixel
+//                   effectively marches a quarter-res-of-full depth field) + mipOpt
+//                   disabled on the compact pass — both documented, relaxed 1e-3 gate.
+//                   Measured march-only (4 compact dispatches) AND chain (incl. the
+//                   de/interleave passes) per run-13 --family phase3.
+//   subgroups     — barrier-free intra-wave sample sharing (`enable subgroups;`). Lab
+//                   09's LDS-overhead argument does NOT transfer (no workgroup barrier).
+//                   FEATURE-GATED as a variant PAIR (standing rule): built only when the
+//                   adapter exposes `subgroups`; when absent it reports 'unavailable' and
+//                   the BASELINE is the documented fallback (feature-free) — the pair
+//                   requirement is satisfied by baseline being the no-feature path. The
+//                   sharing is SCOPED to be provably-identical (never a wrong image): the
+//                   GI light fetch shares one representative fetch across the subgroup ONLY
+//                   when subgroupAll agrees every active lane wants the SAME texel; else
+//                   each lane fetches itself. So it is bit-exact vs baseline (1e-4 gate).
+//                   The sector march's fetches live inside data-dependent break/continue
+//                   loops (non-uniform control flow), so we suppress the subgroup-
+//                   uniformity diagnostic and rely on ACTIVE-lane semantics — the honest
+//                   scope, expected near-zero on this fetch pattern (recorded, not hidden).
+//
 // SHARED-LAYOUT note: the bandwidth variants need extra textures (light pyramid,
 // max-depth pyramid, guides history N). They are APPENDED as bindings 10/11/12 so
 // the pristine march's bindings 0–9 are UNCHANGED — `baseline` stays byte-identical
@@ -63,6 +100,7 @@
 export const VARIANTS = [
   'baseline', 'trig', 'loop', 'precision', 'alu-all',
   'light-mips', 'hiz-skip', 'checkerboard', 'adaptive', 'bandwidth-all',
+  'deinterleave', 'subgroups',
 ] as const;
 export type Variant = (typeof VARIANTS)[number];
 
@@ -465,6 +503,54 @@ function applyAdaptive(src: string): string {
 }
 
 // =============================================================================
+// subgroups — barrier-free intra-wave sample sharing (`enable subgroups;`)
+// =============================================================================
+function applySubgroups(src: string): string {
+  let s = src;
+  // Enable the extension and turn OFF the subgroup-uniformity diagnostic: the GI
+  // light fetch we share lives inside data-dependent break/continue loops (non-
+  // uniform control flow). With the diagnostic off, the subgroup builtins use
+  // ACTIVE-lane semantics — subgroupAll considers only active lanes and
+  // subgroupBroadcastFirst broadcasts from the first ACTIVE lane — which is exactly
+  // what makes the guarded share provably-identical for the lanes that use it.
+  s = replaceOnce(
+    s,
+    'const PI : f32 = 3.14159265359;',
+    'enable subgroups;\n' +
+      'diagnostic(off, subgroup_uniformity);\n\n' +
+      'const PI : f32 = 3.14159265359;',
+    'subgroups:enable',
+  );
+  // GI light fetch → subgroup coherent-fetch sharing. When the WHOLE (active)
+  // subgroup wants the SAME light texel, one lane fetches and broadcasts —
+  // provably identical, so bit-exact vs baseline; otherwise each lane fetches its
+  // own. subgroupAll gates the broadcast so the shared value is used only when
+  // every active lane agrees on the texel. (Same 2-line anchor as light-mips; the
+  // two variants are never composed.)
+  s = replaceOnce(
+    s,
+    '      let c = vec2<i32>(floor(sampleUV * params.resolution));\n' +
+      '      var lightColor = textureLoad(lightTex, c, 0).rgb;',
+    '      let c = vec2<i32>(floor(sampleUV * params.resolution));\n' +
+      '      // [subgroups] coherent-fetch sharing (barrier-free — lab 09\'s LDS overhead\n' +
+      '      // does NOT transfer). One representative fetch broadcast across the subgroup\n' +
+      '      // when every active lane wants the SAME texel (provably identical ⇒ bit-exact).\n' +
+      '      let cFirst = subgroupBroadcastFirst(c);\n' +
+      '      let allSame = subgroupAll(c.x == cFirst.x && c.y == cFirst.y);\n' +
+      '      var lightColor : vec3<f32>;\n' +
+      '      if (allSame) {\n' +
+      '        var lv = vec3<f32>(0.0);\n' +
+      '        if (subgroupElect()) { lv = textureLoad(lightTex, cFirst, 0).rgb; }\n' +
+      '        lightColor = subgroupBroadcastFirst(lv);\n' +
+      '      } else {\n' +
+      '        lightColor = textureLoad(lightTex, c, 0).rgb;\n' +
+      '      }',
+    'subgroups:gi-fetch-share',
+  );
+  return s;
+}
+
+// =============================================================================
 // build
 // =============================================================================
 /**
@@ -473,7 +559,7 @@ function applyAdaptive(src: string): string {
  * @param variant     which specialization to build.
  * @param hasF16      whether the adapter exposes shader-f16.
  */
-export function buildVariant(baseSource: string, variant: Variant, hasF16: boolean): BuiltVariant {
+export function buildVariant(baseSource: string, variant: Variant, hasF16: boolean, hasSubgroups: boolean): BuiltVariant {
   switch (variant) {
     case 'baseline':
       // Identity transform. Asserted byte-identical to the pristine source in
@@ -549,6 +635,29 @@ export function buildVariant(baseSource: string, variant: Variant, hasF16: boole
       const code = applyAdaptive(applyHizSkip(applyLightMips(baseSource)));
       return { variant, code, available: true, note: 'light-mips + hiz-skip + adaptive composed (checkerboard excluded)' };
     }
+    case 'deinterleave':
+      // HOST-orchestrated (index.ts runDeinterleave): the variant's shader is the
+      // PRISTINE baseline march — the CACAO reorganization (extract → 4 compact
+      // dispatches → scatter) lives in the driver, not the WGSL. Its own pipeline
+      // here is a baseline-identical compile (unused by the frame path, which
+      // branches to the compact dispatches); kept so the enum/UI selection is valid.
+      return {
+        variant,
+        code: baseSource,
+        available: true,
+        note: 'CACAO-style phase-bucket marching: 4 compact quarter-res dispatches (host-orchestrated de/interleave); march-only + chain measured',
+      };
+    case 'subgroups': {
+      if (!hasSubgroups) {
+        return { variant, code: baseSource, available: false, note: 'unavailable: adapter lacks subgroups (baseline is the documented fallback pair)' };
+      }
+      return {
+        variant,
+        code: applySubgroups(baseSource),
+        available: true,
+        note: 'barrier-free intra-wave GI-light fetch sharing (provably-identical subgroup broadcast; bit-exact vs baseline)',
+      };
+    }
   }
 }
 
@@ -557,9 +666,9 @@ export function buildVariant(baseSource: string, variant: Variant, hasF16: boole
  * source (the frozen-fork invariant). Unavailable variants carry available=false
  * and their pristine (baseline) code so the demo never compiles a broken shader.
  */
-export function buildAllVariants(baseSource: string, hasF16: boolean): Record<Variant, BuiltVariant> {
+export function buildAllVariants(baseSource: string, hasF16: boolean, hasSubgroups: boolean): Record<Variant, BuiltVariant> {
   const out = {} as Record<Variant, BuiltVariant>;
-  for (const v of VARIANTS) out[v] = buildVariant(baseSource, v, hasF16);
+  for (const v of VARIANTS) out[v] = buildVariant(baseSource, v, hasF16, hasSubgroups);
   // Frozen-fork assertion: baseline generated text === pristine source string.
   if (out.baseline.code !== baseSource) {
     throw new Error('[variants] baseline is not byte-identical to the pristine march source');

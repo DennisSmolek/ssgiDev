@@ -111,3 +111,44 @@ treatments that actually shipped in the following decade.
   variant (NEXTGEN.md P5), alongside deinterleaved phase-bucket marching
   (CACAO-style), the other scheduled heir. Radiance caching and ReSTIR are
   deliberately deferred (see P5 note).
+
+## 2026-07 EXPERIMENTAL OUTCOME (bench demo 13, P5.3) — the two scheduled heirs, tested
+
+The two "modern answers" scheduled as Phase-O variants (NEXTGEN P5) were built
+and A/B'd against the distilled half-res bitmask march (demo 13 `baseline`); full
+tables in `bench/src/demos/13-optim/README.md` + WORKLOG 2026-07-21 P5.3.
+
+1. **Deinterleaved rendering (CACAO-style phase-bucket marching)** — Dennis's
+   MUST-DO, run for completeness. 4 (2×2) phase buckets, each marching its own
+   compact quarter-res image (stride-2 phase subsample), reassembled. **Correct
+   but a perf NEGATIVE on our march**: the converged image matches baseline
+   (screenshot MSE 1.5e-4 / 3.5e-5, oracle unchanged), confirming the
+   reorganization is faithful and bitmask-compatible — but the CHAIN is
+   consistently SLOWER (0.78–0.93×) because the 4-dispatch split + extract/scatter
+   overhead exceeds the cache-locality gain on an ALREADY-half-res march (the
+   compact quarter-res images already fit L2 — the same ceiling lab 09's LDS tile
+   hit). CACAO earns its keep at FULL-res AO with cache-hostile radii; on our
+   half-res distilled march the coherence headroom is already spent. The
+   production heir is real, but the win it targets was already banked by
+   half-res + the P5.2 temporal `adaptive` lever — amortizing over TIME, not
+   reorganizing fetches, is what pays here.
+2. **WebGPU subgroups (intra-wave sample sharing)** — barrier-free, as predicted
+   (no LDS overhead transfer). Guarded to share only provably-identical fetches
+   (`subgroupAll` agrees on the texel ⇒ one lane fetches + broadcasts), so
+   **bit-exact vs baseline** (MSE ~1e-5, exact 1e-4 gate) — never a wrong image.
+   A small consistent march win (1.07–1.19×), zero-risk: a freebie like the
+   `trig` identities, not a lever, because coherent far-fetch hit-rate is low on a
+   per-pixel march (sector fetches scatter across phases as a ray crosses screen).
+   The `enable subgroups;` path builds + runs correctly today (Chrome 149 / Apple
+   metal-3), shipped as a feature-gated variant pair with baseline as the
+   documented fallback.
+
+**Interpretation (paper trail closed):** LSAO's diagnosis (bandwidth, cache-
+hostile gathers) was correct, and BOTH of its scheduled modern heirs work as
+described — deinterleave reorganizes fetches faithfully, subgroups shares them
+barrier-free. But measured on OUR distilled half-res bitmask march, neither banks
+a perf win: the coherence headroom the paper's cure targets is already recovered
+by the half-res chain, and the remaining amortization win lives in TIME (P5.2
+`adaptive` guides-driven effort), not in space. The line-sweep's descendants are
+production-proven where they were born (full-res, unbounded-radius AO); our march
+is a different operating point.

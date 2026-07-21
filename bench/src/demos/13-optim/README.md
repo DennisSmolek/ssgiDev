@@ -169,13 +169,66 @@ that double-dips adaptive's temporal stability budget (stacking half-rate marchi
 top of reduced-effort marching compounds the in-motion instability), so it stays a
 standalone measured variant.
 
+## Phase-3 variant family (SCHEDULED HEIRS — NEXTGEN P5)
+
+The two production heirs the LSAO notes name (`research/sources/papers/lsao-
+timonen2013-notes.md`): CACAO-style deinterleaved marching and a WebGPU subgroup
+experiment. Both run against the frozen `baseline` (byte-identical assertion intact).
+
+### `deinterleave` — CACAO-style phase-bucket marching (Dennis's MUST-DO)
+
+Splits the march-res grid into 4 (2×2) **phase buckets**; each bucket marches its
+OWN **compact quarter-res image** — a stride-2 phase subsample of the downsampled
+G-buffer — so its fetches have **4× tighter spatial locality** (neighbouring compact
+threads sample neighbouring world positions at the SAME phase). The production heir
+(Intel ASSAO → AMD FidelityFX CACAO) to LSAO's coherence goal, and bitmask-compatible:
+it reorganizes WHERE fetches land, not the estimator.
+
+**Host-orchestrated** (`index.ts` `runDeinterleave`), so the variant's WGSL is the
+**pristine baseline march** — the reorganization is in the driver:
+
+1. `ssrt13-deinterleave.wgsl` EXTRACT: bucket `(bx,by)` → compact texel `(cx,cy)` ←
+   march-res texel `(cx*2+bx, cy*2+by)` (depth/normal/light).
+2. 4 dispatches of the pristine baseline pipeline on the compact buffers, at compact
+   res (compact `halfProjScale`, mipOpt cleared, a decorrelated per-bucket `frameSeed`).
+3. `ssrt13-interleave.wgsl` SCATTER: compact output → march-res `(cx*2+bx, cy*2+by)`.
+   After 4 buckets `marchOut`/`marchBent` are fully repopulated → shared upsample.
+
+**Semantics vs baseline (relaxed 1e-3 CONVERGED gate).** The converged image matches
+baseline closely (measured MSE 1.5e-4 / 3.5e-5, oracle unchanged). Documented sources
+of the residual difference: (a) per-bucket **stride-2 depth decimation** — each pixel
+effectively marches a quarter-res-of-full depth field; (b) a **half-compact-texel
+phase-registration offset** (the pristine march reconstructs from compact uv, not the
+bucket's exact march-res uv); (c) **mipOpt disabled** on the compact pass; (d) the
+**decorrelated per-bucket noise seed** — the converged image is noise-phase-independent
+(Monte-Carlo expectation), so this costs transient stability, not converged accuracy.
+Runner reports **march_ms** (the 4 compact dispatches) AND **chain_ms** (incl. the
+de/interleave passes) — the overhead only shows in the chain.
+
+### `subgroups` — barrier-free intra-wave sample sharing (feature-gated PAIR)
+
+`enable subgroups;` + `diagnostic(off, subgroup_uniformity);`. The GI light fetch shares
+one representative fetch across the subgroup **only when `subgroupAll` agrees every
+active lane wants the SAME texel** (one lane `subgroupElect`s + fetches,
+`subgroupBroadcastFirst` distributes); else each lane fetches itself. **Provably
+identical ⇒ bit-exact vs baseline** (exact 1e-4 gate). Barrier-free, so lab 09's
+LDS-overhead argument does not transfer. The subgroup builtins sit inside the GI
+gather's data-dependent (non-uniform) control flow; with the uniformity diagnostic off
+they use ACTIVE-lane semantics, which the `subgroupAll` guard makes safe.
+
+**Feature-gated (standing rule).** Built only when `adapter.features.has('subgroups')`
+(CONFIRMED on this adapter); when absent it reports **`unavailable`** and **the BASELINE
+is the documented fallback** — the pair requirement is satisfied by baseline being the
+feature-free path.
+
 ## Measurement — `run-13.mjs`
 
 Paired A/B per variant vs baseline, **back-to-back for thermal pairing**, cells
 C-wide + S-hall:
 
-`--family alu|bandwidth|all` (default `all`) selects the variant set; the output
-name defaults to `demo13-<family>` (override with `--out`).
+`--family alu|bandwidth|phase3|all` (default `all`) selects the variant set; the
+output name defaults to `demo13-<family>` (override with `--out`). `phase3` also
+records **chain_ms** for `deinterleave` (baseline vs variant, incl. de/interleave).
 
 - **(a)** fenced `__bench13` march ms — baseline then variant back-to-back, each a
   warm-up dispatch + min-of-bursts; `ms_ratio = baseline/variant` (>1 = faster).
@@ -228,6 +281,38 @@ dispatches all threads) while costing real in-motion stability (Δ +0.3–0.4); 
 degrades to ≈baseline when fresh (deterministic fresh endpoint ≈ baseline ms) — the
 lever that closes the C-wide 2× gap, free on motion. All variants pass their gates.
 Recorded verdict is the orchestrator's isolated run.
+
+**PHASE3 (P5.3, smoke — not recorded numbers):** the two scheduled heirs work but
+neither banks a perf win on this half-res march.
+
+| variant | cell | march ratio | chain ratio | MSE-vs-base | gate |
+|---|---|---|---|---|---|
+| deinterleave | C-wide | 0.77–1.07× | **0.93×** | 1.5e-4 | 1e-3 ✓ |
+| deinterleave | S-hall | **0.79×** | **0.78×** | 3.5e-5 | 1e-3 ✓ |
+| subgroups | C-wide | 1.19× | — | **1.0e-5** | 1e-4 ✓ |
+| subgroups | S-hall | 1.07× | — | 1.2e-5 | 1e-4 ✓ |
+
+**deinterleave is a documented perf NEGATIVE, correct on image**: the converged
+image matches baseline (oracle unchanged) but the **chain is consistently slower**
+(0.78–0.93×) — the 4-dispatch split + extract/scatter overhead exceeds the cache
+gain on an already-half-res march (the compact quarter-res images already fit L2 —
+lab 09's LDS ceiling again). CACAO earns its keep at full-res AO with cache-hostile
+radii; here the coherence headroom was already spent by half-res + P5.2 `adaptive`.
+Run for completeness (Dennis's must-do); a compacted single-dispatch (quadrant-tiled)
+bucket layout is the noted follow-up. **subgroups is a small zero-risk WIN, bit-exact**
+(passes the exact 1e-4 gate): the guarded provably-identical broadcast is correct, and
+the ~1.07–1.19× march win is a freebie like `trig` (low coherent far-fetch hit-rate on
+a per-pixel march), not a lever. The `enable subgroups;` availability path is exercised
+and correct on this adapter; the feature-gated fallback pair (baseline) is wired.
+
+## Provenance addendum (P5.3)
+
+New WGSL passes owned by demo 13: `ssrt13-deinterleave.wgsl` (extract one 2×2 phase
+bucket to a compact quarter-res G-buffer), `ssrt13-interleave.wgsl` (scatter a bucket's
+compact march output back to march res). `deinterleave` reuses the pristine baseline
+march pipeline (no new march shader — the CACAO reorganization is host-side in
+`runDeinterleave`). `subgroups` is a string transform of the pristine march
+(`applySubgroups`), feature-gated on `subgroups` with baseline as the fallback pair.
 
 ## Provenance addendum (P5.2)
 
