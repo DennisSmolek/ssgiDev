@@ -980,3 +980,69 @@ closes the C-wide gap.
   kept; Ottosson thickness coexists with the mip pyramid (interaction flagged
   for the Phase-O matrix); salm-caps per-cap direction uses demo 03's basis
   (mirrors lab 08's logged simplification).
+
+---
+
+## 2026-07-21 — P4: demo 12 capability adds (bent normals, spec occlusion, two-sided depth, oracle bent view)
+
+Additive Phase-D capabilities on demo 12 (`12-distilled/`) + the shared
+`ReferencePass` (additive only — demos 02/03/04/05 verified byte-identical).
+Not optimizations; each is a toggle, all-off == pre-P4.
+
+**Files touched:** `12-distilled/ssrt12-main.wgsl`, `12-distilled/index.ts`,
+`12-distilled/README.md`; `harness/reference-marcher.wgsl` (+`fsBent` MRT entry,
+`fs` untouched), `harness/reference-pass.ts` (`accumulateBentNormals` option),
+`harness/raw-pass.ts` (optional MRT: `fragmentEntryPoint` + `extraTargets`/
+`extraOutputs`); `scripts/run-12.mjs`.
+
+**Bent normal + cone (march):** in the slice loop, per UNOCCLUDED bit rebuild the
+sector direction with the SAME `realTangent`/`normalVS` basis the occlusion test
++ salm-caps use — bit *i* → hemisphere fraction f=(i+0.5)/32 → θ=fastAcos(2f−1) →
+`dir = realTangent·cos θ + normalVS·sin θ`, minus its planeNormal component.
+Summed over slices → `normalize(Σ)` = bent normal (fallback to surface normal
+when Σ≈0); `visibleCone = Σ-unoccluded-bits / (32·rotationCount)`. Written to a
+NEW rgba16float (xyz = **standard three view space** — the flipped posVS bent dir
+gets its z negated on write, matching the oracle + composite), gated by
+`F_BENT_NORMALS` (default ON). Extra binding always present (no permutation);
+when off, never written → combined bit-identical (parity MSE vs pre-P4 capture
+≈ 8e-6, meanAbsDiff ≈ 0.33/255).
+
+**Spec occlusion (composite, TSL):** ambient diffuse switches to the bent normal;
+env specular attenuated by Lagarde `so = saturate(pow(NoV+cone, exp2(−16·rough−1))
+− 1 + cone)` (Frostbite "Moving to PBR 3.0", 2014). View pos reconstructed from
+depth via a new invProj uniform; view→world via a mat3(camera.matrixWorld)
+uniform. **Default OFF** (logged deviation — it adds env energy the closed-Cornell
+oracle `skyIntensity=0` can't see, same reasoning as distant-light-off; keeps the
+P3 control clean, one toggle away).
+
+**Two-sided thickness:** `thicknessHeuristic=two-sided` (default stays ottosson).
+A BackSide `scene.overrideMaterial` depth-only pass at MARCH res gives the real
+[frontZ, backZ] interval; sectors marked only within it; sky/no-backface samples
+fall back to Ottosson per-sample. Bound to the march always (placeholder = full-
+res scene depth when off, never read). BackSide override worked cleanly (no fight
+with three's material system).
+
+**Oracle bent + views:** `ReferencePass({accumulateBentNormals:true})` accumulates
+a ground-truth bent normal into a 2nd additive MRT target (xyz = Σ miss-ray dirs
+view space, w = count) via `fsBent` — `fs` byte-identical so 02/04/05 untouched
+(verified: their ref views render, no error overlay, non-black). New demo 12
+views: `bent`, `bent-ref` (lazy), `bent-diff` (0..45°→black..white ×diffAmp).
+
+**Verification (headed, live server):** tsc clean. Parity: combined at C-wide
+matches a pre-edit capture at MSE ≈8e-6 both bentNormals-on and -off. bent vs
+bent-ref are orientation-identical (no convention bug). bent-diff mid-grey
+~24°(C-wide)/~32°(S-hall) at diffAmp=1 — a weighting/estimator gap (uniform-
+sector centroid vs cosine-weighted oracle, slice-plane-confined; invariant to
+rotationCount), documented, not a bug. Two-sided renders clean at C-wide (tighter
+contacts, no leaks) and engages on the zoo (meanAbsDiff 0.12–0.56 vs ottosson;
+small at default poses — needs a grazing close-up for the thin-fence win). Spec
+occlusion composite renders sensibly. `run-12.mjs --quick` completes with the new
+columns (bent_diff per cell + thickness A/B rows for C-wide + Z-zoo); all
+acceptance rows still pass (total-half ≤ d03, MSE ≤ 1.5×d03, stability ≤ 0.40).
+
+**Validated:** demo 12 (all views, both thickness A/B, spec occlusion),
+demos 02/03/04/05 reference views, tsc, run-12 --quick.
+**Open bugs:** none. **Decisions for review:** specOcclusion default OFF;
+demo bent uses salm-caps' approximate direction reconstruction (→ ~24° oracle
+gap); demo bent normal un-denoised (temporal accumulation of the bent buffer is
+a follow-up). Not committed (per packet).

@@ -1,14 +1,14 @@
 {
   "meta": {
-    "commit": "d6e441f-dirty",
-    "date": "2026-07-21T07:56:39.125Z",
+    "commit": "104aea5-dirty",
+    "date": "2026-07-21T08:30:20.300Z",
     "baseUrl": "http://localhost:5180/",
     "viewport": "1280x800",
-    "bursts": 3,
-    "itersPerBurst": 40,
-    "mainSettleMs": 8000,
-    "refSettleMs": 10000,
-    "stabilityMs": "6000/2000",
+    "bursts": 1,
+    "itersPerBurst": 10,
+    "mainSettleMs": 4000,
+    "refSettleMs": 5000,
+    "stabilityMs": "3000/1000",
     "demo03Reference": {
       "source": "bench/results/trackB-budget.json (total ms, default cfg) + trackA-quality.json (combined-vs-oracle MSE)",
       "total_ms": {
@@ -32,43 +32,49 @@
       "mse": "MSE vs own reference ≤ 1.5× demo 03 MSE + 0.02 slack",
       "stability": "stability ≤ 0.40 (demo 03 frame-count 0.31-ish + slack)"
     },
+    "bentDiff": "P4 bent-normal angular error (bent_diff_mean255) is the screenshot mean of the bent-diff view read at diffAmp=1 (unsaturated); degrees = mean/255 * 45. It measures demo (bitmask-sector centroid) vs oracle (cosine-weighted-visibility) directional agreement; a weighting/estimator gap, not pure noise (invariant to rotationCount).",
     "caveat": "GPU ms measured under the live rAF loop (shared buffers) — contention-prone; treat totals as smoke unless run in isolation. MSE is screenshot-space (tonemapped 8-bit) combined-vs-oracle, same methodology as trackA-quality.",
-    "harnessQuirk": "buildParams().importJSON() notifies ALL schema keys per applyConfig; the viewMode->reference switch resets the oracle, so the ref capture re-settles the full convergence window (refSettleMs), not a short repaint wait."
+    "harnessQuirk": "buildParams().importJSON() notifies ALL schema keys per applyConfig; the viewMode->reference switch resets the oracle, so the ref capture re-settles the full convergence window (refSettleMs), not a short repaint wait.",
+    "note": "quick smoke run — not a recorded number"
   },
   "rows": [
     {
       "cell": "C-wide",
       "scene": "cornell",
-      "total_half_ms": 1.1225000001490115,
-      "total_full_ms": 2.7774999998509884,
-      "march_half_ms": 0.5975000001490116,
-      "chain_half_ms": 0.8175000000745059,
+      "total_half_ms": 2.0799999997019767,
+      "total_full_ms": 3.4799999997019766,
+      "march_half_ms": 0.6599999994039536,
+      "chain_half_ms": 1.1,
       "demo03_total_ms": 2.1449999999254943,
       "pass_total": true,
-      "mse_vs_ref": 0.06619298258431694,
+      "mse_vs_ref": 0.06569978432186571,
       "demo03_mse": 0.06766196174554742,
       "pass_mse": true,
-      "stability": 0.361359126984127,
+      "stability": 0.3637181712962963,
       "demo03_stability": 0.31,
       "pass_stability": true,
-      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+      "bent_diff_mean255": 137.80445064484127,
+      "bent_diff_deg": 24.318432466736695,
+      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
     },
     {
       "cell": "S-hall",
       "scene": "sponza",
-      "total_half_ms": 1.75,
-      "total_full_ms": 5.197499999776483,
-      "march_half_ms": 0.9299999997019768,
-      "chain_half_ms": 1.2274999998509883,
+      "total_half_ms": 2.35,
+      "total_full_ms": 4.720000000298024,
+      "march_half_ms": 0.8799999997019767,
+      "chain_half_ms": 1.0699999988079072,
       "demo03_total_ms": 4.5625,
       "pass_total": true,
-      "mse_vs_ref": 0.0031812025963062034,
+      "mse_vs_ref": 0.0031324193902142494,
       "demo03_mse": 0.0033027697934449674,
       "pass_mse": true,
-      "stability": 0.17440724206349206,
+      "stability": 0.16857060185185185,
       "demo03_stability": 0.31,
       "pass_stability": true,
-      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+      "bent_diff_mean255": 184.07664558531746,
+      "bent_diff_deg": 32.484113926820726,
+      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
     }
   ]
 }

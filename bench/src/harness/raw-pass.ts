@@ -40,11 +40,18 @@ export interface RawRenderPassOptions {
   bindings: RawBinding[];
   // Optional blend state (e.g. additive accumulation). Omit for opaque overwrite.
   blend?: GPUBlendState;
+  // Fragment entry point (default 'fs'). Lets one WGSL module expose a variant
+  // entry (e.g. an MRT bent-normal variant) without touching the base 'fs'.
+  fragmentEntryPoint?: string;
 }
 
 export interface RawExecuteOptions {
   loadOp?: GPULoadOp; // default 'clear'
   clearValue?: GPUColor; // default {0,0,0,1}
+  // Additional color attachments (MRT), positionally after the primary target.
+  // Same loadOp/clearValue/blend as the primary. Length must match the count
+  // passed to configure()'s extraTargets. Omit for single-target passes.
+  extraOutputs?: RenderTarget[];
 }
 
 export class RawRenderPass {
@@ -52,10 +59,12 @@ export class RawRenderPass {
   private readonly module: GPUShaderModule;
   private readonly bindings: RawBinding[];
   private readonly blend?: GPUBlendState;
+  private readonly fragmentEntryPoint: string;
   private readonly bindGroupLayout: GPUBindGroupLayout;
   private uniformBuffer: GPUBuffer | null = null;
   private pipeline: GPURenderPipeline | null = null;
   private targetFormat: GPUTextureFormat | null = null;
+  private extraTargetCount = 0;
 
   constructor(
     private readonly renderer: WebGPURenderer,
@@ -66,6 +75,7 @@ export class RawRenderPass {
     this.device = getDevice(renderer);
     this.bindings = options.bindings;
     this.blend = options.blend;
+    this.fragmentEntryPoint = options.fragmentEntryPoint ?? 'fs';
     this.module = this.device.createShaderModule({ label: `${label}:module`, code: wgsl });
 
     const entries: GPUBindGroupLayoutEntry[] = this.bindings.map((b, i) => {
@@ -113,9 +123,16 @@ export class RawRenderPass {
   // Reads three's assigned format for the output target and builds the pipeline.
   // Forces the output RenderTarget's GPU texture to exist so the first execute()
   // can write before three has sampled it.
-  configure(outputTarget: RenderTarget, uniformByteLength: number): void {
+  configure(outputTarget: RenderTarget, uniformByteLength: number, extraTargets: RenderTarget[] = []): void {
     ensureRenderTarget(this.renderer, outputTarget);
     this.targetFormat = getGPUTextureFormat(this.renderer, outputTarget.texture);
+    this.extraTargetCount = extraTargets.length;
+
+    const targets: GPUColorTargetState[] = [{ format: this.targetFormat, blend: this.blend }];
+    for (const t of extraTargets) {
+      ensureRenderTarget(this.renderer, t);
+      targets.push({ format: getGPUTextureFormat(this.renderer, t.texture), blend: this.blend });
+    }
 
     const layout = this.device.createPipelineLayout({
       label: `${this.label}:layout`,
@@ -127,8 +144,8 @@ export class RawRenderPass {
       vertex: { module: this.module, entryPoint: 'vs' },
       fragment: {
         module: this.module,
-        entryPoint: 'fs',
-        targets: [{ format: this.targetFormat, blend: this.blend }],
+        entryPoint: this.fragmentEntryPoint,
+        targets,
       },
       primitive: { topology: 'triangle-list' },
     });
@@ -153,6 +170,12 @@ export class RawRenderPass {
     if (resources.length !== this.bindings.length) {
       throw new Error(
         `RawRenderPass(${this.label}): expected ${this.bindings.length} resources, got ${resources.length}.`,
+      );
+    }
+    const extraOutputs = opts.extraOutputs ?? [];
+    if (extraOutputs.length !== this.extraTargetCount) {
+      throw new Error(
+        `RawRenderPass(${this.label}): expected ${this.extraTargetCount} extra outputs, got ${extraOutputs.length}.`,
       );
     }
 
@@ -187,18 +210,28 @@ export class RawRenderPass {
       entries,
     });
 
-    const outputGPU = getGPUTexture(this.renderer, outputTarget.texture);
+    const loadOp = opts.loadOp ?? 'clear';
+    const clearValue = opts.clearValue ?? { r: 0, g: 0, b: 0, a: 1 };
+    const colorAttachments: GPURenderPassColorAttachment[] = [
+      {
+        view: getGPUTexture(this.renderer, outputTarget.texture).createView(),
+        loadOp,
+        storeOp: 'store',
+        clearValue,
+      },
+    ];
+    for (const t of extraOutputs) {
+      colorAttachments.push({
+        view: getGPUTexture(this.renderer, t.texture).createView(),
+        loadOp,
+        storeOp: 'store',
+        clearValue,
+      });
+    }
     const encoder = this.device.createCommandEncoder({ label: `${this.label}:encoder` });
     const pass = encoder.beginRenderPass({
       label: `${this.label}:renderpass`,
-      colorAttachments: [
-        {
-          view: outputGPU.createView(),
-          loadOp: opts.loadOp ?? 'clear',
-          storeOp: 'store',
-          clearValue: opts.clearValue ?? { r: 0, g: 0, b: 0, a: 1 },
-        },
-      ],
+      colorAttachments,
     });
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, bindGroup);

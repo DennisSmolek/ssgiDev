@@ -64,6 +64,14 @@ function floatRT(): RenderTarget {
   return rt;
 }
 
+export interface ReferencePassOptions {
+  // P4: also accumulate a ground-truth bent normal (xyz = sum of unoccluded
+  // cosine-weighted ray directions in view space, w = unoccluded count) into a
+  // SECOND additive target, via the 'fsBent' MRT entry point. Default false —
+  // demos 02/04/05 leave it unset and are byte-identical (single target, 'fs').
+  accumulateBentNormals?: boolean;
+}
+
 export class ReferencePass {
   // rgb = GI radiance sum, a = AO sum. Divide by sampleCount to recover the mean.
   readonly accumRT: RenderTarget = floatRT();
@@ -72,6 +80,10 @@ export class ReferencePass {
   private readonly data = new Float32Array(MARCHER_FLOATS);
   private readonly u32 = new Uint32Array(this.data.buffer);
   private configured = false;
+
+  // P4 optional oracle bent-normal accumulation.
+  private readonly accumulateBentNormals: boolean;
+  private readonly bentRT: RenderTarget | null;
 
   // Accumulation state.
   private _sampleCount = 0;
@@ -83,10 +95,14 @@ export class ReferencePass {
   constructor(
     private readonly renderer: WebGPURenderer,
     private readonly label = 'reference',
+    options: ReferencePassOptions = {},
   ) {
+    this.accumulateBentNormals = options.accumulateBentNormals ?? false;
+    this.bentRT = this.accumulateBentNormals ? floatRT() : null;
     this.marcher = new RawRenderPass(renderer, label, marcherWgsl, {
       bindings: [{ kind: 'depth' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'uniform' }],
       blend: ADDITIVE,
+      ...(this.accumulateBentNormals ? { fragmentEntryPoint: 'fsBent' } : {}),
     });
   }
 
@@ -99,11 +115,22 @@ export class ReferencePass {
     return this.accumRT.texture;
   }
 
+  // P4: the accumulated oracle bent-normal target (xyz = summed unoccluded ray
+  // directions, view space; w = unoccluded count). null unless the pass was
+  // constructed with { accumulateBentNormals: true }. Consumers normalize xyz.
+  get bentNormalTexture(): Texture | null {
+    return this.bentRT?.texture ?? null;
+  }
+
   // Allocate the accumulation target at (w,h). Call before configure() and on
   // every resize (three reallocates the GPU texture).
   setSize(width: number, height: number): void {
     this.accumRT.setSize(width, height);
     ensureRenderTarget(this.renderer, this.accumRT);
+    if (this.bentRT) {
+      this.bentRT.setSize(width, height);
+      ensureRenderTarget(this.renderer, this.bentRT);
+    }
     // Any resize invalidates prior accumulation.
     this.resetRequested = true;
   }
@@ -113,7 +140,7 @@ export class ReferencePass {
   // resize (mirrors demo 02 / RawRenderPass convention).
   configure(): void {
     if (this.configured) return;
-    this.marcher.configure(this.accumRT, this.data.byteLength);
+    this.marcher.configure(this.accumRT, this.data.byteLength, this.bentRT ? [this.bentRT] : []);
     this.configured = true;
   }
 
@@ -168,7 +195,11 @@ export class ReferencePass {
       this.marcher.execute(
         this.accumRT,
         [inputs.depth, inputs.normal, inputs.beauty, this.data],
-        { loadOp, clearValue: { r: 0, g: 0, b: 0, a: 0 } },
+        {
+          loadOp,
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          ...(this.bentRT ? { extraOutputs: [this.bentRT] } : {}),
+        },
       );
       this._sampleCount++;
     }
@@ -228,5 +259,6 @@ export class ReferencePass {
 
   dispose(): void {
     this.accumRT.dispose();
+    this.bentRT?.dispose();
   }
 }

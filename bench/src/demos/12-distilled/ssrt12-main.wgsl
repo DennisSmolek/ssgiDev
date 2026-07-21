@@ -84,6 +84,7 @@ const F_FB_NORMALIZE : u32 = 128u;
 const F_CONE_MIP : u32 = 256u;
 const F_GI : u32 = 512u;
 const F_SECTOR_REMAP : u32 = 1024u;
+const F_BENT_NORMALS : u32 = 2048u; // P4: accumulate bent normal + cone into bentOut
 
 @group(0) @binding(0) var marchDepthTex : texture_2d<f32>; // r32float march-res raw clip depth (lab 09 downsample)
 @group(0) @binding(1) var normalTex : texture_2d<f32>;     // march-res view normal ([-1,1])
@@ -91,8 +92,10 @@ const F_SECTOR_REMAP : u32 = 1024u;
 @group(0) @binding(3) var envTex : texture_2d<f32>;        // equirect ambient source (distant light)
 @group(0) @binding(4) var envSampler : sampler;
 @group(0) @binding(5) var depthPyramid : texture_2d<f32>;  // march-res depth mip pyramid (mipOptimization)
-@group(0) @binding(6) var outTex : texture_storage_2d<rgba16float, write>;
-@group(0) @binding(7) var<uniform> params : Params;
+@group(0) @binding(6) var backDepthTex : texture_depth_2d; // P4: march-res back-face depth (two-sided thickness). Only read when thicknessHeuristic==3.
+@group(0) @binding(7) var outTex : texture_storage_2d<rgba16float, write>;
+@group(0) @binding(8) var bentOut : texture_storage_2d<rgba16float, write>; // P4: xyz = std view-space bent normal, w = visibleCone. Only written when F_BENT_NORMALS.
+@group(0) @binding(9) var<uniform> params : Params;
 
 fn hasFlag(f : u32) -> bool { return (params.flags & f) != 0u; }
 
@@ -175,6 +178,11 @@ fn linearDepthAt(coord : vec2<i32>) -> f32 {
   let n = params.near;
   let f = params.far;
   return (n * f) / (f - d * (f - n));
+}
+// P4 two-sided: raw clip depth of the back-face prepass (march res).
+fn backDepthAt(coord : vec2<i32>) -> f32 {
+  let c = clamp(coord, vec2<i32>(0), vec2<i32>(params.resolution) - vec2<i32>(1));
+  return textureLoad(backDepthTex, c, 0);
 }
 
 // Standard three view-space position (z negative forward) from uv + clip depth.
@@ -292,14 +300,32 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
     let samplePosVS = posSSToVSMip(sampleUV, mipOffset);
     let pixelToSample = normalize(samplePosVS - posVS);
 
-    // --- thickness heuristic (lab 08) --------------------------------------
+    // --- thickness heuristic (lab 08 + P4 two-sided) -----------------------
     var thick = params.thickness;
+    var backPointVS = samplePosVS - viewDir * thick; // constant-heuristic default
+    var twoSided = false;
+    if (params.thicknessHeuristic == 3u) {
+      // TWO-SIDED depth (P4): the occluder interval is [frontZ, backZ] where
+      // backZ comes from a back-face depth prepass rendered at march res — the
+      // sector is marked only within the REAL interval, killing the halo/leak
+      // tradeoff instead of tuning it. Sky / no-back-face samples fall back to
+      // Ottosson (handled by the elif below).
+      let backC = vec2<i32>(floor(sampleUV * params.resolution));
+      let backD = backDepthAt(backC);
+      if (backD < 0.99999) {
+        let stdBack = viewPosStd(sampleUV, backD);
+        let bp = vec3<f32>(stdBack.x, stdBack.y, -stdBack.z);
+        if (bp.z > samplePosVS.z + 1e-4) { backPointVS = bp; twoSided = true; }
+      }
+    }
     if (params.thicknessHeuristic == 1u) {
       // linear-over-distance (lab 08 heuristic 1).
       thick = params.thickness + params.linearThickK * length(samplePosVS - posVS);
-    } else if (params.thicknessHeuristic == 2u) {
+      backPointVS = samplePosVS - viewDir * thick;
+    } else if (params.thicknessHeuristic == 2u || (params.thicknessHeuristic == 3u && !twoSided)) {
       // Ottosson 3clGWB occluder-size estimate (lab 08 zoo winner). Ported from
       // gt-distant.wgsl; dot/length are flip-invariant so viewDir == V here.
+      // Also serves as the two-sided fallback for samples with no back face.
       var deltaPrevPos = samplePosVS - previousPos;
       deltaPrevPos = vec3<f32>(deltaPrevPos.xy * occluderScale, deltaPrevPos.z);
       let resetOccluder = abs(dot(normalize(deltaPrevPos), viewDir)) > params.occluderCosLimit;
@@ -307,8 +333,9 @@ fn horizonBitmask(dirIsRight : bool, posVS : vec3<f32>, slideDir_TexelSize : vec
       previousPos = samplePosVS;
       thick = occluderScale * (params.thickness
               + params.occluderThicknessScale * length(samplePosVS - occluderStartingPos));
+      backPointVS = samplePosVS - viewDir * thick;
     }
-    let pixelToSampleBackface = normalize((samplePosVS - viewDir * thick) - posVS);
+    let pixelToSampleBackface = normalize(backPointVS - posVS);
 
     var fbh = vec2<f32>(dot(pixelToSample, viewDir), dot(pixelToSampleBackface, viewDir));
     fbh = vec2<f32>(fastAcos(fbh.x), fastAcos(fbh.y));
@@ -370,6 +397,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   let rawD = rawDepthAt(coord);
   if (rawD >= 0.99999) {
     textureStore(outTex, coord, vec4<f32>(0.0, 0.0, 0.0, 1.0));
+    if (hasFlag(F_BENT_NORMALS)) { textureStore(bentOut, coord, vec4<f32>(0.0)); }
     return;
   }
 
@@ -395,6 +423,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
 
   let rotationCount = max(1u, params.rotationCount);
   let useBitmask = hasFlag(F_BITMASK) || hasFlag(F_GI);
+  let bentNormals = hasFlag(F_BENT_NORMALS);
   let distantMode = params.distantLightMode;
   let doFallback = distantMode != 0u;
   let fbCount = max(2u, params.fallbackSampleCount);
@@ -403,6 +432,9 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   var visSum : f32 = 0.0;
   var col : vec3<f32> = vec3<f32>(0.0);
   var fallbackColor : vec3<f32> = vec3<f32>(0.0);
+  // P4 bent normal + cone accumulation (view-space, flipped posVS basis).
+  var bentSum : vec3<f32> = vec3<f32>(0.0);
+  var unoccludedTotal : f32 = 0.0;
 
   for (var i : u32 = 0u; i < rotationCount; i = i + 1u) {
     let rotationAngle = (f32(i) + noiseDirection + params.temporalDirection) * (PI / f32(rotationCount));
@@ -428,6 +460,26 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
       let cosR = marchHorizonCos(true, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
       let cosL = marchHorizonCos(false, posVS, slideDir_TexelSize, initialRayStep, uv, viewDir);
       visSum = visSum + gtaoSlice(cosL, cosR, n, projLen);
+    }
+
+    // --- P4 bent normal + cone from the sector bitmask ----------------------
+    // For each UNOCCLUDED bit, rebuild its slice-plane direction with the SAME
+    // realTangent/normalVS basis the occlusion test + salm-caps use (bit i ->
+    // hemisphere fraction (i+0.5)/32 -> theta = acos(2f-1); dir = realTangent·
+    // cos + normalVS·sin, then project out planeNormal). Deriving from that exact
+    // basis (not from re-computed raw angles) is the y-convention safeguard
+    // (WORKLOG y-mirror). Summed over slices -> centroid = bent normal.
+    if (bentNormals && useBitmask) {
+      for (var b : u32 = 0u; b < MAX_RAY; b = b + 1u) {
+        if ((bitfield & (1u << b)) == 0u) {
+          let frac = (f32(b) + 0.5) / f32(MAX_RAY);
+          let theta = fastAcos(frac * 2.0 - 1.0);
+          var dir = normalize(realTangent * cos(theta) + normalVS * sin(theta));
+          dir = normalize(dir - planeNormal * dot(dir, planeNormal));
+          bentSum = bentSum + dir;
+          unoccludedTotal = unoccludedTotal + 1.0;
+        }
+      }
     }
 
     // --- distant light on the unoccluded bits -------------------------------
@@ -495,6 +547,15 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
 
   let vmax = max(max(col.r, col.g), col.b);
   if (vmax > params.maxLuminance) { col = col * (params.maxLuminance / vmax); }
+
+  if (bentNormals) {
+    var bentDir = normalVS;
+    if (dot(bentSum, bentSum) > 1e-8) { bentDir = normalize(bentSum); }
+    let visibleCone = clamp(unoccludedTotal / (f32(MAX_RAY) * f32(rotationCount)), 0.0, 1.0);
+    // flipped posVS space -> standard three view space (matches oracle + composite).
+    let bentStd = vec3<f32>(bentDir.x, bentDir.y, -bentDir.z);
+    textureStore(bentOut, coord, vec4<f32>(bentStd, visibleCone));
+  }
 
   textureStore(outTex, coord, vec4<f32>(col, ao));
 }

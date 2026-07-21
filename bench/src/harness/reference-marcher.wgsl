@@ -186,3 +186,100 @@ fn fs(in : VOut) -> @location(0) vec4<f32> {
   // display divides by sampleCount to recover the running mean.
   return vec4<f32>(gi, ao);
 }
+
+// --- P4 oracle bent-normal variant --------------------------------------------
+// ADDITIVE-ONLY: a SECOND entry point that duplicates fs() verbatim and ALSO
+// accumulates the ground-truth bent normal into a second color attachment.
+// location(0) is byte-identical to fs() (same math, same order) so demos that
+// bind only one target and entryPoint 'fs' are completely untouched; this entry
+// point is compiled but never referenced by their pipelines. Only ReferencePass
+// constructed with { accumulateBentNormals: true } builds a two-target pipeline
+// using 'fsBent'. location(1): xyz = sum of UNOCCLUDED (miss) cosine-weighted
+// ray directions in VIEW SPACE (same standard three view space the demo writes
+// its bent normal in), w = unoccluded-ray count. Divide xyz by any positive
+// scalar and normalize to recover the mean visible direction.
+struct BentOut {
+  @location(0) giao : vec4<f32>,
+  @location(1) bent : vec4<f32>,
+};
+
+@fragment
+fn fsBent(in : VOut) -> BentOut {
+  let coord = vec2<i32>(floor(in.pos.xy));
+  let d = textureLoad(depthTex, coord, 0);
+
+  if (d >= 0.99999) {
+    return BentOut(vec4<f32>(0.0, 0.0, 0.0, 0.0), vec4<f32>(0.0));
+  }
+
+  let uv = (in.pos.xy) / params.resolution;
+  let N = normalize(textureLoad(normalTex, coord, 0).xyz);
+  let originVS = viewPosFromDepth(uv, d) + N * params.bias;
+
+  let rays = max(1u, params.raysPerPixel);
+  let steps = max(1u, params.stepsPerRay);
+
+  let tMin = max(params.radius * 0.02, params.bias);
+  let width = params.radius / tMin;
+  let stepRatio = pow(width, 1.0 / f32(steps));
+
+  var giSum = vec3<f32>(0.0);
+  var occSum = 0.0;
+  var bentSum = vec3<f32>(0.0);
+  var missCount = 0.0;
+
+  for (var i = 0u; i < rays; i = i + 1u) {
+    var seed = pcg(
+      (u32(coord.x) * 3266489917u) ^
+      (u32(coord.y) * 668265263u) ^
+      (i * 374761393u) ^
+      (params.frameSeed * 2246822519u),
+    );
+    let u0 = nextRand(&seed);
+    let u1 = nextRand(&seed);
+    let jitter = nextRand(&seed);
+
+    var dir = sampleSphere(u0, u1) + N;
+    let dl = length(dir);
+    if (dl < 1e-4) { dir = N; } else { dir = dir / dl; }
+
+    var t = tMin * pow(stepRatio, jitter);
+    var hit = false;
+
+    for (var s = 0u; s < steps; s = s + 1u) {
+      let p = originVS + dir * t;
+      t = t * stepRatio;
+
+      let suv = projectToUV(p);
+      if (suv.x < 0.0 || suv.x >= 1.0 || suv.y < 0.0 || suv.y >= 1.0) { break; }
+
+      let sc = vec2<i32>(floor(suv * params.resolution));
+      let sd = textureLoad(depthTex, sc, 0);
+      if (sd >= 0.99999) { continue; }
+
+      let surfDist = linearDist(sd);
+      let rayDist = -p.z;
+
+      if (rayDist > surfDist && rayDist < surfDist + params.thickness) {
+        occSum += 1.0;
+        var rad = textureLoad(beautyTex, sc, 0).rgb;
+        let lum = dot(rad, vec3<f32>(0.2126, 0.7152, 0.0722));
+        if (lum > params.maxLuminance) { rad = rad * (params.maxLuminance / lum); }
+        giSum += rad;
+        hit = true;
+        break;
+      }
+    }
+
+    if (!hit) {
+      giSum += vec3<f32>(params.skyIntensity);
+      // Unoccluded ray -> a visible direction. Accumulate for the bent normal.
+      bentSum += dir;
+      missCount += 1.0;
+    }
+  }
+
+  let ao = 1.0 - occSum / f32(rays);
+  let gi = giSum / f32(rays) * params.giStrength;
+  return BentOut(vec4<f32>(gi, ao), vec4<f32>(bentSum, missCount));
+}

@@ -21,7 +21,7 @@
 
 import {
   launchBrowser, openDemo, applyConfig, exportConfig, settle, grabContent, mse,
-  stabilityMetric, minOfBursts, writeResults, GRID_CAMS,
+  meanAbsDiff, stabilityMetric, minOfBursts, writeResults, GRID_CAMS,
 } from './lib/harness.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -61,6 +61,13 @@ const DEMO03_STABILITY_FRAMECOUNT = 0.31; // trackE / trackC recorded frame-coun
 function shotPath(cell, view) {
   return resolve(REPO_ROOT, `bench/results/shots/demo12/${cell}-${view}.png`);
 }
+// Mean gray (0..255) over the content area — the bent-diff metric.
+function meanGray(img) {
+  let s = 0;
+  const n = img.width * img.height;
+  for (let i = 0; i < n * 4; i += 4) s += (img.data[i] + img.data[i + 1] + img.data[i + 2]) / 3;
+  return s / n;
+}
 
 const browser = await launchBrowser();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -83,6 +90,16 @@ for (const cell of CELLS) {
   const refImg = await grabContent(page, shotPath(cell, 'reference'));
   const mseVal = mse(combinedImg, refImg);
   const cfgAtMse = await exportConfig(page);
+
+  // (d) P4 bent-normal angular error: mean of the bent-diff screenshot. bent-diff
+  // is a reference view at the same pose, so the oracle stays converged (no
+  // reset) — a short settle for the demo bent to repaint suffices. Read at
+  // diffAmp=1 so the 0°..45° mapping is UNSATURATED: deg = mean/255 * 45.
+  await applyConfig(page, { viewMode: 'bent-diff', diffAmp: 1 });
+  await settle(quick ? 1500 : 3000);
+  const bentDiffImg = await grabContent(page, shotPath(cell, 'bent-diff'));
+  const bentDiffMean = meanGray(bentDiffImg);
+  const bentDiffDeg = (bentDiffMean / 255) * 45;
 
   // (a) fenced total at default (half) and full. Switch OFF the reference view
   // first — else the expensive brute-force oracle keeps running every rAF frame
@@ -119,14 +136,43 @@ for (const cell of CELLS) {
     pass_total: passTotal,
     mse_vs_ref: mseVal, demo03_mse: d03Mse, pass_mse: passMse,
     stability, demo03_stability: DEMO03_STABILITY_FRAMECOUNT, pass_stability: passStability,
+    bent_diff_mean255: bentDiffMean, bent_diff_deg: bentDiffDeg,
     config: JSON.stringify(cfgAtMse),
   };
   rows.push(row);
   console.log(
     `[12] ${cell}: total half ${totalHalf.toFixed(3)}ms (d03 ${d03Total}ms, pass=${passTotal}) full ${totalFull.toFixed(3)}ms | ` +
     `mse ${mseVal.toFixed(4)} (d03 ${d03Mse != null ? d03Mse.toFixed(4) : 'n/a'}, pass=${passMse}) | ` +
-    `stability ${stability.toFixed(3)} (pass=${passStability})`,
+    `stability ${stability.toFixed(3)} (pass=${passStability}) | ` +
+    `bent-diff ${bentDiffMean.toFixed(1)}/255 (~${bentDiffDeg.toFixed(1)}°)`,
   );
+}
+
+// --- P4 thickness A/B: ottosson vs two-sided (C-wide + Z-zoo) -----------------
+// The oracle reference is thickness-independent, so both variants are scored
+// against the SAME converged reference per cell. Reports MSE-vs-oracle + fenced
+// march ms. Z-zoo carries the thin-fence/thick-plate artifacts two-sided targets.
+const THICK_CELLS = ['C-wide', 'Z-zoo'];
+const thickRows = [];
+for (const cell of THICK_CELLS) {
+  const g = GRID_CAMS[cell];
+  const q = { view: 'reference', mscale: 'half' };
+  await openDemo(page, { demo: '12', scene: g.scene, cam: g.cam ?? undefined, query: q });
+  await settle(refSettle);
+  const refImg = await grabContent(page, shotPath(cell, 'thickAB-reference'));
+
+  for (const thick of ['ottosson', 'two-sided']) {
+    await applyConfig(page, { viewMode: 'combined', thicknessHeuristic: thick });
+    await settle(mainSettle);
+    const img = await grabContent(page, shotPath(cell, `thickAB-${thick}`));
+    const mseVal = mse(img, refImg);
+    // fenced march-only ms at this thickness (half res).
+    await page.evaluate((c) => window.__bench12.config(c), { scale: 'half' });
+    await settle(250);
+    const marchMs = await minOfBursts((n) => page.evaluate((i) => window.__bench12.march(i), n), burstOpts);
+    thickRows.push({ cell, scene: g.scene, thickness: thick, mse_vs_ref: mseVal, march_half_ms: marchMs });
+    console.log(`[12 thickAB] ${cell} ${thick}: mse ${mseVal.toFixed(4)} | march ${marchMs.toFixed(3)}ms`);
+  }
 }
 
 await browser.close();
@@ -151,6 +197,12 @@ const meta = {
     mse: 'MSE vs own reference ≤ 1.5× demo 03 MSE + 0.02 slack',
     stability: 'stability ≤ 0.40 (demo 03 frame-count 0.31-ish + slack)',
   },
+  bentDiff:
+    'P4 bent-normal angular error (bent_diff_mean255) is the screenshot mean of ' +
+    'the bent-diff view read at diffAmp=1 (unsaturated); degrees = mean/255 * 45. ' +
+    'It measures demo (bitmask-sector centroid) vs oracle (cosine-weighted-' +
+    'visibility) directional agreement; a weighting/estimator gap, not pure ' +
+    'noise (invariant to rotationCount).',
   caveat:
     'GPU ms measured under the live rAF loop (shared buffers) — contention-prone; ' +
     'treat totals as smoke unless run in isolation. MSE is screenshot-space ' +
@@ -164,3 +216,19 @@ const meta = {
 const { jsonPath, mdPath } = writeResults(outName, rows, meta);
 console.log(`wrote ${jsonPath}`);
 console.log(`wrote ${mdPath}`);
+
+// P4 thickness A/B written to a companion file (keeps the acceptance table shape).
+const thickMeta = {
+  viewport: '1280x800',
+  bursts: burstOpts.bursts,
+  itersPerBurst: burstOpts.iters,
+  note:
+    'P4 thickness A/B (ottosson vs two-sided). MSE vs the SAME (thickness-' +
+    'independent) converged oracle per cell; march_half_ms is the fenced main-' +
+    'march-only cost (min-of-bursts). Two-sided adds one back-face depth-only ' +
+    'pass at march res. Z-zoo carries the thin-fence/thick-plate artifacts.',
+  ...(quick ? { quick: 'smoke run — not a recorded number' } : {}),
+};
+const thickOut = writeResults(`${outName}-thickAB`, thickRows, thickMeta);
+console.log(`wrote ${thickOut.jsonPath}`);
+console.log(`wrote ${thickOut.mdPath}`);

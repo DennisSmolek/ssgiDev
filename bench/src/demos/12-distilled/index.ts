@@ -1,11 +1,14 @@
 import {
+  BackSide,
   DataTexture,
   FloatType,
   HalfFloatType,
   LinearFilter,
   LinearMipmapLinearFilter,
   MathUtils,
+  Matrix3,
   Matrix4,
+  MeshBasicNodeMaterial,
   NoColorSpace,
   RedFormat,
   RGBAFormat,
@@ -16,20 +19,33 @@ import {
   UnsignedByteType,
 } from 'three/webgpu';
 import {
+  acos,
+  atan,
+  clamp,
   diffuseColor,
+  dot,
+  exp2,
   float,
+  length,
   max,
   mrt,
+  normalize,
   normalView,
   output,
   pass,
+  pow,
+  reflect,
+  saturate,
   screenUV,
+  step,
   texture,
   uniform,
+  vec2,
   vec3,
   vec4,
   velocity,
 } from 'three/tsl';
+import type { Material, Scene } from 'three/webgpu';
 import type { AnyPixelFormat, DepthTexture, PerspectiveCamera, Texture, TextureDataType, WebGPURenderer } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
 import { RawComputePass } from '../../harness/raw-compute-pass';
@@ -56,15 +72,21 @@ import upsampleWgsl from './ssrt12-upsample.wgsl?raw';
 // shape with the measured Phase-T winners swapped in, UNOPTIMIZED. This is the
 // Phase-O control. See README for the ingredient provenance table.
 
-const VIEW_MODES = ['combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw', 'reference', 'split', 'diff'] as const;
+const VIEW_MODES = [
+  'combined', 'ao', 'gi', 'beauty', 'ao-raw', 'gi-raw', 'reference', 'split', 'diff',
+  'bent', 'bent-ref', 'bent-diff',
+] as const;
 type ViewMode = (typeof VIEW_MODES)[number];
 
-const REF_VIEWS = new Set<ViewMode>(['reference', 'split', 'diff']);
+// Views needing the (lazy, expensive) oracle running: the compare views + the
+// oracle bent-normal debug + bent-normal angular-error diff.
+const REF_VIEWS = new Set<ViewMode>(['reference', 'split', 'diff', 'bent-ref', 'bent-diff']);
 const CMP_CHANNELS = ['alpha', 'rgb'] as const;
 
 const VIEW_HINT =
   'combined = beauty·AO + albedo·GI composite; ao/gi = denoised outputs; *-raw = upsampled march output before temporal/denoise. ' +
-  'reference = converged brute-force ground truth. split = demo 12 (left) | reference (right) wipe. diff = |demo − reference| heatmap (× amp).';
+  'reference = converged brute-force ground truth. split = demo 12 (left) | reference (right) wipe. diff = |demo − reference| heatmap (× amp). ' +
+  'bent = demo bent normal (·0.5+0.5). bent-ref = oracle bent normal. bent-diff = angular error demo-vs-oracle (0°..45° -> black..white, ×diffAmp).';
 
 // Half-res march scale (lab 09 verdict — half is the ship-it default).
 const MARCH_SCALES = ['full', 'half', 'quarter'] as const;
@@ -78,7 +100,8 @@ const NOISE_MODES = ['ign', 'white'] as const;
 type NoiseMode = (typeof NOISE_MODES)[number];
 
 // Thickness heuristic (lab 08 verdict — Ottosson occluder-adaptive wins the zoo).
-const THICKNESS_HEURISTICS = ['constant', 'linear', 'ottosson'] as const;
+// P4 adds 'two-sided' (real back-face interval from a depth prepass).
+const THICKNESS_HEURISTICS = ['constant', 'linear', 'ottosson', 'two-sided'] as const;
 type ThicknessHeuristic = (typeof THICKNESS_HEURISTICS)[number];
 
 // Distant light on the unoccluded bits (lab 08 verdict — salm-caps).
@@ -100,6 +123,7 @@ const F_FB_NORMALIZE = 128;
 const F_CONE_MIP = 256;
 const F_GI = 512;
 const F_SECTOR_REMAP = 1024;
+const F_BENT_NORMALS = 2048;
 
 function sceneDefaults(sceneId: string): { radius: number; thickness: number } {
   if (sceneId === 'sponza') return { radius: 8, thickness: 2 };
@@ -200,7 +224,15 @@ class DistilledDemo implements Demo {
   private marchNormal = this.makeStorage(HalfFloatType, RGBAFormat);
   private marchLight = this.makeStorage(HalfFloatType, RGBAFormat);
   private marchOut = this.makeStorage(HalfFloatType, RGBAFormat);   // main march output
+  private marchBent = this.makeStorage(HalfFloatType, RGBAFormat);  // P4: xyz view-space bent normal, w visibleCone
   private depthPyramid = this.makePyramid();                       // mip pyramid built from marchDepth
+
+  // P4 two-sided thickness: a back-face depth prepass at MARCH resolution.
+  private backPass!: ReturnType<typeof pass>;
+  private backPipeline!: RenderPipeline;
+  private backMat!: MeshBasicNodeMaterial;   // BackSide override -> renders far (back) faces' depth
+  private backDepthTex!: DepthTexture;
+  private sceneRef!: Scene;
 
   // Ground-truth comparison.
   private compareRT = new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: false });
@@ -249,6 +281,13 @@ class DistilledDemo implements Demo {
   private marchH = 1;
 
   private uGiExposure = uniform(1);
+  // P4 composite (specular occlusion) uniforms.
+  private uInvProj = uniform(new Matrix4());
+  private uViewToWorld = uniform(new Matrix3()); // mat3(camera.matrixWorld): view-space dir -> world
+  private uSpecRoughness = uniform(1);
+  private uSpecIntensity = uniform(1);
+  private uAmbientIntensity = uniform(1);
+  private uDiffAmp = uniform(8); // bent-diff angular-error brightness
   private params!: ParamGroup<typeof schema>;
   private frameCounter = 0;
   private sceneId = 'cornell';
@@ -273,6 +312,7 @@ class DistilledDemo implements Demo {
   init(ctx: HarnessContext): void {
     this.sceneId = new URLSearchParams(window.location.search).get('scene') ?? 'cornell';
     this.device = ctx.device;
+    this.sceneRef = ctx.scene.scene;
     const cam = ctx.scene.camera;
 
     this.scenePass = pass(ctx.scene.scene, cam);
@@ -286,6 +326,17 @@ class DistilledDemo implements Demo {
 
     this.gbufferPipeline = new RenderPipeline(ctx.renderer, this.scenePass);
     this.displayPipeline = new RenderPipeline(ctx.renderer);
+
+    // P4 two-sided thickness: a depth-only pass rendered with a BackSide override
+    // material so only back faces write depth (front-face culling). With the
+    // default depth test this captures the nearest back face -> the far side of
+    // the front object = its real thickness. Rendered at MARCH resolution (the
+    // march reads it at march-res coords; no downsample pass needed). The pass
+    // still carries a color target but we only consume its depthTexture.
+    this.backMat = new MeshBasicNodeMaterial();
+    this.backMat.side = BackSide;
+    this.backPass = pass(ctx.scene.scene, cam);
+    this.backPipeline = new RenderPipeline(ctx.renderer, this.backPass);
 
     this.envSampler = ctx.device.createSampler({
       magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
@@ -310,11 +361,15 @@ class DistilledDemo implements Demo {
     this.pyramid = new RawComputePass(ctx.renderer, 'ssrt12-pyramid', pyramidWgsl, {
       bindings: [{ kind: 'tex' }, { kind: 'storage', format: 'r32float' }, { kind: 'uniform' }],
     });
-    // Main march (march res): march-res depth/normal/light + env + pyramid -> giao.
+    // Main march (march res): march-res depth/normal/light + env + pyramid +
+    // back-face depth (P4 two-sided) -> giao + bent normal (P4). The backDepth
+    // and bentOut bindings are ALWAYS present (no pipeline permutation); they are
+    // only read/written when the two-sided / bentNormals features are on.
     this.main = new RawComputePass(ctx.renderer, 'ssrt12-main', mainWgsl, {
       bindings: [
         { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'sampledTex' }, { kind: 'sampler', filtering: true },
-        { kind: 'tex' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
+        { kind: 'tex' }, { kind: 'depth' },
+        { kind: 'storage', format: 'rgba16float' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
       ],
     });
     // Joint bilateral upsample (march -> full res, lab 09).
@@ -341,7 +396,9 @@ class DistilledDemo implements Demo {
     });
 
     this.compareRT.texture.colorSpace = NoColorSpace;
-    this.refPass = new ReferencePass(ctx.renderer, 'ssrt12-ref');
+    // P4: the oracle also accumulates a ground-truth bent normal (second MRT
+    // target) for the bent-ref / bent-diff comparison views.
+    this.refPass = new ReferencePass(ctx.renderer, 'ssrt12-ref', { accumulateBentNormals: true });
     this.comparator = new Comparator(ctx.renderer, 'ssrt12-compare');
 
     this.resize(ctx);
@@ -364,7 +421,8 @@ class DistilledDemo implements Demo {
     this.params.values.thickness = d.thickness;
     this.params.refresh();
     this.params.onChange((key) => {
-      if (key === 'viewMode' || key === 'multiBounceAO' || key === 'marchScale') this.updateOutputNode();
+      if (key === 'viewMode' || key === 'multiBounceAO' || key === 'marchScale'
+        || key === 'bentNormals' || key === 'specOcclusion') this.updateOutputNode();
       if (key === 'marchScale') this.applyScale();
       if (key === 'refRays' || key === 'refSteps' || key === 'refRadius') this.refPass.reset();
     });
@@ -389,6 +447,8 @@ class DistilledDemo implements Demo {
     this.params.values.multiBounceAO = bool('mbao', this.params.values.multiBounceAO);
     this.params.values.mipOptimization = bool('mip', this.params.values.mipOptimization);
     this.params.values.normalApproximation = bool('na', this.params.values.normalApproximation);
+    this.params.values.bentNormals = bool('bn', this.params.values.bentNormals);
+    this.params.values.specOcclusion = bool('so', this.params.values.specOcclusion);
     if (q.get('mb') !== null) this.params.values.multiBounceGI = Number(q.get('mb'));
     if (q.get('sc') !== null) this.params.values.stepCount = Number(q.get('sc'));
     if (q.get('rc') !== null) this.params.values.rotationCount = Number(q.get('rc'));
@@ -438,7 +498,12 @@ class DistilledDemo implements Demo {
         const beauty = texture(this.beautyTex, uv).rgb;
         const albedo = texture(this.albedoTex, uv).rgb;
         const aoTerm = this.params.values.multiBounceAO ? multiBounceAO(ao, albedo) : vec3(ao);
-        return vec4(beauty.mul(aoTerm).add(albedo.mul(gi)), float(1));
+        const base = beauty.mul(aoTerm).add(albedo.mul(gi));
+        // P4 specular occlusion: capability add (Phase D). Old path kept when off.
+        if (this.params.values.bentNormals && this.params.values.specOcclusion) {
+          return vec4(base.add(this.specOcclusionTerm(albedo)), float(1));
+        }
+        return vec4(base, float(1));
       }
       case 'beauty':
         return vec4(texture(this.beautyTex, uv).rgb, float(1));
@@ -449,8 +514,77 @@ class DistilledDemo implements Demo {
       case 'split':
       case 'diff':
         return vec4(texture(this.compareRT.texture, uv).rgb, float(1));
+      case 'bent': {
+        // Demo bent normal (view space), classic *0.5+0.5 normal debug.
+        const bn = normalize(texture(this.marchBent, uv).xyz);
+        return vec4(bn.mul(0.5).add(0.5), float(1));
+      }
+      case 'bent-ref': {
+        // Oracle bent normal: mean of unoccluded ray dirs (xyz/w), same debug map.
+        const raw = texture(this.refPass.bentNormalTexture!, uv);
+        const bn = normalize(raw.xyz.div(max(raw.w, float(1e-4))));
+        return vec4(bn.mul(0.5).add(0.5), float(1));
+      }
+      case 'bent-diff': {
+        // Angular error (degrees) demo-vs-oracle, mapped 0°..45° -> black..white,
+        // ×diffAmp. Both bent normals are in standard three view space. Safe
+        // normalize (÷max(len,eps)) avoids NaN on sky; masked to where both exist.
+        const demoRaw = texture(this.marchBent, uv);
+        const refRaw = texture(this.refPass.bentNormalTexture!, uv);
+        const demoLen = length(demoRaw.xyz);
+        const refLen = length(refRaw.xyz);
+        const dN = demoRaw.xyz.div(max(demoLen, float(1e-4)));
+        const rN = refRaw.xyz.div(max(refLen, float(1e-4)));
+        const cosang = clamp(dot(dN, rN), float(-1), float(1));
+        const deg = acos(cosang).mul(180 / Math.PI);
+        const mask = step(float(1e-3), demoLen).mul(step(float(0.5), refRaw.w));
+        const val = saturate(deg.div(45)).mul(this.uDiffAmp).mul(mask);
+        return vec4(vec3(val), float(1));
+      }
     }
   }
+
+  // P4: reconstruct standard three view-space position from the full-res depth
+  // (fullscreen display pass has no geometry, so positionView is unavailable).
+  private viewPosNode() {
+    const uv = screenUV;
+    const dRaw = texture(this.depthTex, uv).r;
+    const ndc = vec3(uv.x.mul(2).sub(1), float(1).sub(uv.y.mul(2)), dRaw);
+    const vp = this.uInvProj.mul(vec4(ndc, float(1)));
+    return vp.xyz.div(vp.w);
+  }
+
+  // Equirect env sample in a WORLD-space direction at explicit LOD.
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  private envSampleWorld(dirWorld: any, lod: any): any {
+    const d: any = normalize(dirWorld);
+    const u = atan(d.z, d.x).mul(1 / (2 * Math.PI)).add(0.5);
+    const v = acos(clamp(d.y, float(-1), float(1))).mul(1 / Math.PI);
+    return texture(this.envTex, vec2(u, v)).level(lod).rgb;
+  }
+
+  // P4 specular occlusion composite add-on (capability). Ambient DIFFUSE uses the
+  // bent normal (directionally-correct ambient); ambient SPECULAR is attenuated
+  // by Lagarde specular occlusion. Cited inline. Returns the extra radiance.
+  private specOcclusionTerm(albedo: any): any {
+    const uv = screenUV;
+    const bentRaw = texture(this.marchBent, uv);
+    const cone = bentRaw.a; // visibleCone in [0,1]
+    const Nv = normalize(texture(this.normalTex, uv).xyz);
+    const V = normalize(this.viewPosNode().negate());
+    const NoV = saturate(dot(Nv, V));
+    const rough = this.uSpecRoughness;
+    // Lagarde specular occlusion — Sébastien Lagarde & Charles de Rousiers,
+    // "Moving Frostbite to Physically Based Rendering 3.0" (SIGGRAPH 2014),
+    // getSpecularOcclusion(): so = saturate(pow(NoV+ao, exp2(-16*rough-1)) - 1 + ao).
+    const so = saturate(pow(NoV.add(cone), exp2(rough.mul(-16).sub(1))).sub(1).add(cone));
+    const bentW = this.uViewToWorld.mul(normalize(bentRaw.xyz));
+    const ambDiffuse = this.envSampleWorld(bentW, float(ENV_MIPS - 1)).mul(albedo).mul(cone).mul(this.uAmbientIntensity);
+    const Rw = this.uViewToWorld.mul(reflect(V.negate(), Nv));
+    const ambSpec = this.envSampleWorld(Rw, rough.mul(ENV_MIPS - 1)).mul(so).mul(this.uSpecIntensity);
+    return ambDiffuse.add(ambSpec);
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   private inputs(): ReferenceInputs {
     return { depth: this.depthTex, normal: this.normalTex, beauty: this.beautyTex };
@@ -498,6 +632,7 @@ class DistilledDemo implements Demo {
     if (v.coneMip) f |= F_CONE_MIP;
     if (v.gatherGI) f |= F_GI;
     if (v.sectorRemap) f |= F_SECTOR_REMAP;
+    if (v.bentNormals) f |= F_BENT_NORMALS;
     return f;
   }
 
@@ -535,7 +670,7 @@ class DistilledDemo implements Demo {
     d[71] = 0;
     // demo 12 block.
     u[72] = v.noiseMode === 'white' ? 1 : 0;
-    u[73] = v.thicknessHeuristic === 'ottosson' ? 2 : v.thicknessHeuristic === 'linear' ? 1 : 0;
+    u[73] = v.thicknessHeuristic === 'two-sided' ? 3 : v.thicknessHeuristic === 'ottosson' ? 2 : v.thicknessHeuristic === 'linear' ? 1 : 0;
     u[74] = v.distantLight === 'salm-caps' ? 2 : v.distantLight === 'ssrt-fallback' ? 1 : 0;
     u[75] = v.capsBits;
     d[76] = v.occluderThicknessScale;
@@ -564,6 +699,17 @@ class DistilledDemo implements Demo {
     d[8] = 0; d[9] = 0;
   }
 
+  // P4: render the back-face depth prepass into backPass.depthTexture (march
+  // res). scene.overrideMaterial forces the BackSide depth-only material for
+  // this render only; restored immediately so the main G-buffer pass is
+  // untouched. (three's WebGPURenderer honors scene.overrideMaterial.)
+  private renderBackDepth(): void {
+    const prev = (this.sceneRef as unknown as { overrideMaterial: Material | null }).overrideMaterial;
+    (this.sceneRef as unknown as { overrideMaterial: Material | null }).overrideMaterial = this.backMat;
+    this.backPipeline.render();
+    (this.sceneRef as unknown as { overrideMaterial: Material | null }).overrideMaterial = prev;
+  }
+
   // The compute chain (downsample -> pyramid -> march -> upsample), shared by
   // frame() and the chain/total benchmarks. Assumes the light buffer is current.
   private runChain(cam: PerspectiveCamera): void {
@@ -588,9 +734,19 @@ class DistilledDemo implements Demo {
       }
     }
 
+    // P4 two-sided: render the back-face depth prepass (march res) only when the
+    // two-sided heuristic is active. Otherwise bind the (always-allocated) full-
+    // res scene depth as a harmless placeholder — the shader never reads it
+    // unless thicknessHeuristic==3, so no permutation and near-zero cost when off.
+    let backTex: DepthTexture = this.depthTex;
+    if (v.thicknessHeuristic === 'two-sided') {
+      this.renderBackDepth();
+      backTex = this.backDepthTex;
+    }
+
     this.fillMainUniform(cam);
     this.main.execute(
-      [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.marchOut, this.mainData],
+      [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, backTex, this.marchOut, this.marchBent, this.mainData],
       this.marchW, this.marchH,
     );
 
@@ -607,6 +763,13 @@ class DistilledDemo implements Demo {
     const cam = ctx.scene.camera;
     this.frameCounter++;
     this.uGiExposure.value = this.params.values.giExposure;
+    // P4 composite/spec-occlusion uniforms.
+    this.uInvProj.value.copy(cam.projectionMatrixInverse);
+    this.uViewToWorld.value.setFromMatrix4(cam.matrixWorld);
+    this.uSpecRoughness.value = this.params.values.specRoughness;
+    this.uSpecIntensity.value = this.params.values.specIntensity;
+    this.uAmbientIntensity.value = this.params.values.ambientIntensity;
+    this.uDiffAmp.value = this.params.values.diffAmp;
 
     // 1. G-buffer.
     this.gbufferPipeline.render();
@@ -740,7 +903,7 @@ class DistilledDemo implements Demo {
     this.prime(cam, this.fullW, this.fullH);
     return this.fence(() => {
       this.main.execute(
-        [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.marchOut, this.mainData],
+        [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.depthTex, this.marchOut, this.marchBent, this.mainData],
         this.marchW, this.marchH,
       );
     }, n);
@@ -788,7 +951,7 @@ class DistilledDemo implements Demo {
     const block = blockForScale(this.params?.values.marchScale ?? 'half');
     this.marchW = Math.max(1, Math.ceil(this.fullW / block));
     this.marchH = Math.max(1, Math.ceil(this.fullH / block));
-    for (const t of [this.marchDepth, this.marchNormal, this.marchLight, this.marchOut]) {
+    for (const t of [this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.marchBent]) {
       t.image = { width: this.marchW, height: this.marchH };
       t.dispose();
       ensureTexture(this.rendererRef, t);
@@ -796,6 +959,11 @@ class DistilledDemo implements Demo {
     this.depthPyramid.image = { width: this.marchW, height: this.marchH };
     this.depthPyramid.dispose();
     ensureTexture(this.rendererRef, this.depthPyramid);
+    // P4 two-sided: back-face depth pass renders at MARCH resolution.
+    if (this.backPass) {
+      this.backPass.setSize(this.marchW, this.marchH);
+      this.backDepthTex = this.backPass.renderTarget.depthTexture!;
+    }
   }
   private rendererRef!: WebGPURenderer;
 
@@ -827,8 +995,9 @@ class DistilledDemo implements Demo {
     this.refPass.dispose();
     this.compareRT.dispose();
     for (const t of [this.lightTex, this.giaoFull, this.histA, this.histB, this.finalTex, this.prevDepthTex, this.countA, this.countB,
-      this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.depthPyramid]) t.dispose();
+      this.marchDepth, this.marchNormal, this.marchLight, this.marchOut, this.marchBent, this.depthPyramid]) t.dispose();
     this.envTex.dispose();
+    this.backMat.dispose();
   }
 }
 
@@ -913,6 +1082,17 @@ const schema = {
     hint: 'ssrt-fallback weighting: ON = SSRT3-shipped (unoccluded/32). OFF = paper per-subregion.' },
   coneMip: { type: 'boolean', value: false, label: 'cone->mip (vs mip3)', group: 'distant light',
     hint: 'Derive env blur mip from the sector cone angle instead of hardcoded mip 3.' },
+  // --- bent normals + specular occlusion (P4 capability) ---
+  bentNormals: { type: 'boolean', value: true, label: 'bent normals', group: 'bent normals',
+    hint: 'P4: accumulate a bent normal (centroid of the unoccluded sectors) + visible cone from the bitmask, near-free at march time. Written to a separate texture; when OFF the demo is bit-identical to pre-P4.' },
+  specOcclusion: { type: 'boolean', value: false, label: 'specular occlusion (composite)', group: 'bent normals',
+    hint: 'P4: add a directionally-correct ambient (bent-normal diffuse) + specular env term, the specular attenuated by Lagarde specular occlusion. Default OFF (closed-Cornell control matches the oracle skyIntensity=0; turning it on adds env energy the oracle does not model). Needs bent normals ON.' },
+  specRoughness: { type: 'number', value: 1, min: 0.02, max: 1, step: 0.02, label: 'spec roughness', group: 'bent normals',
+    hint: 'Roughness fed to Lagarde specular occlusion + the env blur mip for the spec term.' },
+  specIntensity: { type: 'number', value: 1, min: 0, max: 8, step: 0.1, label: 'spec env gain', group: 'bent normals',
+    hint: 'Gain on the ambient-specular term (specular occlusion path).' },
+  ambientIntensity: { type: 'number', value: 1, min: 0, max: 8, step: 0.1, label: 'ambient env gain', group: 'bent normals',
+    hint: 'Gain on the bent-normal ambient-diffuse term (specular occlusion path).' },
   // --- temporal & denoise ---
   temporalAccumulation: { type: 'boolean', value: true, label: 'temporalAccumulation', group: 'temporal & denoise',
     hint: 'Reprojected history blend. Eats the per-frame noise cycle.' },
