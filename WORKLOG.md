@@ -1236,3 +1236,31 @@ passes + lazy TemporalGuidesPass, effort-mode bench hook), ssrt13-light-pyramid.
 ssrt13-depth-pyramid-max.wgsl, run-13.mjs (`--family`, endpoint + teleport ms,
 stability delta, per-variant gates). Recorded verdict is the orchestrator's isolated
 run; do-not-commit per packet.
+
+## 2026-07-21 — P5.2 bandwidth family RECORDED VERDICT (isolated run, demo13-all)
+
+**adaptive (guides-driven effort) is the flagship optimization.** Converged
+march 3.17× (C-wide 0.657→0.207 ms) / 2.37× (S-hall), with fresh-pixel cost
+= baseline (0.68/0.86 ms) — exactly the principle-6 shape: converged pixels
+coast, disoccluded pixels pay full. Costs recorded, not hidden: stability
++0.17 at C-wide (0.527 vs 0.356 — the effort floor 0.4 trades boil for ms;
+tunable), oracle MSE +0.0006. With the march at 0.21 ms, demo 12+adaptive's
+estimated C-wide total ≈ 0.80 ms vs demo 03's 2.145 → **the ≥2× C-wide
+success measure is now met on converged frames** (fresh frames ~1.7× — the
+demo 12 baseline). This is also the LSAO story's ending: the paper's
+complaint (every pixel pays full march cost) solved with temporal guides
+instead of line sweeps, bitmask-compatible.
+- light-mips: ms 0.98–0.99× (smoke 1.11× did NOT survive isolation) but
+  stability −0.05 (prefilter) — verdict: quality tool, not a perf lever at
+  default settings; revisit at heavy configs.
+- hiz-skip: 0.98× — honest zero in the scoped exact-conservative realization
+  (bitfield-saturation break + beyond-radius skip); full angular Hi-Z remains
+  a documented follow-up.
+- checkerboard: recorded NEGATIVE — per-thread return doesn't compact the
+  dispatch (ms ~1.0×) while stability degrades +0.26..+1.0. A true 2× needs
+  compacted dispatch; parked.
+- ALU family re-confirmed near-zero under the new binding layout.
+Adjudication: `adaptive` becomes demo 12's headline Phase-O graduate
+(integration decision deferred to post-P5.3 so the E-table updates once);
+light-mips graduates as a stability option; checkerboard/hiz-skip parked
+with recorded reasons.
