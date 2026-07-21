@@ -40,14 +40,17 @@ bench/DEMOS.md's verdict column; decisions go to WORKLOG "Decisions for review".
 
 Scenes × cameras (add as camera bookmarks so they're one click):
 
-| id | scene | camera | what it stresses |
+| id | scene | camera (`?cam=`) | what it stresses |
 |---|---|---|---|
 | C-wide | cornell | `0,2.4,8.8,0,2.6,0` | overall GI/AO, wall bleed |
 | C-graze | cornell | `1.4,3.6,4.6,0.95,1.3,0.7` | grazing angles, flat-top artifacts |
-| C-contact | cornell | close-up at box/floor contact (bookmark) | contact detail, denoiser blur |
-| S-hall | sponza | atrium length view (bookmark) | long-range, bandwidth, distant light |
-| S-column | sponza | column close-up (bookmark) | thin occluders, thickness |
+| C-contact | cornell | `3.0,1.6,3.6,0.3,0.5,0.1` | contact detail (short-box/floor + inter-box gap), denoiser blur |
+| S-hall | sponza | `11,1.8,-0.3,-10,2.6,-0.3` | long-range, bandwidth, distant light (the corridor default pose) |
+| S-column | sponza | `2.0,1.6,0.0,3.4,1.4,-2.6` | thin occluders (banner edges, hanging pot + chains, vines vs column), thickness |
 | Z-zoo | artifact-zoo | default | the artifact checklist |
+
+Poses are committed as `GRID_CAMS` in `bench/scripts/lib/harness.mjs` (picked
+visually 2026-07-21) — runners import them; in the UI paste the `?cam=` string.
 
 Configs per demo: **as-shipped defaults** and one **heavy** config (demo 03:
 rc4/sc32). Every recorded number = (grid id, config JSON, commit hash).

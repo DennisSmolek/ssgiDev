@@ -46,6 +46,17 @@ export const DEMO_IDS = {
   '11': '11-sampling',
 };
 
+// TESTING.md measurement grid — poses picked visually 2026-07-21 (candidate
+// screenshots in the session scratchpad). Z-zoo uses the scene default (no cam).
+export const GRID_CAMS = {
+  'C-wide': { scene: 'cornell', cam: '0,2.4,8.8,0,2.6,0' },
+  'C-graze': { scene: 'cornell', cam: '1.4,3.6,4.6,0.95,1.3,0.7' },
+  'C-contact': { scene: 'cornell', cam: '3.0,1.6,3.6,0.3,0.5,0.1' },
+  'S-hall': { scene: 'sponza', cam: '11,1.8,-0.3,-10,2.6,-0.3' },
+  'S-column': { scene: 'sponza', cam: '2.0,1.6,0.0,3.4,1.4,-2.6' },
+  'Z-zoo': { scene: 'artifact-zoo', cam: null },
+};
+
 // ---------------------------------------------------------------- browser ---
 
 export async function launchBrowser() {
@@ -203,7 +214,9 @@ export function writeResults(name, rows, meta = {}) {
   const jsonPath = resolve(outDir, `${name}.json`);
   writeFileSync(jsonPath, JSON.stringify({ meta: stamp, rows }, null, 2));
 
-  const keys = rows.length ? Object.keys(rows[0]) : [];
+  // Per-row config JSON stays in the .json (the reproducibility stamp) but
+  // would swamp the markdown table — skip it there.
+  const keys = (rows.length ? Object.keys(rows[0]) : []).filter((k) => k !== 'config');
   const fmt = (v) => (typeof v === 'number' ? +v.toFixed(4) : v);
   const md = [
     `# ${name}`,

@@ -785,3 +785,54 @@ feature-gated optimizations ship as variant pairs with runtime detection and
 a fallback that stays in the regression matrix. Probe script:
 scratchpad/probe-subgroups.mjs (trivially re-runnable on other browsers to
 fill the support matrix — Safari/Firefox status unverified).
+
+## 2026-07-21 — P0: committed lab runners (bench/scripts)
+
+**Packet P0 (NEXTGEN workplan) — "Lets go!" greenlight from Dennis.**
+
+**Methodology core (Fable):** `bench/scripts/lib/harness.mjs` pins the recorded
+methodology in one importable place: headed Chrome launch (`channel:'chrome'`,
+`--enable-unsafe-webgpu`; falls back to bundled chromium), config driving via a
+new `window.__benchParams` hook in harness `params.ts` (import/export JSON —
+no clipboard permission games), the WORKLOG stability metric (6s settle / 2s
+gap / pane-clipped mean-abs-diff via pngjs), lab 09's min-of-3×40 fenced
+bursts, and `writeResults()` stamping every table with commit hash + the
+config exported back FROM the page (ground truth, not intent). New
+`window.__resolved` hook in `app.ts` because the registry silently falls back
+to demo 00 on unknown ids — a runner recording numbers against the wrong demo
+is the nightmare scenario; `openDemo()` now asserts. Deps: playwright-core +
+pngjs as bench devDeps (real Chrome, no browser downloads).
+
+**Grid cams pinned (Fable, visual pick from headed candidate shots):**
+`GRID_CAMS` in the lib + TESTING.md table updated. New poses: C-contact
+`3.0,1.6,3.6,0.3,0.5,0.1` (short-box/floor contact + inter-box gap), S-hall =
+the sponza default corridor pose `11,1.8,-0.3,-10,2.6,-0.3` (it already IS the
+atrium length view), S-column `2.0,1.6,0.0,3.4,1.4,-2.6` (banner edges,
+hanging pot on chains, vines against a column — the thin-occluder cell).
+Sponza world bounds logged during the pick: size (29.8, 12.4, 18.3).
+
+**Runners (two Sonnet agents, Fable review):**
+- `run-09.mjs` — drives `__bench09` (scene × rc/sc × marchScale × dispatch),
+  compute/fragment paired back-to-back per cell; up-pass only measured sub-full-res.
+- `run-03bench.mjs` — `__ssrt3bench` over the full GRID_CAMS grid × default/
+  heavy × mip on/off paired; rc/sc re-read from exportConfig after applying.
+- `run-10.mjs` — stability metric per stack (none/ssrt3/mathis/xegtao/
+  denoise-node) × combined+gi views + demo 03 ema/frame-count cross-ref rows,
+  with a >3×-off-ballpark warning against the WORKLOG 3.38/0.83 anchors.
+- `run-11.mjs` — drives `__lab11.measure()` (found: attaches only after the
+  async blue-noise atlas load — runner waits on the function, not just page
+  ready; returns a JSON *string*: {truthFrames, frames, mse{noise→frame→v},
+  shimmer{noise→v}}).
+- `run-07.mjs` / `run-08.mjs` — screenshot spot-check grids + manifest tables.
+All six verified headed with `--quick` against the live server; quick runs
+stamp `meta.note = 'quick smoke run — not a recorded number'`.
+
+**Review fixes (Fable):** run-03bench rewired to GRID_CAMS (was 3 hand-listed
+cells); per-row `config` JSON kept in results .json but excluded from the .md
+tables (readability).
+
+**Smoke observations (not recorded numbers):** lab 09's shape reproduces
+post-y-fix even in the 1×10-iter smoke (half-res march ~4.6× cheaper at
+default config); lab 11's shimmer ordering already matches the pre-fix
+qualitative ranking (ign highest, hilbert/blue lowest) at truthFrames=16.
+Track D full runs are next and are the recorded numbers.
