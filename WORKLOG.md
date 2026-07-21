@@ -1385,3 +1385,13 @@ proven on this adapter (MSE 4e-6), and the feature-gated variant-pair pattern
 
 Result files: demo13-all.*, demo13-phase3.*. Every number: config JSON +
 commit in the .json metas.
+
+## 2026-07-21 — Phase I DELAYED (Dennis)
+
+Packaging (NEXTGEN Phase I: consumable three.js node, fused-pipeline fenced
+number) is deliberately delayed: "there is still experiments and discussion
+to be made." Safe by construction — Phase I is a leaf deliverable with no
+dependents. Standing state while experiments continue: demos 00–11 stay
+faithful instruments, demo 12 stays the frozen unoptimized control, new work
+lands as demo 13 variants or new demos under the same paired-gate discipline.
+A new brief from Dennis follows.
