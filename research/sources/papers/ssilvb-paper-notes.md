@@ -119,7 +119,7 @@ Key line: **23** — `b_j & ~b_i` counts only *newly covered* sectors, i.e. how 
 ## §5 Conclusion / future work (as stated in the paper)
 
 1. **Per-pixel thickness heuristic** — "would help the occlusion leaks around some very thin objects or light leaks behind very thick ones... a difficult problem we leave for future work."
-2. **Bandwidth/caching** — "SSGI can be an expensive algorithm because it is very demanding on GPU bandwidth and utilizes the cache poorly. Using a caching method similar to LSAO could potentially improve this."
+2. **Bandwidth/caching** — "SSGI can be an expensive algorithm because it is very demanding on GPU bandwidth and utilizes the cache poorly. Using a caching method similar to LSAO could potentially improve this." **[TESTED 2026-07: negative for the literal reading, structural reading incompatible with bitmasks — see lsao-timonen2013-notes.md "EXPERIMENTAL OUTCOME" + bench lab 09. Modern alternatives listed there.]**
 3. **Dynamic low-frequency ambient irradiance** — "the common ambient light sources are either static (constant color, light probes) or expensive to update at runtime. We might investigate in the future ways to approximate low-frequency ambient irradiance dynamically."
 
 ## Notable references for follow-up

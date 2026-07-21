@@ -104,3 +104,91 @@ Recorded per TESTING.md grid; v1.0 of demo 12 must hit, vs the Phase T table:
   review" — never silently.
 - The bench (00–11 + labs + oracle) is the permanent regression harness for
   everything Phase D onward.
+
+---
+
+# Execution workplan (added 2026-07-19)
+
+End goals, in Dennis's words: **(1) use it in our own applications, (2) publish
+it.** Both shape the work: consumability (a clean three.js node, zero bench
+deps) and reproducibility (every claim re-runnable from committed runners) are
+first-class requirements, not afterthoughts.
+
+## Agent tiering (per packet)
+
+- **Fable** — orchestrator, reviewer, hard-problem debugger, cross-packet
+  synthesis, final adjudication of quality-vs-perf judgment calls. Does not
+  bulk-implement.
+- **Opus** — implementation workhorse: demo/algorithm code, WGSL, harness
+  passes, anything where a wrong subtle decision costs a debugging session.
+- **Sonnet** — scripted verification runners, measurement collection, port
+  transliteration with a clear reference, README/doc drafts, test-matrix
+  execution once runners exist.
+- **Haiku** — mechanical legwork: schema `group:`/`hint:` annotation sweeps,
+  boilerplate, screenshot collection re-runs from existing scripts, table
+  formatting, link/consistency checks.
+
+Protocol unchanged from PLAN.md: parallel worktrees, safety commit at every
+green boundary, headed-only WebGPU verification, run-to-completion (best-guess
++ "Decisions for review" instead of blocking), WORKLOG is the state of record.
+
+## Packets
+
+**P0 — committed lab runners (unblocks everything).**
+`bench/scripts/run-<lab>.mjs` playwright drivers: URL/config → fence hooks
+(`__bench09`, `__ssrt3bench`) / screenshot MSE readback / stability metric →
+one results table (JSON + markdown) stamped with config + commit. Sonnet
+builds from the diag-03*.mjs pattern; Fable reviews methodology fidelity.
+
+**P1 — testing phase execution (TESTING.md).**
+Track D lab re-validation FIRST (labs concluded pre-y-fix), then B (perf
+budget map), A (quality vs oracle), C (temporal), E (bake-off synthesis).
+Sonnet executes via P0 runners; Haiku collects/formats; Fable synthesizes and
+updates DEMOS.md verdicts. **Gate: Phase D ingredient list locked here.**
+
+**P2 — temporal guides pass + A/B lab.**
+Harness `TemporalGuidesPass` (dilated velocity, graded disocclusion, history
+length; reactive as merge-in) per FSR3-BRIEF contract; demo 10 extension
+A/B-ing guides-fed temporal vs private logic. Opus implements; this is also
+the acceptance test for the FSR3 port's decomposition (P7).
+
+**P3 — demo 12: distilled SSGI v0 (Phase D).**
+The measured winners combined, UNOPTIMIZED (academic-style code kept) — the
+control. Verified ≥ parents vs oracle on the TESTING.md grid. Opus, with
+Fable doing the architecture review before code.
+
+**P4 — demo 12 capability adds.**
+Bent normals + specular occlusion from the sector mask (needs a new oracle
+comparison view — Fable designs, Opus implements); two-sided depth thickness.
+Additive capability, not optimization — allowed in Phase D.
+
+**P5 — demo 13: optimization variants (Phase O).**
+One family per variant, each with paired measurement (ms + MSE + stability):
+trig-identity pass (noacos), branch/specialization pass, precision pass, loop
+strength-reduction pass, half-res chain integration, guides-driven adaptive
+effort, checkerboard, Hi-Z skipping, light/normal mips. Opus implements,
+Sonnet measures via P0 runners, Fable adjudicates every accept/reject.
+
+**P6 — publication track (runs alongside P3–P5).**
+Method writeup + results tables generated from P0 runner output (reproducible
+by construction). Candidate contributions to develop honestly: the bench
+methodology itself (faithful-source bake-off + oracle views), the LSAO-for-
+bitmask negative result + modern-alternatives analysis (documented in
+research/sources/papers/lsao-timonen2013-notes.md), frame-count accumulation
+vs shipped EMA, guides-driven adaptive bitmask marching, the joint-bilateral
+upsample node, and demo 12/13 itself. Haiku/Sonnet draft, Fable edits, Dennis
+owns voice and venue (blog series vs paper decided when results exist).
+
+**P7 — FSR3/upscaler convergence (Dennis's repo + bench).**
+Dennis's FSR3 port decomposes per FSR3-BRIEF.md (passes/input staging pulled
+early, self-contained repo). Bench consumes passes 1–2 as the guides provider
+(replacing P2's home-grown pass if the port's is better); demo 12/13 outputs
+feed the accumulate+upsample stage last. FSR3 internals worth mining beyond
+the guides bundle: depth-clip/disocclusion logic, luma-instability tracking,
+lock mechanism (thin-feature persistence), reactive-mask semantics.
+
+## Order & gates
+
+P0 → P1 (gate: ingredients) → {P2, P3} parallel → P4 → P5 (gate per variant:
+measurement) → P6 finishes when P5 stabilizes. P7 proceeds in Dennis's repo on
+its own clock; the P2 lab is its acceptance test on the bench side.

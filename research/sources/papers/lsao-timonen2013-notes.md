@@ -54,3 +54,55 @@ Eq. 1 depends on the receiver's tangent plane, but the hull is shared along the 
 2. **Adapting it to a bitmask is an open problem, not a recipe.** LSAO's O(1)-per-step trick depends on collapsing each direction to a *single largest occluder*; a visibility bitmask needs the full per-sector occupancy, and GI additionally needs each sample's radiance weighted by newly-visible sectors. A sweep could still amortize the *depth/light fetches* (the expensive part) even if per-receiver sector math remains, but nobody in the gathered sources has built this.
 3. **Structural fit with the unidirectional GT-VBAO/GI variants** (`Xc3yzs`, `4ctBRH`, `XcdBWf`): those already process one direction per pixel per frame, which is the same per-direction decomposition a sweep formulation wants.
 4. **Costs to expect if pursued:** compute passes (WebGPU compute in three.js — outside `SSGINode`'s fragment-quad architecture), an intermediate buffer (~11 MB-class at 1080p), banding-vs-blur-vs-time tuning via (K, D_L, D_S), and LSAO's fixed-tangent bias trade-off.
+
+---
+
+## 2026-07 EXPERIMENTAL OUTCOME (bench lab 09, axis 2) — the paper's suggestion, tested
+
+SSILVB §5's future-work claim ("using a caching method similar to LSAO could
+potentially improve this") was put to numbers in `bench/src/demos/09-bandwidth`
+(full tables in its README). Two readings were tested:
+
+1. **Literal "caching": cooperative shared-memory depth tiles** (24×24 LDS tile
+   per 8×8 workgroup, depth only — the tractable subset). **Negative result**:
+   best case −13% (sponza, high samples, *small* radius); a wash at production
+   radii (exponential far steps miss the tile → global fallback); slightly
+   SLOWER on cornell (barrier + preload overhead unrepaid). Ceiling identified:
+   GI also fetches light+normal per step at the same uncorrelated coords, and
+   those stayed global.
+2. **Structural: the line-sweep itself** — not portable to a visibility
+   bitmask. LSAO's O(1)-per-step obscurance hull requires collapsing each
+   direction to the single largest occluder; the bitmask estimator requires
+   full per-sector occupancy (and GI needs per-sample radiance × newly-revealed
+   sectors). "LSAO for bitmasks" = open research problem (a sweep maintaining a
+   running sector mask per direction is unpublished in either direction).
+
+**Interpretation:** the paper correctly diagnosed the disease (bandwidth,
+cache-hostile gathers — lab 09 confirmed the march is fetch-bound: resolution
+lever ≈4.5×, ALU rearrangement ≈0×) but its prescribed cure predates the
+treatments that actually shipped in the following decade.
+
+## Modern (2013 → 2026) answers to the same problem
+
+- **Deinterleaved rendering** (Intel ASSAO → AMD FidelityFX CACAO): partition
+  pixels into phase buckets so each bucket's fetches are coherent; process at
+  reduced res per bucket, reassemble. The production-proven "make the fetches
+  coherent" fix — and bitmask-compatible, since it reorganizes WHERE fetches
+  happen, not the estimator. Closest true heir to the paper's suggestion.
+- **Sparse evaluation + gather, modernized** = screen-space radiance caching:
+  AMD GI-1.0 screen probes, Unreal Lumen's screen-probe gather + world radiance
+  cache. Evaluate the expensive gather at sparse anchors, interpolate
+  edge-aware — LSAO's own §5 sparse mode reborn with radiance instead of
+  obscurance. Bitmask-compatible (interpolate irradiance, not masks).
+- **ReSTIR-family spatiotemporal reservoir resampling**: share *samples* (with
+  resampling weights) across pixels and frames instead of sharing traversal.
+  The general modern replacement for cross-pixel work sharing.
+- **Temporal amortization with per-pixel effort control** (our temporal-guides
+  plan, `advantagous-concepts.md`): converged pixels coast on history, budget
+  concentrates on disocclusions — amortize over TIME instead of along lines.
+- **Hierarchy**: min-max depth pyramid step skipping (Hi-Z), distance-based
+  mips on light/normal (the fetch classes lab 09 identified as the ceiling).
+- **WebGPU subgroups** (shipping in browsers now): intra-wave sample sharing
+  (subgroup broadcast/shuffle) — a barrier-free micro-realization of
+  cooperative fetching worth re-testing when three exposes it; the LDS
+  experiment's overhead argument does not automatically transfer.
