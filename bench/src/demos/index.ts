@@ -12,6 +12,7 @@ import { distantLightDemo } from './08-distant-light/index';
 import { bandwidthDemo } from './09-bandwidth/index';
 import { denoiseLabDemo } from './10-denoise/index';
 import { samplingLabDemo } from './11-sampling/index';
+import { distilledDemo } from './12-distilled/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -26,3 +27,4 @@ demoRegistry.register(distantLightDemo);
 demoRegistry.register(bandwidthDemo);
 demoRegistry.register(denoiseLabDemo);
 demoRegistry.register(samplingLabDemo);
+demoRegistry.register(distilledDemo);
