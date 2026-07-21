@@ -62,6 +62,13 @@ export async function startApp(config: AppConfig): Promise<void> {
   const params = urlParams();
   const sceneDef = config.scenes.resolve(params.get('scene'));
   const demoDef = config.demos.resolve(params.get('demo'));
+  // Scripted-driver hook: registry falls back silently on an unknown id, which
+  // would let a runner record numbers against the wrong demo. Expose what
+  // actually resolved so drivers can assert.
+  (window as unknown as { __resolved?: { demo: string; scene: string } }).__resolved = {
+    demo: demoDef.id,
+    scene: sceneDef.id,
+  };
 
   // --- state: render scale ---
   const state = { renderScale: 1.0 };

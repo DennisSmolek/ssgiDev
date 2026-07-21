@@ -123,5 +123,16 @@ export function buildParams<T extends ParamSchema>(
     });
   });
 
+  // Scripted-driver hook (bench/scripts runners): programmatic config
+  // import/export without clipboard permission grants. Each demo builds one
+  // group; runners use the last-registered entry (or find by folder title).
+  type BenchParamsHook = { title: string; export(): string; import(json: string): void };
+  const w = window as unknown as { __benchParams?: BenchParamsHook[] };
+  (w.__benchParams ??= []).push({
+    title: folder.title ?? 'params',
+    export: () => group.exportJSON(),
+    import: (json: string) => group.importJSON(json),
+  });
+
   return group;
 }
