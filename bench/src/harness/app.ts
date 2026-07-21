@@ -123,6 +123,22 @@ export async function startApp(config: AppConfig): Promise<void> {
     }
   }
 
+  // Scripted-driver hook: mid-session camera teleport (TESTING.md track C uses
+  // a pose jump as a reproducible disocclusion event for reconvergence timing).
+  (window as unknown as { __cam?: unknown }).__cam = {
+    set: (px: number, py: number, pz: number, tx: number, ty: number, tz: number) => {
+      scene.camera.position.set(px, py, pz);
+      controls.target.set(tx, ty, tz);
+      controls.update();
+    },
+    get: () => [
+      ...scene.camera.position.toArray(),
+      controls.target.x,
+      controls.target.y,
+      controls.target.z,
+    ],
+  };
+
   const timing = new Timing(capabilities.hasTimestampQuery);
 
   const ctx: HarnessContext = {
