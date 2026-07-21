@@ -1395,3 +1395,26 @@ dependents. Standing state while experiments continue: demos 00–11 stay
 faithful instruments, demo 12 stays the frozen unoptimized control, new work
 lands as demo 13 variants or new demos under the same paired-gate discipline.
 A new brief from Dennis follows.
+
+## 2026-07-21 — Course correction: SVGF/guides specs are the plan of record
+
+Dennis linked SVGF-SPEC.md (demo 14/15 concept spec, pre-build, consumes the
+FSR3 addendum's guides + MomentPyramid) and TEMPORAL-GUIDES-SPEC.md (the FSR
+port's M0 contract-review draft). I had launched a standalone faithful-SVGF
+demo build without these — wrong architecture (duplicates the front-end the
+FSR side provides) and wrong sequencing (demo 14 builds only after the port's
+M2+M5). Agent stopped; its partial work reverted (incl. an out-of-scope
+cornell.ts edit); nothing committed. Retraction logged.
+
+Deliverable produced instead: **GUIDES-SPEC-RESPONSE.md** — the consumer-side
+M0 review: D1 UV-delta accepted (we align the harness pass convention at swap
+time), D2 N−1 latency sufficient (demo 13 adaptive already consumes N−1),
+D3 display-res age OK day one (render-res counter kept as fallback; edge-
+dilation risk assigned to the guides lab), 3 moment-pyramid levels, raw bind
+groups before TSL. SVGF-SPEC §8: YCoCg-Y scalar moments, A/B the history
+feedback, full-res à-trous first, noiseinject before any path tracer (and if
+the PT is ever built, its hi-spp accumulation doubles as the deferred
+absolute-GT for cornell). Sync flag raised: the SVGF addendum (§A/§B/§E)
+exists only in the port repo's FSR3-BRIEF copy — needs syncing before M1.
+c7ba382's pass-boundary language is superseded by D5 (products, not passes);
+its demo-10 acceptance rig stands as M6's exit criterion.
