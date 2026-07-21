@@ -1,7 +1,7 @@
 {
   "meta": {
-    "commit": "32bbd5e-dirty",
-    "date": "2026-07-21T08:35:16.026Z",
+    "commit": "df2e232-dirty",
+    "date": "2026-07-21T09:31:52.208Z",
     "baseUrl": "http://localhost:5180/",
     "viewport": "1280x800",
     "bursts": 3,
@@ -14,20 +14,20 @@
       "scene": "cornell",
       "thickness": "ottosson",
       "mse_vs_ref": 0.06617700263841274,
-      "march_half_ms": 0.6649999998509883
+      "march_half_ms": 0.6849999997764826
     },
     {
       "cell": "C-wide",
       "scene": "cornell",
       "thickness": "two-sided",
       "mse_vs_ref": 0.06620727330151654,
-      "march_half_ms": 0.7699999999254942
+      "march_half_ms": 0.7899999998509883
     },
     {
       "cell": "Z-zoo",
       "scene": "artifact-zoo",
       "thickness": "ottosson",
-      "mse_vs_ref": 0.112654780034786,
+      "mse_vs_ref": 0.11265980218616473,
       "march_half_ms": 0.625
     },
     {
@@ -35,7 +35,7 @@
       "scene": "artifact-zoo",
       "thickness": "two-sided",
       "mse_vs_ref": 0.11267393279120454,
-      "march_half_ms": 0.6875
+      "march_half_ms": 0.6900000002235174
     }
   ]
 }

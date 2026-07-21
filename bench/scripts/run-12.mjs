@@ -81,8 +81,18 @@ for (const cell of CELLS) {
   await settle(mainSettle);
   const combinedImg = await grabContent(page, shotPath(cell, 'combined'));
 
-  // (c) stability on the static combined view.
+  // (c) stability on the static combined view — gated RELATIVE to demo 03
+  // (frame-count) measured in-session at the same cell/scene. The old absolute
+  // 0.40 gate was calibrated on the pre-v2 (dim) sponza and flagged a false
+  // fail when scene v2 raised everyone's absolute frame-diff (demo 03 itself
+  // measures ~0.42 at S-hall v2). Paired measurement = same scene, same
+  // thermal state, same metric drift.
   const stability = await stabilityMetric(page, { settleMs: stabSettle, gapMs: stabGap, saveAs: shotPath(cell, 'stab') });
+  await openDemo(page, { demo: '03', scene, cam, query: { view: 'combined' } });
+  await applyConfig(page, { accumMode: 'frame-count' });
+  const stability03 = await stabilityMetric(page, { settleMs: stabSettle, gapMs: stabGap });
+  await openDemo(page, { demo: '12', scene, cam, query: { view: 'combined', mscale: 'half' } });
+  await settle(mainSettle);
 
   // (b) MSE vs own converged reference (full re-settle after the view switch).
   await applyConfig(page, { viewMode: 'reference' });
@@ -126,7 +136,7 @@ for (const cell of CELLS) {
   const d03Mse = demo03Mse[cell] ?? null;
   const passTotal = d03Total != null ? totalHalf <= d03Total : null;
   const passMse = d03Mse != null ? mseVal <= d03Mse * 1.5 + 0.02 : null;
-  const passStability = stability <= DEMO03_STABILITY_FRAMECOUNT * 1.3; // 0.40 with slack
+  const passStability = stability <= stability03 * 1.25; // relative, paired in-session
 
   const row = {
     cell, scene,
@@ -135,7 +145,7 @@ for (const cell of CELLS) {
     demo03_total_ms: d03Total,
     pass_total: passTotal,
     mse_vs_ref: mseVal, demo03_mse: d03Mse, pass_mse: passMse,
-    stability, demo03_stability: DEMO03_STABILITY_FRAMECOUNT, pass_stability: passStability,
+    stability, demo03_stability: stability03, pass_stability: passStability,
     bent_diff_mean255: bentDiffMean, bent_diff_deg: bentDiffDeg,
     config: JSON.stringify(cfgAtMse),
   };
@@ -195,7 +205,7 @@ const meta = {
   acceptanceTargets: {
     total: 'total(half) ≤ demo 03 total at the same cell',
     mse: 'MSE vs own reference ≤ 1.5× demo 03 MSE + 0.02 slack',
-    stability: 'stability ≤ 0.40 (demo 03 frame-count 0.31-ish + slack)',
+    stability: 'stability ≤ 1.25× demo 03 frame-count measured in-session at the same cell (paired; absolute gates go stale on scene changes)',
   },
   bentDiff:
     'P4 bent-normal angular error (bent_diff_mean255) is the screenshot mean of ' +

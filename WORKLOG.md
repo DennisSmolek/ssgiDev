@@ -1150,3 +1150,30 @@ Changes (bench/src/scenes/sponza.ts):
 battery (serial) re-records: lab09-bandwidth, trackB-budget, trackA-quality,
 trackC-temporal, demo12-acceptance(+thickAB), demo13-alu. Cornell/zoo rows
 re-record with them (same-commit freshness, no scene change there).
+
+## 2026-07-21 — Scene-v2 re-baseline recorded + P5.1 ALU verdict
+
+**Re-baseline battery (df2e232, serial):** all six runners re-recorded on
+sponza v2. The relight did its job: trackA sponza cells now carry real GI
+signal (demo 03 S-hall MSE 0.0033→0.0145, S-column 0.0023→0.0183; demo 05
+similar) instead of noise-floor values. Lab 09 ratios unchanged (half-res
+lever intact). Demo 12 acceptance on v2: C-wide 1.72×, S-hall 2.77× vs demo
+03 at equal-or-better MSE — the ≥2× measure is MET at S-hall; C-wide sits at
+1.7-1.9× across runs (still pre-Phase-O; unchanged verdict).
+
+**run-12 stability gate fixed:** the absolute 0.40 gate (calibrated on dim v1
+sponza) false-failed S-hall v2. Verified paired: demo 03 frame-count measures
+0.421 at S-hall v2, demo 12 0.433 — parity. Gate is now RELATIVE: demo 03
+measured in-session at the same cell, pass = ≤1.25×. Lesson recorded in the
+runner: absolute gates go stale on scene changes; pair them.
+
+**P5.1 ALU family — RECORDED VERDICT: honest near-zero (lab 09's prediction
+confirmed on our own base).** demo13-alu (v2, isolated): C-wide trig 1.08×,
+alu-all 1.06×, loop 1.03×, precision 1.02×; S-hall trig 1.04×, loop 0.99×,
+precision 0.98×. All variants pass correctness (MSE-vs-base ~1e-5, oracle
+MSE unchanged). Adjudication: **keep `trig` available** (exact identities,
+small consistent win, zero risk), do NOT default loop/precision — the march
+is fetch-bound and ALU polish is not where demo 12's remaining gap lives.
+NEXTGEN principle 5 ("bandwidth before ALU") is now empirically validated on
+our own code, not just lab 09's forks. P5.2 (bandwidth family) is where the
+C-wide 2× gap should close.

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "commit": "7f80b84-dirty",
-    "date": "2026-07-21T04:56:07.683Z",
+    "commit": "df2e232-dirty",
+    "date": "2026-07-21T09:20:44.156Z",
     "baseUrl": "http://localhost:5180/",
     "grid": [
       "C-wide",
@@ -52,7 +52,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/03-ssrt3/C-graze-diff.png",
       "diffAltFile": "bench/results/shots/trackA/03-ssrt3/C-graze-diff-rgb.png",
-      "mse": 0.09652520762375046,
+      "mse": 0.09652668143493016,
       "comparedViews": "combined (full composite) vs reference (oracle, alpha-scale default) — screenshot MSE; diff amp=2 at default channel=alpha, plus a second diff capture at channel=rgb",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":2}"
@@ -67,7 +67,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/03-ssrt3/C-contact-diff.png",
       "diffAltFile": "bench/results/shots/trackA/03-ssrt3/C-contact-diff-rgb.png",
-      "mse": 0.06106415434178283,
+      "mse": 0.06111794819318111,
       "comparedViews": "combined (full composite) vs reference (oracle, alpha-scale default) — screenshot MSE; diff amp=2 at default channel=alpha, plus a second diff capture at channel=rgb",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":2}"
@@ -82,7 +82,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/03-ssrt3/S-hall-diff.png",
       "diffAltFile": "bench/results/shots/trackA/03-ssrt3/S-hall-diff-rgb.png",
-      "mse": 0.0033027697934449674,
+      "mse": 0.014503088460301641,
       "comparedViews": "combined (full composite) vs reference (oracle, alpha-scale default) — screenshot MSE; diff amp=2 at default channel=alpha, plus a second diff capture at channel=rgb",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":2}"
@@ -97,7 +97,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/03-ssrt3/S-column-diff.png",
       "diffAltFile": "bench/results/shots/trackA/03-ssrt3/S-column-diff-rgb.png",
-      "mse": 0.002286506607899167,
+      "mse": 0.018267136437870563,
       "comparedViews": "combined (full composite) vs reference (oracle, alpha-scale default) — screenshot MSE; diff amp=2 at default channel=alpha, plus a second diff capture at channel=rgb",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":2}"
@@ -172,7 +172,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/04-gt-vbao/S-hall-diff.png",
       "diffAltFile": "",
-      "mse": 0.6275002448749899,
+      "mse": 0.5099261678323775,
       "comparedViews": "combined (full composite) vs reference (oracle, AO-only) — screenshot MSE; diff amp=2, comparator hardcoded to the AO/alpha channel (no channel param on this demo)",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":2}"
@@ -187,7 +187,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/04-gt-vbao/S-column-diff.png",
       "diffAltFile": "",
-      "mse": 0.8005506424537018,
+      "mse": 0.6915907969031029,
       "comparedViews": "combined (full composite) vs reference (oracle, AO-only) — screenshot MSE; diff amp=2, comparator hardcoded to the AO/alpha channel (no channel param on this demo)",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":2}"
@@ -202,7 +202,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/04-gt-vbao/Z-zoo-diff.png",
       "diffAltFile": "",
-      "mse": 0.1618493495451527,
+      "mse": 0.1620164831732815,
       "comparedViews": "combined (full composite) vs reference (oracle, AO-only) — screenshot MSE; diff amp=2, comparator hardcoded to the AO/alpha channel (no channel param on this demo)",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":2}"
@@ -232,7 +232,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/05-gt-vbgi/C-graze-diff.png",
       "diffAltFile": "bench/results/shots/trackA/05-gt-vbgi/C-graze-diff-alpha.png",
-      "mse": 0.06696659520185458,
+      "mse": 0.06695842772099088,
       "comparedViews": "combined (full composite) vs reference (oracle, rgb-scale default) — screenshot MSE; diff amp=2 at default channel=rgb, plus a second diff capture at channel=alpha",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":2}"
@@ -262,7 +262,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/05-gt-vbgi/S-hall-diff.png",
       "diffAltFile": "bench/results/shots/trackA/05-gt-vbgi/S-hall-diff-alpha.png",
-      "mse": 0.0036040641356235347,
+      "mse": 0.010415292176213807,
       "comparedViews": "combined (full composite) vs reference (oracle, rgb-scale default) — screenshot MSE; diff amp=2 at default channel=rgb, plus a second diff capture at channel=alpha",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":2}"
@@ -277,7 +277,7 @@
       "diffView": "diff",
       "diffFile": "bench/results/shots/trackA/05-gt-vbgi/S-column-diff.png",
       "diffAltFile": "bench/results/shots/trackA/05-gt-vbgi/S-column-diff-alpha.png",
-      "mse": 0.0017858324929420693,
+      "mse": 0.015468659604313107,
       "comparedViews": "combined (full composite) vs reference (oracle, rgb-scale default) — screenshot MSE; diff amp=2 at default channel=rgb, plus a second diff capture at channel=alpha",
       "crossDemo": false,
       "config": "{\"viewMode\":\"diff\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":2}"
@@ -307,7 +307,7 @@
       "diffView": "",
       "diffFile": "",
       "diffAltFile": "",
-      "mse": 0.0017338038165493226,
+      "mse": 0.001725520334311556,
       "comparedViews": "final (own combined view) vs demo 02 combined (converged, 12s settle) — cross-demo screenshot comparison, no wired reference view on this demo",
       "crossDemo": true,
       "config": "{\"aoMode\":\"ssgi\",\"ssrEnabled\":false,\"post\":\"traa\",\"viewMode\":\"final\",\"sliceCount\":2,\"stepCount\":8,\"radius\":12,\"thickness\":1,\"useLinearThickness\":false,\"useScreenSpaceSampling\":true,\"expFactor\":2,\"aoIntensity\":1,\"giIntensity\":10,\"backfaceLighting\":0,\"gtaoRadius\":0.5,\"gtaoThickness\":1,\"gtaoScale\":1,\"gtaoSamples\":16,\"ssrIntensity\":1,\"ssrMaxDistance\":1,\"ssrThickness\":0.1}"
@@ -322,7 +322,7 @@
       "diffView": "",
       "diffFile": "",
       "diffAltFile": "",
-      "mse": 0.012014511830400722,
+      "mse": 0.012012440022193102,
       "comparedViews": "combined (own combined view) vs demo 02 combined (converged, 12s settle) — cross-demo screenshot comparison, no wired reference view on this demo",
       "crossDemo": true,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -337,7 +337,7 @@
       "diffView": "",
       "diffFile": "",
       "diffAltFile": "",
-      "mse": 0.00008855452675160646,
+      "mse": 0.0003022289643894072,
       "comparedViews": "final (own combined view) vs demo 02 combined (converged, 12s settle) — cross-demo screenshot comparison, no wired reference view on this demo",
       "crossDemo": true,
       "config": "{\"aoMode\":\"ssgi\",\"ssrEnabled\":false,\"post\":\"traa\",\"viewMode\":\"final\",\"sliceCount\":2,\"stepCount\":8,\"radius\":12,\"thickness\":1,\"useLinearThickness\":false,\"useScreenSpaceSampling\":true,\"expFactor\":2,\"aoIntensity\":1,\"giIntensity\":10,\"backfaceLighting\":0,\"gtaoRadius\":0.5,\"gtaoThickness\":1,\"gtaoScale\":1,\"gtaoSamples\":16,\"ssrIntensity\":1,\"ssrMaxDistance\":1,\"ssrThickness\":0.1}"
@@ -352,7 +352,7 @@
       "diffView": "",
       "diffFile": "",
       "diffAltFile": "",
-      "mse": 0.0011876766719812206,
+      "mse": 0.003222923996202366,
       "comparedViews": "combined (own combined view) vs demo 02 combined (converged, 12s settle) — cross-demo screenshot comparison, no wired reference view on this demo",
       "crossDemo": true,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"

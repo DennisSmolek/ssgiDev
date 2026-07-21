@@ -1,7 +1,7 @@
 # demo12-acceptance-thickAB
 
-- commit: 32bbd5e-dirty
-- date: 2026-07-21T08:35:16.026Z
+- commit: df2e232-dirty
+- date: 2026-07-21T09:31:52.208Z
 - baseUrl: http://localhost:5180/
 - viewport: 1280x800
 - bursts: 3
@@ -10,7 +10,7 @@
 
 | cell | scene | thickness | mse_vs_ref | march_half_ms |
 |---|---|---|---|---|
-| C-wide | cornell | ottosson | 0.0662 | 0.665 |
-| C-wide | cornell | two-sided | 0.0662 | 0.77 |
+| C-wide | cornell | ottosson | 0.0662 | 0.685 |
+| C-wide | cornell | two-sided | 0.0662 | 0.79 |
 | Z-zoo | artifact-zoo | ottosson | 0.1127 | 0.625 |
-| Z-zoo | artifact-zoo | two-sided | 0.1127 | 0.6875 |
+| Z-zoo | artifact-zoo | two-sided | 0.1127 | 0.69 |

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "commit": "6f5b91e-dirty",
-    "date": "2026-07-21T03:34:49.570Z",
+    "commit": "df2e232",
+    "date": "2026-07-21T09:07:27.110Z",
     "baseUrl": "http://localhost:5180/",
     "viewport": "1280x800",
     "bursts": 3,
@@ -17,9 +17,9 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 3.2925000000745057,
-      "chain_ms": 3.3125,
-      "down_ms": 0.0375,
+      "march_ms": 3.3225000001490117,
+      "chain_ms": 3.357499999925494,
+      "down_ms": 0.04000000022351742,
       "up_ms": null
     },
     {
@@ -31,9 +31,9 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 3.325,
-      "chain_ms": 3.375,
-      "down_ms": 0.0400000000372529,
+      "march_ms": 3.3725000001490115,
+      "chain_ms": 3.3800000000745056,
+      "down_ms": 0.039999999850988385,
       "up_ms": null
     },
     {
@@ -45,10 +45,10 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 0.7300000000745058,
-      "chain_ms": 0.8150000000372529,
-      "down_ms": 0.0400000000372529,
-      "up_ms": 0.06749999988824129
+      "march_ms": 0.7324999999254942,
+      "chain_ms": 0.8199999999254942,
+      "down_ms": 0.05249999985098839,
+      "up_ms": 0.05749999992549419
     },
     {
       "scene": "cornell",
@@ -59,10 +59,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 0.7375,
-      "chain_ms": 0.8125,
-      "down_ms": 0.0525000000372529,
-      "up_ms": 0.059999999962747096
+      "march_ms": 0.7175000000745058,
+      "chain_ms": 0.7900000002235175,
+      "down_ms": 0.055000000074505805,
+      "up_ms": 0.059999999776482585
     },
     {
       "scene": "cornell",
@@ -73,108 +73,108 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.1674999998882413,
-      "chain_ms": 0.2849999999627471,
+      "march_ms": 0.1625,
+      "chain_ms": 0.2875,
+      "down_ms": 0.0925000000745058,
+      "up_ms": 0.054999999701976776
+    },
+    {
+      "scene": "cornell",
+      "config": "default",
+      "rc": 2,
+      "sc": 12,
+      "marchScale": "0.25",
+      "dispatchMode": "fragment",
+      "marchW": 320,
+      "marchH": 200,
+      "march_ms": 0.1899999998509884,
+      "chain_ms": 0.3125,
+      "down_ms": 0.08500000014901161,
+      "up_ms": 0.054999999701976776
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "1",
+      "dispatchMode": "compute",
+      "marchW": 1280,
+      "marchH": 800,
+      "march_ms": 12.679999999701977,
+      "chain_ms": 13.372500000149012,
+      "down_ms": 0.3575000002980232,
+      "up_ms": null
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "1",
+      "dispatchMode": "fragment",
+      "marchW": 1280,
+      "marchH": 800,
+      "march_ms": 13.025,
+      "chain_ms": 13.722500000149012,
+      "down_ms": 0.3699999999254942,
+      "up_ms": null
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "0.5",
+      "dispatchMode": "compute",
+      "marchW": 640,
+      "marchH": 400,
+      "march_ms": 2.1224999997764824,
+      "chain_ms": 2.1925000000745056,
+      "down_ms": 0.04000000022351742,
+      "up_ms": 0.05749999992549419
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "0.5",
+      "dispatchMode": "fragment",
+      "marchW": 640,
+      "marchH": 400,
+      "march_ms": 2.2775000002235175,
+      "chain_ms": 2.3549999997019766,
+      "down_ms": 0.0375,
+      "up_ms": 0.05749999992549419
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "0.25",
+      "dispatchMode": "compute",
+      "marchW": 320,
+      "marchH": 200,
+      "march_ms": 0.4699999999254942,
+      "chain_ms": 0.5975000001490116,
+      "down_ms": 0.08500000014901161,
+      "up_ms": 0.055000000074505805
+    },
+    {
+      "scene": "cornell",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "0.25",
+      "dispatchMode": "fragment",
+      "marchW": 320,
+      "marchH": 200,
+      "march_ms": 0.7275000002235175,
+      "chain_ms": 0.85,
       "down_ms": 0.0875,
-      "up_ms": 0.05
-    },
-    {
-      "scene": "cornell",
-      "config": "default",
-      "rc": 2,
-      "sc": 12,
-      "marchScale": "0.25",
-      "dispatchMode": "fragment",
-      "marchW": 320,
-      "marchH": 200,
-      "march_ms": 0.1925000000745058,
-      "chain_ms": 0.3099999999627471,
-      "down_ms": 0.0900000000372529,
-      "up_ms": 0.0649999998509884
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "1",
-      "dispatchMode": "compute",
-      "marchW": 1280,
-      "marchH": 800,
-      "march_ms": 11.6625,
-      "chain_ms": 11.955000000074506,
-      "down_ms": 0.0400000000372529,
-      "up_ms": null
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "1",
-      "dispatchMode": "fragment",
-      "marchW": 1280,
-      "marchH": 800,
-      "march_ms": 13.129999999888241,
-      "chain_ms": 13.480000000074506,
-      "down_ms": 0.35,
-      "up_ms": null
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "0.5",
-      "dispatchMode": "compute",
-      "marchW": 640,
-      "marchH": 400,
-      "march_ms": 2.1625,
-      "chain_ms": 2.227500000037253,
-      "down_ms": 0.0375,
-      "up_ms": 0.05749999992549419
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "0.5",
-      "dispatchMode": "fragment",
-      "marchW": 640,
-      "marchH": 400,
-      "march_ms": 2.247499999962747,
-      "chain_ms": 2.365000000037253,
-      "down_ms": 0.0400000000372529,
-      "up_ms": 0.0625
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "0.25",
-      "dispatchMode": "compute",
-      "marchW": 320,
-      "marchH": 200,
-      "march_ms": 0.4824999999254942,
-      "chain_ms": 0.6074999999254942,
-      "down_ms": 0.0824999999254942,
-      "up_ms": 0.05
-    },
-    {
-      "scene": "cornell",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "0.25",
-      "dispatchMode": "fragment",
-      "marchW": 320,
-      "marchH": 200,
-      "march_ms": 0.7550000000745059,
-      "chain_ms": 0.8775000000372529,
-      "down_ms": 0.0849999999627471,
-      "up_ms": 0.05749999992549419
+      "up_ms": 0.05250000022351742
     },
     {
       "scene": "sponza",
@@ -185,9 +185,9 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 5.779999999888242,
-      "chain_ms": 5.830000000074506,
-      "down_ms": 0.04500000011175871,
+      "march_ms": 5.85,
+      "chain_ms": 5.939999999850988,
+      "down_ms": 0.04750000014901161,
       "up_ms": null
     },
     {
@@ -199,8 +199,8 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 5.927500000037253,
-      "chain_ms": 5.972500000149012,
+      "march_ms": 6.080000000074506,
+      "chain_ms": 6.182499999925494,
       "down_ms": 0.04750000014901161,
       "up_ms": null
     },
@@ -213,10 +213,10 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 1.3950000001117586,
-      "chain_ms": 1.522499999962747,
-      "down_ms": 0.04250000007450581,
-      "up_ms": 0.0724999999627471
+      "march_ms": 1.425,
+      "chain_ms": 1.5474999997764827,
+      "down_ms": 0.044999999925494194,
+      "up_ms": 0.075
     },
     {
       "scene": "sponza",
@@ -227,10 +227,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 1.4450000001117587,
-      "chain_ms": 1.584999999962747,
-      "down_ms": 0.0400000000372529,
-      "up_ms": 0.0724999999627471
+      "march_ms": 1.4574999999254943,
+      "chain_ms": 1.5650000002235174,
+      "down_ms": 0.044999999925494194,
+      "up_ms": 0.07249999977648258
     },
     {
       "scene": "sponza",
@@ -241,10 +241,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.3150000000372529,
+      "march_ms": 0.3449999999254942,
       "chain_ms": 0.475,
-      "down_ms": 0.1074999999254942,
-      "up_ms": 0.0625
+      "down_ms": 0.1125,
+      "up_ms": 0.0649999998509884
     },
     {
       "scene": "sponza",
@@ -255,10 +255,10 @@
       "dispatchMode": "fragment",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.3675000000745058,
-      "chain_ms": 0.5125,
-      "down_ms": 0.1049999998882413,
-      "up_ms": 0.0650000000372529
+      "march_ms": 0.3699999999254942,
+      "chain_ms": 0.5199999999254942,
+      "down_ms": 0.1050000000745058,
+      "up_ms": 0.0649999998509884
     },
     {
       "scene": "sponza",
@@ -269,9 +269,9 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 24.015000000037254,
-      "chain_ms": 23.972499999962746,
-      "down_ms": 2.219999999925494,
+      "march_ms": 25.727499999850988,
+      "chain_ms": 25.532500000298022,
+      "down_ms": 2.469999999925494,
       "up_ms": null
     },
     {
@@ -283,9 +283,9 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 24.880000000074507,
-      "chain_ms": 24.680000000074507,
-      "down_ms": 2.365000000037253,
+      "march_ms": 26.9375,
+      "chain_ms": 27.602499999850988,
+      "down_ms": 2.6174999997019768,
       "up_ms": null
     },
     {
@@ -297,8 +297,8 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 4.552499999850989,
-      "chain_ms": 4.657500000111758,
+      "march_ms": 4.8824999999254945,
+      "chain_ms": 5.027499999850988,
       "down_ms": 0.04250000007450581,
       "up_ms": 0.075
     },
@@ -311,10 +311,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 4.877500000037253,
-      "chain_ms": 4.945000000111759,
-      "down_ms": 0.04250000007450581,
-      "up_ms": 0.0724999999627471
+      "march_ms": 5.0550000000745055,
+      "chain_ms": 5.2425000000745055,
+      "down_ms": 0.044999999925494194,
+      "up_ms": 0.07249999977648258
     },
     {
       "scene": "sponza",
@@ -325,10 +325,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.9775000000372529,
-      "chain_ms": 1.097499999962747,
-      "down_ms": 0.1025000000372529,
-      "up_ms": 0.0650000000372529
+      "march_ms": 0.9149999998509883,
+      "chain_ms": 1.0925000000745058,
+      "down_ms": 0.1050000000745058,
+      "up_ms": 0.0625
     },
     {
       "scene": "sponza",
@@ -339,9 +339,9 @@
       "dispatchMode": "fragment",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 1.0799999998882412,
-      "chain_ms": 1.2575000001117587,
-      "down_ms": 0.1050000000745058,
+      "march_ms": 1.0600000001490115,
+      "chain_ms": 1.275,
+      "down_ms": 0.10499999970197678,
       "up_ms": 0.0625
     }
   ]
