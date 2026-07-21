@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "commit": "d6e441f-dirty",
+    "date": "2026-07-21T07:56:39.125Z",
+    "baseUrl": "http://localhost:5180/",
+    "viewport": "1280x800",
+    "bursts": 3,
+    "itersPerBurst": 40,
+    "mainSettleMs": 8000,
+    "refSettleMs": 10000,
+    "stabilityMs": "6000/2000",
+    "demo03Reference": {
+      "source": "bench/results/trackB-budget.json (total ms, default cfg) + trackA-quality.json (combined-vs-oracle MSE)",
+      "total_ms": {
+        "C-wide": 2.1449999999254943,
+        "S-hall": 4.5625
+      },
+      "mse": {
+        "C-wide": 0.06766196174554742,
+        "C-graze": 0.09652520762375046,
+        "C-contact": 0.06106415434178283,
+        "S-hall": 0.0033027697934449674,
+        "S-column": 0.002286506607899167,
+        "Z-zoo": 0.1148677790924217
+      },
+      "stability_framecount": 0.31,
+      "commitBudget": "7f80b84",
+      "commitQuality": "7f80b84-dirty"
+    },
+    "acceptanceTargets": {
+      "total": "total(half) ≤ demo 03 total at the same cell",
+      "mse": "MSE vs own reference ≤ 1.5× demo 03 MSE + 0.02 slack",
+      "stability": "stability ≤ 0.40 (demo 03 frame-count 0.31-ish + slack)"
+    },
+    "caveat": "GPU ms measured under the live rAF loop (shared buffers) — contention-prone; treat totals as smoke unless run in isolation. MSE is screenshot-space (tonemapped 8-bit) combined-vs-oracle, same methodology as trackA-quality.",
+    "harnessQuirk": "buildParams().importJSON() notifies ALL schema keys per applyConfig; the viewMode->reference switch resets the oracle, so the ref capture re-settles the full convergence window (refSettleMs), not a short repaint wait."
+  },
+  "rows": [
+    {
+      "cell": "C-wide",
+      "scene": "cornell",
+      "total_half_ms": 1.1225000001490115,
+      "total_full_ms": 2.7774999998509884,
+      "march_half_ms": 0.5975000001490116,
+      "chain_half_ms": 0.8175000000745059,
+      "demo03_total_ms": 2.1449999999254943,
+      "pass_total": true,
+      "mse_vs_ref": 0.06619298258431694,
+      "demo03_mse": 0.06766196174554742,
+      "pass_mse": true,
+      "stability": 0.361359126984127,
+      "demo03_stability": 0.31,
+      "pass_stability": true,
+      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "cell": "S-hall",
+      "scene": "sponza",
+      "total_half_ms": 1.75,
+      "total_full_ms": 5.197499999776483,
+      "march_half_ms": 0.9299999997019768,
+      "chain_half_ms": 1.2274999998509883,
+      "demo03_total_ms": 4.5625,
+      "pass_total": true,
+      "mse_vs_ref": 0.0031812025963062034,
+      "demo03_mse": 0.0033027697934449674,
+      "pass_mse": true,
+      "stability": 0.17440724206349206,
+      "demo03_stability": 0.31,
+      "pass_stability": true,
+      "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    }
+  ]
+}

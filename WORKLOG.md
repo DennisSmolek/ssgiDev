@@ -944,3 +944,39 @@ now measurable-fact-backed: SSRT3-compute base + frame-count accumulation +
 IGN-under-denoiser + half-res joint-bilateral chain + Ottosson thickness +
 salm-caps distant light + §3.2 fallback; GT-VBGI as the quality acceptance
 bar. Awaiting Dennis's go for P2/P3.**
+
+## 2026-07-21 — P2 + P3 landed and accepted (recorded, serial, no contention)
+
+**P2 — TemporalGuidesPass + demo 10 A/B (e69f90b). ACCEPTED.** Recorded
+lab10-stability: ssrt3-guides combined 1.49 vs ssrt3 2.06 (28% steadier — the
+closest-depth-dilated MV + graded disocclusion beat the private world-pos
+test), gi 7.20 vs 7.09 (equal within noise), teleport reconvergence 1.50 vs
+1.52 s (equal). Verdict: the FSR3-BRIEF decomposition is REAL — a shared
+guides pass feeds a temporal effect at least as well as its private logic
+while computing frame properties once. This is the acceptance signal for
+Dennis's FSR3 port to decompose per the brief; the bench-side consumption
+point (demo 10 stack + guides debug view) is live. Note for P7: when the
+port's passes 1–2 exist, they can replace harness TemporalGuidesPass behind
+the same texture contract.
+
+**P3 — demo 12 "distilled SSGI v0" (d6e441f). ACCEPTED, one honest near-miss.**
+Recorded demo12-acceptance:
+- C-wide: total 1.12 ms half-res vs demo 03's 2.15 (**1.91×**), MSE-vs-oracle
+  0.0662 vs 0.0677 (equal-or-better ✓), stability 0.361 (vs demo 03
+  frame-count 0.306 — slightly above, within run-to-run drift of that metric).
+- S-hall: 1.75 vs 4.56 ms (**2.61×**), MSE 0.0032 vs 0.0033 ✓, stability 0.174.
+- Full-res control point: 2.78/5.20 ms — slightly above demo 03 (extra
+  downsample copy + Ottosson), confirming half-res is where the win lives.
+NEXTGEN success measure "≥2× at equal-or-better MSE on C-wide AND S-hall":
+**met at S-hall (2.61×), near-miss at C-wide (1.91×)** — before Phase O has
+touched a single line. Logged honestly; quarter-res or any Phase-O lever
+closes the C-wide gap.
+
+### Decisions for review (P3 agent's, ratified by Fable)
+- Distant light integrated but default OFF in the control: the oracle models
+  skyIntensity=0, so defaulting salm-caps ON would inflate the control's MSE
+  with ambient the oracle can't see. One toggle away (`distant=salm-caps`).
+- IGN replaces the random source but SSRT3's 6/4 temporal cycle structure is
+  kept; Ottosson thickness coexists with the mip pyramid (interaction flagged
+  for the Phase-O matrix); salm-caps per-cap direction uses demo 03's basis
+  (mirrors lab 08's logged simplification).
