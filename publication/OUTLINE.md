@@ -8,10 +8,14 @@ self-contained claim + evidence unit that works as a blog post, a paper
 section, or a talk slide, in any order.
 
 Six candidate contributions, in the order the bench actually produced them.
-Three have full drafts today (`draft-methodology.md`, `draft-lsao.md`,
-`draft-accumulation.md`); three are outline-only because their evidence is
-mid-flight (P2/P5) or their draft wasn't in this packet's scope (joint-
-bilateral upsample — evidence is done, prose isn't written yet).
+Five have full drafts today (`draft-methodology.md`, `draft-lsao.md`,
+`draft-accumulation.md`, `draft-upsample.md`, `draft-adaptive.md`, added
+2026-07-21 once P2/P5.2 landed); one (§6, the distilled SSGI system itself) is
+outline-only because its evidence is still mid-flight — P3/P4/P5.1/P5.2 have
+all landed with real numbers (see §6 below), but P5.3 (the integration pass
+that makes `adaptive` demo 12's default and re-synthesizes the E-table) hasn't
+run yet, so there is no single combined-system number to draft the "our own
+SSGI" narrative against.
 
 ---
 
@@ -95,11 +99,27 @@ that superseded HBAO's horizon pair.
 
 **Evidence still needed:** none for the negative result itself — it's closed.
 The deinterleaved/CACAO "true heir" claim is analysis, not yet measured on
-this bench (P5 will produce that number).
+this bench. One of the named heirs — "temporal amortization with per-pixel
+effort control" — is no longer a deferred idea: it's now measured and
+drafted, see §4 / `draft-adaptive.md`, which explicitly frames itself as this
+section's sequel ("the LSAO story's ending"). CACAO-style deinterleaving and
+subgroup sharing remain unmeasured.
 
-**Packet:** negative result closed (P1/lab 09, done). Modern-heir
-confirmation (CACAO-style deinterleaved marching, subgroup sharing) is
-NEXTGEN.md P5.
+**Staleness note (scene-v2, added at P6):** the Axis 2 (LSAO-caching) numbers
+cited above predate the sponza relight (`WORKLOG.md` 2026-07-21 "Sponza scene
+v2") — the re-baseline battery that followed
+(`WORKLOG.md` "Scene-v2 re-baseline recorded") re-ran lab 09's Axis 1 and
+Axis 3 but not Axis 2 (`bench/results/lab09-bandwidth.md`, commit `df2e232`,
+has no `shared` dispatchMode rows). The negative result's *shape* (narrow,
+regime-dependent, sometimes-negative) is structural (see the argument in
+`draft-lsao.md`) and not expected to change on a relit scene, but the exact
+percentages in the table above are v1-scene numbers and haven't been
+re-confirmed on v2. Unscheduled follow-up, named rather than silently carried
+forward.
+
+**Packet:** negative result closed (P1/lab 09, done); its sequel (§4) is also
+closed. Modern-heir confirmation (CACAO-style deinterleaved marching,
+subgroup sharing) is unscheduled.
 
 ---
 
@@ -154,51 +174,82 @@ pass).
 **Packet:** evidence complete (P0/P1, done). No further packet required
 unless Dennis wants the external-citation gap filled.
 
+**Scene-v2 note (added at P6):** this section's numbers are Cornell/zoo-based
+(Track C, lab 10) and were not affected by the sponza relight
+(`WORKLOG.md` 2026-07-21 "Sponza scene v2" — "Cornell/zoo rows re-record with
+[the sponza battery] (same-commit freshness, no scene change there)"); no
+re-baseline was needed and none is pending.
+
 ---
 
-## 4. Guides-driven adaptive bitmask marching — PENDING P2/P5
+## 4. Guides-driven adaptive bitmask marching — DRAFTED (`draft-adaptive.md`)
 
 **Thesis.** The real answer to LSAO's complaint (every pixel pays full march
 cost regardless of need) is not sharing traversal across pixels (LSAO's
 approach, incompatible with bitmasks — see §2) but sharing effort across
 *time*: a per-pixel history-length signal already exists (frame-count
 accumulation, §3) and can steer march quality — converged pixels coast,
-disoccluded pixels get full budget. This is the single largest projected win
-on the table and it is not measured yet.
+disoccluded pixels get full budget. Both gates this section was waiting on
+have now landed: P2 validated the shared guides pass as equivalent-or-better
+than the private logic it replaces, and P5.2 measured the adaptive-march
+variant against it. It is, on the recorded numbers, the single largest
+optimization win found in the project.
 
 **Evidence available today:**
 - The architectural case and its FSR3 lineage: `advantagous-concepts.md`
   ("The biggest lever: adaptive effort steered by those guides" section) and
   `FSR3-BRIEF.md` (temporal-guides contract: `dilatedVelocity`,
-  `disocclusion`, `historyLength`, `reactive` textures, passes 1–2).
-- The prerequisite already shipped: `historyLength` is exactly demo 03's
-  frame-count accumulator (§3), already computed, currently private to one
-  demo — `FSR3-BRIEF.md` "Notes" bullet, WORKLOG 2026-07-18 "Demo 03
-  temporal" Task 2.
-- Scheduling: `NEXTGEN.md` P2 ("temporal guides pass + A/B lab", promotes the
-  private accumulator into a shared harness pass, demo 10 A/B) and P5
-  ("guides-driven adaptive effort" as one of the Phase O optimization
-  variants, each requiring a paired ms/MSE/stability measurement).
+  `disocclusion`, `historyLength`, `reactive` textures; decomposition passes
+  1–4; `bench/src/harness/temporal-guides.ts` is the shipped bench-side
+  implementation, 3 dispatches, lazy-run like `ReferencePass`).
+- The prerequisite: `historyLength` is exactly demo 03's frame-count
+  accumulator (§3), generalized from private to shared.
+- **P2 acceptance (landed, commit `e69f90b`):** `WORKLOG.md` 2026-07-21 "P2 +
+  P3 landed and accepted" — `bench/results/lab10-stability.md` (commit
+  `d6e441f-dirty`), guides-fed temporal (`ssrt3-guides`) combined stability
+  1.49 vs private-logic `ssrt3` 2.06 (28% steadier), gi 7.20 vs 7.09 (equal),
+  teleport reconvergence 1.50 vs 1.52 s (equal). "The FSR3-BRIEF decomposition
+  is REAL." This is the gate that had to clear before P5 could measure
+  anything against the guides.
+- **P5.2 recorded verdict (landed):** `WORKLOG.md` 2026-07-21 "P5.2 bandwidth
+  family RECORDED VERDICT" + `bench/results/demo13-all.md` (commit
+  `eacdc2d-dirty`) — the `adaptive` march variant (`bench/src/demos/
+  13-optim/variants.ts`, `gEffort = mix(1.0, 0.4, clamp((N-4)/12, 0, 1))`
+  scaling `rotationCount`/`stepCount`): converged march 3.17× (C-wide) /
+  2.37× (S-hall), fresh-pixel cost = baseline (no discount, no penalty),
+  stability cost +0.17 / +0.03 (recorded, tunable via the 0.4 floor), oracle
+  MSE +0.0006 / +0.0002. Adjudicated the flagship Phase-O optimization; other
+  bandwidth-family variants tested the same session (light-mips, hiz-skip,
+  checkerboard) all came back at or below 1.0×, and the ALU family (P5.1,
+  `WORKLOG.md` "Scene-v2 re-baseline recorded + P5.1 ALU verdict") confirmed
+  near-zero — both are the honest control showing adaptive effort, not raw
+  fetch reduction, is where this particular win lives.
+- Full argument, all sources synthesized: `draft-adaptive.md`.
 
-**Evidence still needed:** everything quantitative — no ms delta, no MSE
-delta, no stability delta exists yet for adaptive effort. This is explicitly
-gated behind P2 (the shared guides pass must exist and be validated as
-equivalent-or-better than demo 03's private logic) before P5 can measure the
-adaptive-march variant against it.
+**Evidence still needed:** `adaptive` is adjudicated as demo 12's headline
+Phase-O graduate but the *integration* decision — making it demo 12's actual
+default and re-synthesizing the E-table around it — is explicitly deferred to
+P5.3 (`WORKLOG.md` "P5.2 bandwidth family RECORDED VERDICT," final
+paragraph: "integration decision deferred to post-P5.3 so the E-table updates
+once"). No demo-12-with-adaptive-as-default acceptance number exists yet —
+today's numbers are the isolated march variant, not the shipped pipeline.
 
-**Packet:** P2 (guides pass + A/B lab) → P5 (adaptive-effort variant,
-measured). **Do not draft prose claiming a specific speedup for this section
-until P5 lands a number.**
+**Packet:** P2 (guides pass + A/B lab, done) → P5.2 (adaptive-effort variant,
+measured, done) → P5.3 (integration into demo 12's default, pending) → §6's
+E-table resynthesis. This section's own claims (the isolated variant's
+ms/MSE/stability) are fully evidenced; §6's combined-system claim is not yet.
 
 ---
 
-## 5. The joint-bilateral upsample node
+## 5. The joint-bilateral upsample node — DRAFTED (`draft-upsample.md`)
 
 **Thesis.** SSILVB's Table 2 config (f) reports ~4× from half-res + bilateral
 upsample, but no shipping three.js node implements a *joint* bilateral
 upsample (low-res color guided by high-res depth/normal, Kopf et al. sense) —
 only same-resolution edge-aware blurs. The bench built one as a standalone
-harness pass and measured the paper's claim directly, with margin to spare.
+harness pass, measured the paper's claim directly with margin to spare
+(three independent sessions, spanning a march bug fix and a scene relight),
+and it now ships as demo 12's actual default chain, not just a lab result.
 
 **Evidence available today:**
 - The gap in three.js today, searched and confirmed: `research/sources/
@@ -224,16 +275,32 @@ harness pass and measured the paper's claim directly, with margin to spare.
   opposite — no halos, error confined to grazing/contact, because the guide
   uses both depth AND normal similarity where the paper's config is
   underspecified on this point).
+- **Re-validated twice more since the numbers above were recorded**, both
+  times holding the same 3.8×–6.3× band: post-y-fix (`WORKLOG.md` 2026-07-21
+  "P1 Track D," half-res 3.8–5.4×) and post-scene-v2-relight
+  (`bench/results/lab09-bandwidth.md`, commit `df2e232`, half-res 3.8–6.1×
+  computed from the raw table).
+- **Integration landed (P3, no longer pending):** `bench/src/demos/
+  12-distilled/README.md` pipeline steps 3+6 ship this exact chain, default
+  `marchScale = half`. Full-pipeline acceptance (`bench/results/
+  demo12-acceptance.md`, commit `df2e232-dirty`, scene-v2): total 1.72×
+  (C-wide) / 2.77× (S-hall) vs demo 03, equal-or-better MSE-vs-oracle both
+  cells — a fourth independent measurement session (whole pipeline, not
+  isolated chain) landing in the same range lab 09 predicted.
 
-**Evidence still needed:** the pass exists only inside lab 09's isolated
-march (no temporal/denoise chain attached, by lab design — see README
-"Lineage"). It is not yet integrated into demo 03 proper or packaged as a
-general-purpose three.js-consumable node outside the bench harness.
+**Evidence still needed:** not packaged as a standalone three.js-consumable
+node outside this bench harness — it lives as bench WGSL inside demo 09's
+lab and demo 12's frozen fork; that extraction (NEXTGEN.md Phase I) hasn't
+started. Also: the quality diff evidence (no halos, grazing-angle error) is
+measured pre-denoiser by lab design; a post-denoiser ablation isolating the
+upsample's own contribution to demo 12's MSE doesn't exist yet —
+**TODO-EVIDENCE** in `draft-upsample.md`.
 
-**Packet:** measurement complete (P0/P1, lab 09, done). Integration into
-demo 12's half-res chain is NEXTGEN.md Phase D (P3); packaging as a
-standalone consumable node is Phase I (P5→ "Integration" phase in
-NEXTGEN.md).
+**Packet:** measurement complete (P0/P1, lab 09, done; re-confirmed twice
+more, P1 Track D and scene-v2). Integration into demo 12's half-res chain
+(Phase D / P3) is **done and shipped as the default**. Packaging as a
+standalone consumable node outside the bench harness (Phase I) remains
+unscheduled.
 
 ---
 
@@ -247,7 +314,8 @@ optimization families applied one at a time, each with a paired
 ms/MSE/stability measurement (demo 13 variants). This is the actual
 deliverable NEXTGEN.md is building toward; §1–5 are its evidence base.
 
-**Evidence available today:**
+**Evidence available today (refreshed at P6 — P3/P4/P5.1/P5.2 have all
+landed since this section was first outlined):**
 - The ingredient list, locked at the P1 gate: `WORKLOG.md` 2026-07-21 "P1
   Tracks B/A/C/E" entry, final paragraph — "SSRT3-compute base + frame-count
   accumulation + IGN-under-denoiser + half-res joint-bilateral chain +
@@ -258,20 +326,55 @@ deliverable NEXTGEN.md is building toward; §1–5 are its evidence base.
 - Every ingredient's individual evidence is §1–5 above plus lab 07/08 (ambient
   fallback, thickness/distant-light — `bench/DEMOS.md` "07-11 — The labs"
   table) and lab 11 (noise choice — same table).
+- **P3 — demo 12 exists and is accepted** (`WORKLOG.md` "P2 + P3 landed and
+  accepted," commit `d6e441f`; re-baselined on scene-v2,
+  `bench/results/demo12-acceptance.md` commit `df2e232-dirty`): 1.72×
+  (C-wide) / 2.77× (S-hall) vs demo 03 total, equal-or-better MSE-vs-oracle
+  both cells — "≥2×" met at S-hall, near-miss at C-wide going into P5 (now
+  closed on converged frames by §4/`draft-adaptive.md`, pending P5.3
+  integration).
+- **P4 — capability adds landed**: bent normals + visible cone (default ON,
+  bit-identical when off, `bentDiff` ~20–25° mean angular error vs oracle,
+  invariant to rotationCount — a weighting-estimator gap, not a convention
+  bug), specular occlusion (default OFF — the closed-Cornell oracle models
+  `skyIntensity=0`, so defaulting it on would inflate the control's MSE),
+  two-sided depth thickness (default stays Ottosson) —
+  `bench/src/demos/12-distilled/README.md` "Capability adds," `WORKLOG.md`
+  2026-07-21 "P4: demo 12 capability adds."
+- **P5.1 — ALU family, RECORDED VERDICT: honest near-zero**
+  (`WORKLOG.md` "Scene-v2 re-baseline recorded + P5.1 ALU verdict";
+  `bench/results/demo13-alu.md`): trig 1.02–1.08×, loop/precision at or
+  below 1.0×. NEXTGEN principle 5 ("bandwidth before ALU") confirmed on the
+  bench's own code, not just lab 09's forks.
+- **P5.2 — bandwidth family, RECORDED VERDICT**
+  (`WORKLOG.md` "P5.2 bandwidth family RECORDED VERDICT";
+  `bench/results/demo13-all.md`, commit `eacdc2d-dirty`): `adaptive`
+  (guides-driven effort) adjudicated the flagship optimization, 3.17×/2.37×
+  converged, fully drafted as its own section — see §4 / `draft-adaptive.md`.
+  light-mips/hiz-skip near-zero, checkerboard a documented negative.
 - The success bar: `NEXTGEN.md` "Measures of success" section (quality ≤ best
   faithful demo's MSE, perf ≥2× at equal-or-better MSE, stability ≤
   frame-count demo 03, realism = bent-normal verification, consumability =
   zero-bench-dependency three.js node).
 
-**Evidence still needed:** all of it — demo 12 does not exist yet as of this
-packet. No code, no measurement, no comparison-vs-oracle for the combined
-system.
+**Evidence still needed:** the *combined-system* number — demo 12 with
+`adaptive` actually wired in as its default march variant, and the E-table
+re-synthesized around it — does not exist yet. This is explicitly P5.3
+(`WORKLOG.md` "P5.2 bandwidth family RECORDED VERDICT," final line:
+"integration decision deferred to post-P5.3 so the E-table updates once").
+Everything that exists today is per-ingredient (§1–5, each independently
+drafted) or per-variant (P5.1/P5.2, isolated march measurements) — no single
+number yet answers "what does the finished, fully-optimized demo 12 cost end
+to end."
 
-**Packet:** P3 (demo 12 distillation) → P4 (capability adds: bent
-normals/spec occlusion, two-sided thickness) → P5 (demo 13 optimization
-variants, one family per measured commit) → P6 finishes the writeup when P5
-stabilizes (this packet's own governing document, NEXTGEN.md, says as much).
-**No prose should claim demo 12/13 results exist until P3 lands.**
+**Packet:** P3 (demo 12 distillation, **done**) → P4 (capability adds,
+**done**) → P5.1/P5.2 (demo 13 optimization variants, **done**, verdicts
+recorded and independently drafted at §4) → P5.3 (integration of the
+winning variants into demo 12's shipped default, **pending**) → P6 finishes
+the combined-system writeup once P5.3 lands (this packet's own governing
+document, NEXTGEN.md, says as much). **Per-ingredient and per-variant
+results (§1–5, P5.1, P5.2) are now fully evidenced and drafted; no prose
+should claim a finished, combined demo 12/13 number until P5.3 lands.**
 
 ---
 
@@ -281,5 +384,10 @@ stabilizes (this packet's own governing document, NEXTGEN.md, says as much).
   metric run twice, before/after a bug fix), both are cited.
 - Negative results get the same prominence as wins — §2 and the lab-10 bug
   story in §3 are written as findings, not apologies.
-- No claim in §4 or §6 is asserted as fact — both sections are explicitly
-  pending and the drafts must not borrow numbers from the *intended* results.
+- No claim in §6 is asserted as fact beyond what P3/P4/P5.1/P5.2 actually
+  measured — the section is explicitly pending its P5.3 integration number,
+  and no draft should borrow the *intended* combined-system result before
+  P5.3 lands. §4 graduated out of this rule at P6: P2 and P5.2 both landed,
+  so its adaptive-effort numbers are now asserted as fact in
+  `draft-adaptive.md`, cited to `bench/results/demo13-all.md` and
+  `lab10-stability.md`.
