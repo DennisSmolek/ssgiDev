@@ -1524,3 +1524,108 @@ linked build and stood up demo `16-fsr` as the "just use FSR" integration
 products live. **Open bugs:** none known. **Next:** demo 10 guides A/B (their
 M6 exit criterion; needs D1 UV-delta alignment in our consumers), then
 14-svgf on guides + MomentsPass.
+
+## 2026-07-22 — demo 14-svgf built (variance-guided denoise lab, SVGF-SPEC)
+
+Built in a worktree (`agent-af0efafe6ee213ec8`) per SVGF-SPEC.md. Per the
+spec's own thesis, the ONLY genuinely new pass is the à-trous body
+(`svgf-atrous.wgsl`) — everything else wires `TemporalGuidesPass` (already
+live from the 07-22 FSR3 linked build) and the FSR3 `MomentsPass` (addendum
+§B) plus verbatim-reused demo 03/10 passes (producer, bilateral,
+`ssrt3-guides-temporal.wgsl`, `denoise-mathis.wgsl`, `accumulate.wgsl`,
+`blit.wgsl`, `Comparator`).
+
+**Files:** `bench/src/demos/14-svgf/{index.ts, svgf-demodulate.wgsl,
+svgf-temporal-moments.wgsl, svgf-variance.wgsl, svgf-atrous.wgsl,
+svgf-remodulate.wgsl, svgf-noiseinject.wgsl, README.md}` +
+`bench/scripts/run-14.mjs` + registry touchpoints (`demos/index.ts`,
+`scripts/lib/harness.mjs` DEMO_IDS).
+
+**§8 defaults taken:** scalar YCoCg-Y moments (knob-switchable to linear);
+`atrousFeedback` defaults ON (paper convention, A/B-able); full-res à-trous
+(half-res not built, per spec's own "follow-up arm" framing); `15-ptref`
+(real path tracer) deferred — only `svgf-noiseinject` shipped, per the
+spec's and GUIDES-SPEC-RESPONSE's own recommendation to time-box the PT.
+
+**Deviations (documented in-file too):** variance spatial-fallback
+(N < nMin → MomentsPass.coarseMoments driven on the demodulated irradiance)
+is a smooth ramp over `[0, nMinForTemporalVar]`, not the spec's literal hard
+branch — avoids a visible pop at the N==nMin boundary as pixels cross it
+frame to frame. `svgf-temporal-moments.wgsl` is described as a "fork" of
+`ssrt3-guides-temporal.wgsl` in spec §7 but is NOT byte-identical: per the
+task brief's explicit item 5, it consumes `TemporalGuidesPass.historyLength`
+directly for `alpha = max(alphaMin, 1/N)` instead of demo 10's
+fixed-`temporalResponse`/disocclusion mix. `varianceBoostFromReactive` is
+wired live (real texture read + multiply against `guides.reactiveTexture`)
+but inert today since nothing in this demo writes into `guides.reactive`.
+
+**Worktree environment gap (not a code bug):** `bench/assets/` and
+`bench/public/decoders/` are gitignored and were absent in the fresh
+worktree; `bench/src/scenes/index.ts` eagerly imports ALL scenes including
+sponza, so the missing `Sponza-KTX-Draco.glb` 500'd the transform of the
+entire scene graph and broke the WHOLE app (every demo, not just 14) —
+looked at first like a demo-registry bug (`window.__resolved` fell back to
+`00-gbuffer`). Fixed by copying `assets/` and `public/decoders/{draco,basis}`
+from the main checkout (`/Users/dex/Developer/ssgiDev/bench/`) into the
+worktree rather than re-fetching. Worth a note for future worktree-based
+agents on this repo: run `bench/scripts/fetch-assets.sh` (or copy from an
+existing checkout) before assuming a scene-graph-touching bug is real.
+
+**Real bug found + fixed:** `svgf-noiseinject.wgsl` used `ref` as a local
+variable name — `ref` is a WGSL reserved keyword, and naga/Tint reported it
+as a WGSL parse error only at pipeline-creation time (`GPUValidationError:
+'ref' is a reserved keyword`), not caught by `tsc` (WGSL lives in template
+strings). Renamed to `refColor`. Lesson: grep new WGSL for reserved-word
+collisions (`ref`, `switch`, `module`, ...) before the headed smoke test,
+since tsc cannot catch this class of bug.
+
+**Smoke test** (own vite server, port 5201, headed Playwright,
+`bench/scripts/lib/harness.mjs` conventions, cornell scene): all five arms
+(`bilateral`, `svgf-lite`, `svgf`, `ssrt3-guides`, `mathis`) render lit GI
+(red/green bounce visible on walls/boxes/ceiling, no black/garbage frames).
+`variance` view shows real spatial structure (grain concentrated in the
+dark/shadowed corner and near geometric edges, not uniform) — same pattern
+regardless of active `stack` (by design: the svgf front-end runs lazily
+whenever `variance`/`moments` is selected, independent of which arm is
+active). `moments` debug view (R=E[irr], G=√Var·amp, B=N/cap) shows edges
+picked out in green (high variance at geometric discontinuities), consistent
+with SVGF's edge-stopping premise.
+
+**noiseinject smoke verdict: PASS.** With `noiseSigma=0.3`,
+`fireflyRate=0.005`: `raw-gi` view shows heavy chroma speckle + firefly dots
+(noise injection confirmed working). `bilateral` arm's `combined` view still
+shows visible speckle/grain across walls and ceiling under the same
+injected noise (spatial-only bilateral cannot fully absorb it — matches the
+predicted "leaves residue" outcome). `svgf` arm's `combined` view under the
+SAME injected noise is visually clean — matches the non-noiseinject `svgf`
+combined shot almost exactly, with sharp box edges and no visible over-blur.
+Screenshots: session scratchpad `shots14b/{bilateral,svgf,svgf-lite,
+ssrt3-guides,mathis}-combined.png`, `noiseinject-{raw-gi,bilateral-combined,
+svgf-combined}.png`, `{svgf,bilateral}-variance-contact.png`,
+`svgf-moments.png`, `reference.png`, `svgf-split.png`.
+
+**Variance sanity numbers** (`window.__svgf14VarianceStats()`, r16float GPU
+readback, cornell C-wide, still camera): with noiseinject ON
+(`sigma=0.3`, `fireflyRate=0`, 8s settle) — min 5.96e-8, max 16.47, mean
+0.32. Theoretical order-of-magnitude for the injected model
+(`Var ≈ sigma² · meanLuminance`, sigma²=0.09) matches a mean GI luminance in
+the low single digits — consistent. With noiseinject OFF (raw rc1/sc8
+producer, 6s settle) — min 0, max 308, mean 2.38: substantially higher than
+the injected-noise case, as expected — the raw SSRT3 march is "pure
+salt-and-pepper" (per the 10-denoise README) and demodulation (dividing by
+per-pixel albedo) amplifies it further on dark/saturated surfaces, which the
+à-trous chain is specifically built to absorb. Var ≥ 0 held at every sampled
+texel in both runs (no negative-variance floating-point sign bugs).
+
+**Recorded H0–H5 numbers: deferred.** `bench/scripts/run-14.mjs` (stability +
+MSE-vs-reference sweep across the SVGF-SPEC §4 grid, all 5 arms) is written
+and functional but was NOT run for recorded numbers — the shared dev GPU was
+in active use by the user during this build, and this bench's own
+methodology (`harness.mjs`) states GPU results are meaningless under
+contention. Ship the runner, run it in a quiet-GPU window per TESTING.md.
+
+**Validated:** `tsc --noEmit` clean; all 5 arms + noiseinject mode functional
+headed; console clean apart from the pre-existing favicon 404. **Next:** a
+quiet-GPU run of `run-14.mjs` across the full grid to produce the H0–H5
+verdict (SHIP svgf / SHIP svgf-lite / KILL both, per spec §4 acceptance
+criteria).
