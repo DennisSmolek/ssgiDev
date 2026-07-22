@@ -4,6 +4,14 @@ Consumer: ssgiDev bench, demo `16-fsr` (first full-pipeline consumer).
 Against: `feat-temporal-guides` @ `34f784d`. Format per the M0 feedback loop:
 accepted / friction / blocked per item.
 
+> **Status 2026-07-22 (their `3e374fd`): both friction items RESOLVED.**
+> Dead `_renderer` deleted (their src now passes `--noUnusedLocals`); our
+> vite block is the canonical linked-build recipe in GUIDES-HANDOFF.md;
+> `paths` → `dist/index.d.ts` is the documented recommendation with their
+> commitment to rebuild dist whenever the public surface moves (dist rebuilt
+> at that commit — verified fresh, bench tsc clean against it). No contract
+> changes; sequencing unaffected. Items below kept for the record.
+
 ## Linked build (handoff option a) — ACCEPTED, one real hazard
 
 The vite alias works, but the handoff's "no duplicate-three hazard" claim is
