@@ -46,6 +46,7 @@ export const DEMO_IDS = {
   '11': '11-sampling',
   '12': '12-distilled',
   '13': '13-optim',
+  '14': '14-svgf',
   '16': '16-fsr',
   '17': '17-guides-ab',
 };
