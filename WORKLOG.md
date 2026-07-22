@@ -1479,3 +1479,48 @@ mapSize stays 2048: the gap was bias-driven, not resolution; and radius is
 texel-relative, so 4096 would TIGHTEN the penumbra unless radius doubled.
 A genuine 1px geometry-alias hairline remains on silhouette edges (incl.
 fully lit ones) — that part is still the no-AA artifact for the FSR resolve.
+
+## 2026-07-22 — FSR3 linked build wired + demo 16 (upscale/AA), guides verified live
+
+The FSR agent's `feat-temporal-guides` branch landed everything we were
+holding for (M2 guides bundle, M3 reactive merge, M5 MomentsPass, grazing
+fix b16274a; handoff = GUIDES-HANDOFF.md, checked out at 34f784d). Wired the
+linked build and stood up demo `16-fsr` as the "just use FSR" integration
+(14/15 stay reserved for svgf/ptref per SVGF-SPEC).
+
+- **Linked build** (handoff option a): bench vite alias `@pmndrs/upscaler` →
+  `/Users/dex/Developer/fsr3/src/index.ts` (their source hot-reloads);
+  `server.fs.allow` for the out-of-root path. TS types point at their
+  `dist/index.d.ts` instead of src — bench's `noUnusedLocals` flags a dead
+  `_renderer` field in their UpscalerNode.ts, and their tree shouldn't have
+  to pass our lint. CAVEAT: types come from dist → if their API moves
+  without `npm run build`, tsc checks stale decls (runtime uses live src).
+- **Single-three hazard was real**: their src imports bare `three` while the
+  bench imports `three/webgpu` → vite served two copies of core ("Multiple
+  instances" warning), from two different node_modules (0.185.0 vs 0.185.1).
+  Fix (all three needed): alias `/^three$/` → `three/webgpu`,
+  `optimizeDeps.exclude: ['three']` (vite's pre-alias shortcut otherwise
+  resolves bare three to its own pre-bundled chunk before user aliases run),
+  `resolve.dedupe: ['three']` (pin resolution to OUR copy). Verified: every
+  module on the page now imports the one pnpm three@0.185.1.
+- **Demo 16** (`bench/src/demos/16-fsr/`): full pipeline consumer with the
+  exact frame shape demos 10/14 will reuse — beginFrame jitter → MRT
+  (output+velocity, float depth, render res) → endFrame → dispatchGuides →
+  dispatchUpscale → present outputTexture. TSL `velocity` node gets
+  `setProjectionMatrix(upscaler.unjitteredProjectionMatrix)` (cleared in
+  dispose — module-level singleton shared with other demos' MRTs). Params:
+  path (temporal/spatial/bilinear), ratio 1–3 (ratio 1 + temporal = Native
+  AA — the first real AA this bench has had), full RuntimeSettings, debug
+  views. Harness render-scale slider is deliberately ignored (ratio IS the
+  scale control here); resize reconfigures + resetHistory.
+- **Verified headed** (cornell + sponza, console clean apart from the
+  favicon 404 + three's own Clock deprecation): temporal 2× reconstructs
+  far-hall sponza detail that bilinear 2× destroys; Native AA crisp;
+  disocclusion guide shows exact thin trailing-silhouette strips under
+  orbit; accum-age shows jitter-phase pattern with converged borders.
+  Screenshots in session scratchpad (`fsr16-{cornell,sponza}-*.png`).
+
+**Validated:** linked build + full temporal path on both scenes, guides
+products live. **Open bugs:** none known. **Next:** demo 10 guides A/B (their
+M6 exit criterion; needs D1 UV-delta alignment in our consumers), then
+14-svgf on guides + MomentsPass.

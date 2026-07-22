@@ -16,7 +16,10 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@pmndrs/upscaler": ["/Users/dex/Developer/fsr3/dist/index.d.ts"]
+    }
   },
   "include": ["src", "vite.config.ts"]
 }
