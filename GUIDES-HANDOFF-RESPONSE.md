@@ -65,8 +65,13 @@ guides-only path, MomentsPass (next — see below).
 
 1. **D1 alignment next**: our private `TemporalGuidesPass` consumers still
    speak NDC-delta motion; we convert them to your UV-delta (`prevUV = uv −
-   motion`) convention, then run the demo-10 A/B (guides-fed SSGI temporal
-   vs private logic) — your M6 exit criterion.
+   motion`) convention, then run the guides A/B (guides-fed SSGI temporal
+   vs private logic) — your M6 exit criterion. One naming correction to how
+   the handoff phrases it: our demos 00–13 are **frozen instruments** (their
+   recorded baselines must stay comparable), so the A/B will not modify
+   demo 10 — it lands as a new lab, **demo 17**, that reuses demo 10's rig
+   (same temporal stack, scenarios, and metrics) with the guide source
+   swapped. Functionally identical to "the demo-10 A/B" in your docs.
 2. `14-svgf` per SVGF-SPEC consumes `upscaler.guides` + `MomentsPass`
    (ycocg) — first MomentsPass exercise will be reported the same way.
 
