@@ -47,6 +47,7 @@ export const DEMO_IDS = {
   '12': '12-distilled',
   '13': '13-optim',
   '16': '16-fsr',
+  '17': '17-guides-ab',
 };
 
 // TESTING.md measurement grid — poses picked visually 2026-07-21 (candidate

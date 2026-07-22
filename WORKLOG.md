@@ -1524,3 +1524,78 @@ linked build and stood up demo `16-fsr` as the "just use FSR" integration
 products live. **Open bugs:** none known. **Next:** demo 10 guides A/B (their
 M6 exit criterion; needs D1 UV-delta alignment in our consumers), then
 14-svgf on guides + MomentsPass.
+
+## 2026-07-22 — Demo 17 guides-source A/B (M6 exit-criterion rig)
+
+Built `bench/src/demos/17-guides-ab/`: the FSR3 upscaler's M6 acceptance test
+per GUIDES-HANDOFF.md — the SAME SSGI temporal stack fed by (A) the bench's
+private `TemporalGuidesPass` vs (B) the FSR3 upscaler's guides bundle
+(`upscaler.guides`, `path: 'guides'`, `dispatchGuides()` only — no color, no
+upscale). Distinct from demo 10's `ssrt3-guides` stack (which A/Bs the shared
+private pass against the EMA fork's own inline world-pos reject); this is the
+first A/B against the *external* FSR3 guides API.
+
+Cloned demo 10's rig (producer, temporal, denoise, accumulate reference,
+Comparator, blit, param plumbing, reset logic) trimmed to only what the A/B
+needs — dropped TRAA, camera AA jitter, and the mathis/xegtao/denoise-node
+stacks (none bear on guide *source*). Producer + bilateral reused live from
+demo 03 (`ssrt-main.wgsl`, `ssrt-denoise.wgsl`); `accumulate.wgsl`/`blit.wgsl`
+copied into the demo's own folder rather than importing them from frozen
+demo 10.
+
+- **One temporal shader, two sources**: `guides-ab-temporal.wgsl` forks demo
+  10's `ssrt3-guides-temporal.wgsl` with exactly one addition — `p.flags` bit
+  2, `motionIsUVDelta`. The two guide sources disagree on velocity
+  convention: `TemporalGuidesPass.dilatedVelocityTexture` is an NDC delta
+  (scaled by (0.5,-0.5) at reprojection, bit=0); `upscaler.guides.dilatedMotion`
+  is already a UV delta with the y-flip baked in per GUIDES-HANDOFF.md (used
+  directly, bit=1) — everything else is byte-identical between the two arms
+  so any A/B delta isolates the guide products, not shader drift. One
+  `RawComputePass` instance is reused for both arms (different textures +
+  flag bit per dispatch), each with its own dedicated history ping-pong pair.
+- **No camera jitter anywhere in this demo** (unlike demo 10's optional
+  jitterAA/TRAA) — both arms must see an identical G-buffer so the A/B
+  isolates the guide products, not incidental G-buffer differences.
+- **Contract check against the facts sheet**: confirmed against `Upscaler.ts`
+  that `dilatedMotion`/`disocclusion` are single (non-ping-ponged)
+  StorageTextures, rewritten in place each dispatch — but `configure()`
+  reallocates them as brand-new JS objects on every call (unlike
+  `TemporalGuidesPass`, which keeps the same objects and only reallocates
+  their GPU backing on resize). Built the `guides` debug-view TSL nodes once
+  and never rebuild them; `frame()` re-points their `.value` to the live
+  texture every frame the fsr arm is active, before that frame's display
+  render — sidesteps the reallocate-on-resize hazard without a "stale node"
+  flag. Also confirmed `beginFrame`/`endFrame` are no-ops for a guides-only
+  consumer (jitter only applies on the `temporal` path) — this demo never
+  calls them.
+- **`guides` debug view**: R = graded disocclusion, G = historyLength/cap
+  (side A only — FSR's guides path has no history-length product, a
+  late/temporal-path product that's `null` on `'guides'`, so G is pinned to 0
+  for the fsr arm), B = |dilatedVelocity| · gain. Verified both arms read
+  R≈0/B≈0 on a converged still camera (private additionally shows G=1,
+  fully-converged history) — the FSR arm's frame renders solid black and the
+  private arm's renders solid green, which is the *expected* difference
+  given the documented G-channel semantics, not a bug.
+- `run-17.mjs` cloned from `run-10.mjs`'s stability sweep + teleport
+  reconvergence protocol (`STACKS = ['private-guides', 'fsr-guides']`, `--out
+  lab17-guides-ab`, shots under `bench/results/shots/lab17/`); registered in
+  `harness.mjs`'s `DEMO_IDS['17'] = '17-guides-ab'`. Registered the demo in
+  `bench/src/demos/index.ts` after `fsrDemo` (14/15-reserved comment intact).
+
+**Verified functionally** (GPU was in use elsewhere at build time, so no
+recorded battery — `bench/scripts/run-17.mjs` was NOT run): `tsc --noEmit`
+clean; headed smoke via a scratch script against the running dev server
+(`:5199`) — both arms produce a near-identical lit Cornell GI image in
+`combined` and `split` views on a still camera, the `guides` debug view
+behaves as documented for both arms, the `none`/`reference` views and a
+`stack=none + view=guides` edge case render without error, a teleport
+(`__cam.set`) with the fsr arm active shows no black frames or console
+errors during/after reconvergence, and a viewport resize (900×650 → 1280×800,
+exercising `upscaler.configure()` reconfigure) continues rendering correctly.
+Console/pageerror listeners showed zero WGSL/page errors; one intermittent
+`favicon.ico` 404 reproduced identically on frozen demo 10, confirmed
+pre-existing and unrelated.
+
+**Open:** recorded stability/reconvergence numbers deferred to a quiet-GPU
+window — run `node scripts/run-17.mjs` then. **Next:** once M6 passes,
+14-svgf on guides + MomentsPass (per the FSR3 handoff's stated next step).

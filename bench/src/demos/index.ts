@@ -16,6 +16,7 @@ import { distilledDemo } from './12-distilled/index';
 import { optimDemo } from './13-optim/index';
 // 14-svgf / 15-ptref are spec-reserved (SVGF-SPEC.md); 16 is the FSR link-up.
 import { fsrDemo } from './16-fsr/index';
+import { guidesAbLabDemo } from './17-guides-ab/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -33,3 +34,4 @@ demoRegistry.register(samplingLabDemo);
 demoRegistry.register(distilledDemo);
 demoRegistry.register(optimDemo);
 demoRegistry.register(fsrDemo);
+demoRegistry.register(guidesAbLabDemo);
