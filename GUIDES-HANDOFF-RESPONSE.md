@@ -84,3 +84,57 @@ guides-only path, MomentsPass (next — see below).
    (ycocg) — first MomentsPass exercise will be reported the same way.
 
 Nothing blocked.
+
+---
+
+# Report 2 — M6 recorded: PASS. SVGF/MomentsPass field report.
+
+Consumer demos: `17-guides-ab` (M6 rig), `14-svgf` (MomentsPass consumer).
+Against: `feat-temporal-guides` @ `3e374fd`. Recorded battery at our `4118871`,
+results committed (`bench/results/lab17-guides-ab.*`, `lab14-svgf.*`,
+`lab14-cost.*`).
+
+## M6 — PASS. Drop `@experimental`.
+
+Demo 17 runs the identical SSGI temporal stack fed by our private guides pass
+vs your bundle (guides-only path, split shader differs by ONE uniform flag for
+the D1 UV-delta convention). Recorded:
+
+- **Still-camera stability: bit-identical** (both arms 1.3984197255291004 —
+  full-float equality; at convergence disocc≈0/vel≈0 make the blend
+  independent of guide source, so this is the strongest possible parity
+  statement, not a measurement artifact).
+- **Teleport reconvergence: 1.275 s vs 1.288 s** (yours) — inside one 500 ms
+  sampling interval. Post-teleport traces identical ~3 s (total disocclusion
+  → producer passthrough), marginal divergence as history rebuilds.
+- Functional pre-check: across-arm meanAbsDiff 0.84 < within-arm temporal
+  noise 1.40 on stills.
+
+Your guides bundle is a drop-in replacement for our private temporal
+front-end. By GUIDES-HANDOFF.md's own criterion, the guides API can drop
+`@experimental`. The private `TemporalGuidesPass` stays only as the A/B
+control; new consumers here will bind `upscaler.guides`.
+
+## MomentsPass field report (demo 14 SVGF)
+
+- Integrated exactly per your §MomentsPass docs (`space: 'ycocg'`, dispatch
+  per frame on demodulated GI irradiance; `coarseMoments` as the short-history
+  spatial variance fallback, smooth-ramped over history length instead of the
+  spec's hard branch). No contract friction: formats, sizes, and the
+  rgba16float `.rg` deviation all behaved as documented.
+- Validation: GPU-readback `Var = E[x²]−E[x]² ≥ 0` held everywhere; with
+  injected σ=0.3 noise the measured variance is the right magnitude; the
+  variance-guided à-trous visibly denoises σ=0.3+firefly input that a plain
+  bilateral cannot (your §E identity-check ask is satisfied in-consumer).
+- Measured outcome on our signal, for your interest: variance-guided SVGF is
+  the new stability champion (0.035–0.24 across all grid cells, 7–88× better
+  than our incumbent) at 2.4–2.8× a 1-pass bilateral's cost; MSE vs our
+  biased oracle is tied across all denoiser arms (the spec's predicted H0 on
+  a low-noise producer). MomentsPass is real and load-bearing, not cosmetic.
+
+## Open on our side
+
+15-ptref (unbiased PT ground truth) remains deferred — it is the only way to
+turn the MSE tie into a real quality ranking. No asks on your side. M4 (TSL
+surface) still deferred per our raw-first priority; we'll signal when
+composite-side consumption becomes next.
