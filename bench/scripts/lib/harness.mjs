@@ -219,9 +219,13 @@ export function writeResults(name, rows, meta = {}) {
   const jsonPath = resolve(outDir, `${name}.json`);
   writeFileSync(jsonPath, JSON.stringify({ meta: stamp, rows }, null, 2));
 
-  // Per-row config JSON stays in the .json (the reproducibility stamp) but
-  // would swamp the markdown table — skip it there.
-  const keys = (rows.length ? Object.keys(rows[0]) : []).filter((k) => k !== 'config');
+  // Per-row config/diff blobs stay in the .json (the reproducibility stamp)
+  // but would swamp the markdown table — skip them there. Columns are the
+  // UNION of row keys in first-seen order: rows of different shapes (e.g.
+  // lab14's stability vs mse rows) must all render (first-row-only keys
+  // silently dropped lab14's whole mse column, caught 2026-07-23).
+  const SKIP_MD_KEYS = new Set(['config', 'diffsJson', 'exported']);
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((k) => !SKIP_MD_KEYS.has(k));
   const fmt = (v) => (typeof v === 'number' ? +v.toFixed(4) : v);
   const md = [
     `# ${name}`,

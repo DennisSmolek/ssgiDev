@@ -1,8 +1,8 @@
 {
   "meta": {
-    "commit": "df2e232",
-    "date": "2026-07-21T09:07:27.110Z",
-    "baseUrl": "http://localhost:5180/",
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T06:24:39.910Z",
+    "baseUrl": "http://localhost:5199/",
     "viewport": "1280x800",
     "bursts": 3,
     "itersPerBurst": 40
@@ -17,9 +17,9 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 3.3225000001490117,
-      "chain_ms": 3.357499999925494,
-      "down_ms": 0.04000000022351742,
+      "march_ms": 3.1700000002980233,
+      "chain_ms": 3.2,
+      "down_ms": 0.05,
       "up_ms": null
     },
     {
@@ -31,9 +31,9 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 3.3725000001490115,
-      "chain_ms": 3.3800000000745056,
-      "down_ms": 0.039999999850988385,
+      "march_ms": 3.3449999995529653,
+      "chain_ms": 3.370000000298023,
+      "down_ms": 0.04500000029802322,
       "up_ms": null
     },
     {
@@ -45,10 +45,10 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 0.7324999999254942,
-      "chain_ms": 0.8199999999254942,
+      "march_ms": 0.6899999998509884,
+      "chain_ms": 0.7774999998509884,
       "down_ms": 0.05249999985098839,
-      "up_ms": 0.05749999992549419
+      "up_ms": 0.0649999998509884
     },
     {
       "scene": "cornell",
@@ -59,10 +59,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 0.7175000000745058,
-      "chain_ms": 0.7900000002235175,
-      "down_ms": 0.055000000074505805,
-      "up_ms": 0.059999999776482585
+      "march_ms": 0.7600000001490116,
+      "chain_ms": 0.8375,
+      "down_ms": 0.05500000044703483,
+      "up_ms": 0.06000000014901161
     },
     {
       "scene": "cornell",
@@ -73,10 +73,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.1625,
-      "chain_ms": 0.2875,
-      "down_ms": 0.0925000000745058,
-      "up_ms": 0.054999999701976776
+      "march_ms": 0.15999999940395354,
+      "chain_ms": 0.2850000001490116,
+      "down_ms": 0.08499999940395356,
+      "up_ms": 0.05500000044703483
     },
     {
       "scene": "cornell",
@@ -88,9 +88,9 @@
       "marchW": 320,
       "marchH": 200,
       "march_ms": 0.1899999998509884,
-      "chain_ms": 0.3125,
-      "down_ms": 0.08500000014901161,
-      "up_ms": 0.054999999701976776
+      "chain_ms": 0.31000000014901163,
+      "down_ms": 0.08250000029802322,
+      "up_ms": 0.05249999985098839
     },
     {
       "scene": "cornell",
@@ -101,9 +101,9 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 12.679999999701977,
-      "chain_ms": 13.372500000149012,
-      "down_ms": 0.3575000002980232,
+      "march_ms": 11.6875,
+      "chain_ms": 12,
+      "down_ms": 0.3299999997019768,
       "up_ms": null
     },
     {
@@ -115,9 +115,9 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 13.025,
-      "chain_ms": 13.722500000149012,
-      "down_ms": 0.3699999999254942,
+      "march_ms": 12.842500000447036,
+      "chain_ms": 13.302500000596046,
+      "down_ms": 0.35499999970197677,
       "up_ms": null
     },
     {
@@ -129,10 +129,10 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 2.1224999997764824,
-      "chain_ms": 2.1925000000745056,
-      "down_ms": 0.04000000022351742,
-      "up_ms": 0.05749999992549419
+      "march_ms": 2.0850000001490114,
+      "chain_ms": 2.1625,
+      "down_ms": 0.04750000014901161,
+      "up_ms": 0.0649999998509884
     },
     {
       "scene": "cornell",
@@ -143,10 +143,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 2.2775000002235175,
-      "chain_ms": 2.3549999997019766,
-      "down_ms": 0.0375,
-      "up_ms": 0.05749999992549419
+      "march_ms": 2.2650000005960464,
+      "chain_ms": 2.35,
+      "down_ms": 0.04500000029802322,
+      "up_ms": 0.05999999940395355
     },
     {
       "scene": "cornell",
@@ -157,10 +157,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.4699999999254942,
-      "chain_ms": 0.5975000001490116,
-      "down_ms": 0.08500000014901161,
-      "up_ms": 0.055000000074505805
+      "march_ms": 0.4725000001490116,
+      "chain_ms": 0.6049999997019768,
+      "down_ms": 0.08499999940395356,
+      "up_ms": 0.0625
     },
     {
       "scene": "cornell",
@@ -171,10 +171,10 @@
       "dispatchMode": "fragment",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.7275000002235175,
+      "march_ms": 0.7350000001490116,
       "chain_ms": 0.85,
-      "down_ms": 0.0875,
-      "up_ms": 0.05250000022351742
+      "down_ms": 0.08499999940395356,
+      "up_ms": 0.05249999985098839
     },
     {
       "scene": "sponza",
@@ -185,8 +185,8 @@
       "dispatchMode": "compute",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 5.85,
-      "chain_ms": 5.939999999850988,
+      "march_ms": 5.914999999850989,
+      "chain_ms": 5.959999999403953,
       "down_ms": 0.04750000014901161,
       "up_ms": null
     },
@@ -199,9 +199,9 @@
       "dispatchMode": "fragment",
       "marchW": 1280,
       "marchH": 800,
-      "march_ms": 6.080000000074506,
-      "chain_ms": 6.182499999925494,
-      "down_ms": 0.04750000014901161,
+      "march_ms": 6.007499999552965,
+      "chain_ms": 6.060000000149012,
+      "down_ms": 0.05,
       "up_ms": null
     },
     {
@@ -213,10 +213,10 @@
       "dispatchMode": "compute",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 1.425,
-      "chain_ms": 1.5474999997764827,
-      "down_ms": 0.044999999925494194,
-      "up_ms": 0.075
+      "march_ms": 1.4125,
+      "chain_ms": 1.5274999998509884,
+      "down_ms": 0.05,
+      "up_ms": 0.07250000014901162
     },
     {
       "scene": "sponza",
@@ -227,10 +227,10 @@
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 1.4574999999254943,
-      "chain_ms": 1.5650000002235174,
-      "down_ms": 0.044999999925494194,
-      "up_ms": 0.07249999977648258
+      "march_ms": 1.4724999994039536,
+      "chain_ms": 1.5674999997019767,
+      "down_ms": 0.044999999552965166,
+      "up_ms": 0.07250000014901162
     },
     {
       "scene": "sponza",
@@ -241,10 +241,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.3449999999254942,
+      "march_ms": 0.3225000001490116,
       "chain_ms": 0.475,
-      "down_ms": 0.1125,
-      "up_ms": 0.0649999998509884
+      "down_ms": 0.10500000044703484,
+      "up_ms": 0.0625
     },
     {
       "scene": "sponza",
@@ -255,51 +255,9 @@
       "dispatchMode": "fragment",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.3699999999254942,
-      "chain_ms": 0.5199999999254942,
-      "down_ms": 0.1050000000745058,
-      "up_ms": 0.0649999998509884
-    },
-    {
-      "scene": "sponza",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "1",
-      "dispatchMode": "compute",
-      "marchW": 1280,
-      "marchH": 800,
-      "march_ms": 25.727499999850988,
-      "chain_ms": 25.532500000298022,
-      "down_ms": 2.469999999925494,
-      "up_ms": null
-    },
-    {
-      "scene": "sponza",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "1",
-      "dispatchMode": "fragment",
-      "marchW": 1280,
-      "marchH": 800,
-      "march_ms": 26.9375,
-      "chain_ms": 27.602499999850988,
-      "down_ms": 2.6174999997019768,
-      "up_ms": null
-    },
-    {
-      "scene": "sponza",
-      "config": "heavy",
-      "rc": 4,
-      "sc": 32,
-      "marchScale": "0.5",
-      "dispatchMode": "compute",
-      "marchW": 640,
-      "marchH": 400,
-      "march_ms": 4.8824999999254945,
-      "chain_ms": 5.027499999850988,
-      "down_ms": 0.04250000007450581,
+      "march_ms": 0.36999999955296514,
+      "chain_ms": 0.525,
+      "down_ms": 0.10500000044703484,
       "up_ms": 0.075
     },
     {
@@ -307,14 +265,56 @@
       "config": "heavy",
       "rc": 4,
       "sc": 32,
+      "marchScale": "1",
+      "dispatchMode": "compute",
+      "marchW": 1280,
+      "marchH": 800,
+      "march_ms": 23.852500000596045,
+      "chain_ms": 24.135000000149013,
+      "down_ms": 2.2524999998509885,
+      "up_ms": null
+    },
+    {
+      "scene": "sponza",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "1",
+      "dispatchMode": "fragment",
+      "marchW": 1280,
+      "marchH": 800,
+      "march_ms": 25.5375,
+      "chain_ms": 24.907500000298022,
+      "down_ms": 2.3375,
+      "up_ms": null
+    },
+    {
+      "scene": "sponza",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
+      "marchScale": "0.5",
+      "dispatchMode": "compute",
+      "marchW": 640,
+      "marchH": 400,
+      "march_ms": 4.622500000149012,
+      "chain_ms": 4.860000000149012,
+      "down_ms": 0.039999999850988385,
+      "up_ms": 0.09750000014901161
+    },
+    {
+      "scene": "sponza",
+      "config": "heavy",
+      "rc": 4,
+      "sc": 32,
       "marchScale": "0.5",
       "dispatchMode": "fragment",
       "marchW": 640,
       "marchH": 400,
-      "march_ms": 5.0550000000745055,
-      "chain_ms": 5.2425000000745055,
-      "down_ms": 0.044999999925494194,
-      "up_ms": 0.07249999977648258
+      "march_ms": 5.139999999850988,
+      "chain_ms": 5.2974999994039536,
+      "down_ms": 0.04500000029802322,
+      "up_ms": 0.09000000059604644
     },
     {
       "scene": "sponza",
@@ -325,10 +325,10 @@
       "dispatchMode": "compute",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 0.9149999998509883,
-      "chain_ms": 1.0925000000745058,
-      "down_ms": 0.1050000000745058,
-      "up_ms": 0.0625
+      "march_ms": 0.9625,
+      "chain_ms": 1.1174999997019768,
+      "down_ms": 0.10500000044703484,
+      "up_ms": 0.06000000014901161
     },
     {
       "scene": "sponza",
@@ -339,10 +339,10 @@
       "dispatchMode": "fragment",
       "marchW": 320,
       "marchH": 200,
-      "march_ms": 1.0600000001490115,
-      "chain_ms": 1.275,
+      "march_ms": 1.1125,
+      "chain_ms": 1.2699999995529652,
       "down_ms": 0.10499999970197678,
-      "up_ms": 0.0625
+      "up_ms": 0.06000000014901161
     }
   ]
 }

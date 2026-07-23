@@ -1703,3 +1703,63 @@ headed; console clean apart from the pre-existing favicon 404. **Next:** a
 quiet-GPU run of `run-14.mjs` across the full grid to produce the H0–H5
 verdict (SHIP svgf / SHIP svgf-lite / KILL both, per spec §4 acceptance
 criteria).
+
+## 2026-07-23 — Recorded battery: demo 17 M6 PASS + demo 14 SVGF verdict + cornell re-baseline
+
+All eight runners recorded at 4118871 (dirty only by in-flight docs), serial,
+display-sleep guarded by caffeinate after two sleep windows earlier in the day
+were verified to NOT overlap any measuring runner (battery started ~15:06;
+sleeps 14:29–15:06 and 15:20–15:21 hit gaps — provenance note since headed
+Chrome throttles when occluded). Battery agent stalled twice on backgrounded
+runners; runners 6–8 (trackC, demo12, demo13-alu) were driven directly by the
+main session. trackA's "failure" was a watchdog race (file landed at 15:48).
+
+**M6 — PASS (lab17-guides-ab).** The FSR3 guides bundle is a drop-in for the
+private TemporalGuidesPass:
+- Still-camera stability BIT-IDENTICAL across arms (1.3984197255291004, full
+  float equality — expected: at convergence disocc≈0/vel≈0 make the temporal
+  blend independent of guide source; both arms are identical functions of the
+  same deterministic producer).
+- Teleport reconvergence 1.275 s (private) vs 1.288 s (fsr) — inside one
+  500 ms sampling interval. Post-teleport diff traces identical for ~3 s
+  (total disocclusion = producer passthrough), then diverge only marginally.
+- Sweep stability private 2.07 vs fsr 1.42 — frame-alignment noise (same
+  metric measured 1.40 for both arms in the pre-battery functional check).
+Per GUIDES-HANDOFF.md this is the exit criterion for their `@experimental`.
+
+**Demo 14 SVGF — measured verdict (lab14-svgf + lab14-cost + follow-ups):**
+- MSE-vs-oracle: H0 CONFIRMED — all five arms tied at every cell (C-contact
+  0.0611–0.0621, 1.7% spread; S-column 0.0211–0.0215). Exactly the spec's
+  predicted null on the low-noise SSGI signal vs its own biased oracle.
+- Stability: svgf@K=4 dominates EVERY cell (0.035–0.24) — incumbent
+  ssrt3-guides 0.76–3.06 (7–88× worse), mathis (lab10 champion) beaten at
+  4/6 cells. New stability champion.
+- Cost (lab14-cost, fenced __svgf14bench): svgf@K=4 = 2.81×/2.38× bilateral
+  (C-wide/S-hall) → H5 FAIL (budget ~2×). K=2 meets cost (2.06×/1.73×) but
+  LOSES the sponza stability win (S-hall 1.57, S-column 2.92 vs K=4's
+  0.076/0.035) — the stability result requires K=4.
+- svgf-lite: cheap (1.41–1.65×) but genuinely unstable at S-column — repeats
+  0.93/1.81/2.42 (original 2.69 was in-family, not a glitch): the √Var-
+  modulated single-pass kernel flickers on textured content.
+- Algorithm validation stands from the build's noiseinject smoke (σ=0.3 +
+  fireflies: svgf cleans, bilateral leaves residue; Var≥0, right magnitude).
+DECISION (spec §4 table did not anticipate stability-dominant/MSE-tied):
+none of SHIP-svgf / SHIP-svgf-lite / KILL applies cleanly. Recorded outcome:
+keep `ssrt3-guides` the default stack (1.1× cost, adequate); svgf@K=4 stands
+as the premium stability option (only arm rock-stable on textured cells) at
++1–3 ms; svgf-lite NOT shippable. MSE ambiguity is resolvable only with
+unbiased GT — 15-ptref remains the open option, Dennis's call.
+
+**Cornell re-baseline (runs 09/trackB/trackA/trackC/12/13):** flag from
+2026-07-21 cleared. MSE-vs-oracle rows moved ~0.005% (oracle and input share
+the beauty change — insensitivity expected; freshness was the point).
+demo13-alu re-verdict unchanged (trig 1.04–1.08×, others ≈1×, all pass
+correctness). demo12 acceptance + relative stability gate passed; thickAB
+re-recorded. lab09 ratios stable.
+
+**Runner fixes landed with this battery:** run-14.mjs hardcoded
+`notRunForRecordedNumbers` removed (lab14-svgf.json meta carries a
+flagCorrection provenance note); writeResults md table now renders the UNION
+of row keys (first-row-only keys silently dropped lab14's whole mse column);
+lab14/lab17 mds regenerated from their JSONs. New recorded runner:
+run-14-cost.mjs (H5 fenced-burst cost).

@@ -1,0 +1,508 @@
+{
+  "meta": {
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T06:14:53.655Z",
+    "baseUrl": "http://localhost:5199/",
+    "settleMs": 6000,
+    "gapMs": 2000,
+    "grids": [
+      "C-wide",
+      "C-graze",
+      "C-contact",
+      "S-hall",
+      "S-column",
+      "Z-zoo"
+    ],
+    "stacks": [
+      "bilateral",
+      "svgf-lite",
+      "svgf",
+      "ssrt3-guides",
+      "mathis"
+    ],
+    "note": "SVGF-SPEC \u00a74: MSE ranks denoisers against the demo's own biased-producer oracle, not unbiased GI \u2014 see README caveat.",
+    "flagCorrection": "notRunForRecordedNumbers removed 2026-07-23: it was hardcoded in run-14.mjs (leftover deferred-run marker, fixed same day) \u2014 this IS the recorded run."
+  },
+  "rows": [
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 6.3174855324074075,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.10520210897709562,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 0.35310474537037034,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.10415523753062741,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.21948743386243386,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.1041070384952113,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 2.217270171957672,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.10419596178782661,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.1516765873015873,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.10674397462225638,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 4.739309275793651,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.11450528926292032,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 0.23383969907407406,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.11259925330090773,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.19001736111111112,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.11250153104207106,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 1.9829704034391535,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.1136176781055492,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.3625706845238095,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-graze",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.11294405569815735,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 3.8530394345238097,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.0621079748781443,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 0.17043981481481482,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.06128865849414353,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.10921792328042328,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.06124804445986341,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 1.6018411044973544,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.0615563864576962,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.21973090277777776,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-contact",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.061059114759498316,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 5.439006696428572,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.014228686069527674,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 0.2411297123015873,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.013426343983449187,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.0764207175925926,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.013436865590422085,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 2.0408023313492065,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.013835657963220158,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.3111636078042328,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.013389151468461976,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 1.4998338293650795,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.02141361226677886,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 2.694682126322751,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.021115575523939226,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.03471147486772487,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.021190559421820115,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 3.0606072255291004,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.021219624892416546,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.1080406746031746,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-column",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.02146997400900762,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "bilateral",
+      "view": "combined",
+      "stability": 1.2408804563492064,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "bilateral",
+      "view": "mse-vs-reference",
+      "mse": 0.17834097825526707,
+      "config": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "svgf-lite",
+      "view": "combined",
+      "stability": 0.294276207010582,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "svgf-lite",
+      "view": "mse-vs-reference",
+      "mse": 0.17762246808345142,
+      "config": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "svgf",
+      "view": "combined",
+      "stability": 0.23958374669312169,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "svgf",
+      "view": "mse-vs-reference",
+      "mse": 0.17787630446276734,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "ssrt3-guides",
+      "view": "combined",
+      "stability": 0.7583308531746031,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "ssrt3-guides",
+      "view": "mse-vs-reference",
+      "mse": 0.1780126650772427,
+      "config": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "mathis",
+      "view": "combined",
+      "stability": 0.32193080357142856,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "Z-zoo",
+      "stack": "mathis",
+      "view": "mse-vs-reference",
+      "mse": 0.17669436053326315,
+      "config": "{\"stack\":\"mathis\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    }
+  ]
+}

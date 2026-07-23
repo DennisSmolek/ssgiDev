@@ -79,7 +79,6 @@ async function main() {
     settleMs, gapMs, grids: GRID_IDS, stacks: stacksToRun,
     note: 'SVGF-SPEC §4: MSE ranks denoisers against the demo\'s own biased-producer oracle, not unbiased GI — see README caveat.',
     ...(quick ? { quickNote: 'quick smoke run — not a recorded number' } : {}),
-    notRunForRecordedNumbers: true,
   };
   const { jsonPath, mdPath } = writeResults(outName, rows, meta);
   console.log(`[lab14] wrote ${jsonPath}`);

@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T06:09:56.536Z",
+    "baseUrl": "http://localhost:5199/",
+    "settleMs": 6000,
+    "gapMs": 2000,
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell",
+    "m6": "the FSR3 upscaler guides API drops @experimental when this A/B (fsr-guides matches or beats private-guides) passes — see GUIDES-HANDOFF.md.",
+    "reconvergence": {
+      "stacks": [
+        "private-guides",
+        "fsr-guides"
+      ],
+      "camWide": "0,2.4,8.8,0,2.6,0",
+      "camGraze": "1.4,3.6,4.6,0.95,1.3,0.7",
+      "reconvWindowMs": 8000,
+      "captureIntervalMs": 500,
+      "rule": "first k where diff[k] <= threshold AND diff[k+1] <= threshold, threshold = max(still*1.5, still+0.3); reported = frame[k+1].t (real elapsed s).",
+      "note": "ghosting/smear is a visual judgment — reconv frames saved under bench/results/shots/lab17/<stack>/ for human review, not scored here."
+    }
+  },
+  "rows": [
+    {
+      "demo": "17-guides-ab",
+      "stack": "private-guides",
+      "view": "combined",
+      "stability": 2.0649694113756616,
+      "config": "{\"stack\":\"private-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "17-guides-ab",
+      "stack": "private-guides",
+      "view": "guides",
+      "stability": 0,
+      "config": "{\"stack\":\"private-guides\",\"viewMode\":\"guides\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "17-guides-ab",
+      "stack": "fsr-guides",
+      "view": "combined",
+      "stability": 1.4182093253968253,
+      "config": "{\"stack\":\"fsr-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "17-guides-ab",
+      "stack": "fsr-guides",
+      "view": "guides",
+      "stability": 0,
+      "config": "{\"stack\":\"fsr-guides\",\"viewMode\":\"guides\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "17-guides-ab",
+      "stack": "private-guides",
+      "view": "reconv",
+      "stability": 1.3984197255291004,
+      "reconvergeSeconds": 1.275,
+      "reconverged": true,
+      "threshold": 2.0976295882936506,
+      "diffsJson": "[{\"t\":0.619,\"diff\":2.0466},{\"t\":1.275,\"diff\":1.7377},{\"t\":1.931,\"diff\":1.8713},{\"t\":2.59,\"diff\":1.527},{\"t\":3.244,\"diff\":1.7379},{\"t\":3.9,\"diff\":2.3149},{\"t\":4.567,\"diff\":1.744},{\"t\":5.232,\"diff\":1.8764},{\"t\":5.888,\"diff\":1.5262},{\"t\":6.544,\"diff\":1.7318},{\"t\":7.194,\"diff\":1.8571},{\"t\":7.852,\"diff\":1.5245}]",
+      "config": "{\"stack\":\"private-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "17-guides-ab",
+      "stack": "fsr-guides",
+      "view": "reconv",
+      "stability": 1.3984197255291004,
+      "reconvergeSeconds": 1.288,
+      "reconverged": true,
+      "threshold": 2.0976295882936506,
+      "diffsJson": "[{\"t\":0.621,\"diff\":2.0466},{\"t\":1.288,\"diff\":1.7377},{\"t\":1.954,\"diff\":1.8713},{\"t\":2.627,\"diff\":1.527},{\"t\":3.277,\"diff\":1.7379},{\"t\":3.934,\"diff\":1.8607},{\"t\":4.602,\"diff\":1.5272},{\"t\":5.262,\"diff\":1.7418},{\"t\":5.915,\"diff\":1.8724},{\"t\":6.579,\"diff\":1.526},{\"t\":7.245,\"diff\":1.7337},{\"t\":7.898,\"diff\":1.8562}]",
+      "config": "{\"stack\":\"fsr-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"temporalResponse\":0.35,\"denoisingRadius\":0.5,\"temporalOn\":true,\"denoiseOn\":true,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"guidesVelScale\":20,\"compareMode\":\"split\",\"diffAmp\":8}"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "meta": {
-    "commit": "df2e232-dirty",
-    "date": "2026-07-21T09:09:08.083Z",
-    "baseUrl": "http://localhost:5180/",
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T06:26:19.447Z",
+    "baseUrl": "http://localhost:5199/",
     "viewport": "1280x800",
     "cells": "C-wide, S-hall",
     "demos": "01, 02, 03, 04, 05, 06",
@@ -31,7 +31,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "total",
-      "ms": 0.055000000074505805,
+      "ms": 0.05,
       "bursts": 3,
       "iters": 40,
       "config": "{\"aoMode\":\"ssgi\",\"ssrEnabled\":false,\"post\":\"traa\",\"viewMode\":\"final\",\"sliceCount\":2,\"stepCount\":8,\"radius\":12,\"thickness\":1,\"useLinearThickness\":false,\"useScreenSpaceSampling\":true,\"expFactor\":2,\"aoIntensity\":1,\"giIntensity\":10,\"backfaceLighting\":0,\"gtaoRadius\":0.5,\"gtaoThickness\":1,\"gtaoScale\":1,\"gtaoSamples\":16,\"ssrIntensity\":1,\"ssrMaxDistance\":1,\"ssrThickness\":0.1}"
@@ -42,7 +42,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 0.0375,
+      "ms": 0.044999999552965166,
       "bursts": 3,
       "iters": 40,
       "config": "{\"aoMode\":\"ssgi\",\"ssrEnabled\":false,\"post\":\"traa\",\"viewMode\":\"final\",\"sliceCount\":2,\"stepCount\":8,\"radius\":12,\"thickness\":1,\"useLinearThickness\":false,\"useScreenSpaceSampling\":true,\"expFactor\":2,\"aoIntensity\":1,\"giIntensity\":10,\"backfaceLighting\":0,\"gtaoRadius\":0.5,\"gtaoThickness\":1,\"gtaoScale\":1,\"gtaoSamples\":16,\"ssrIntensity\":1,\"ssrMaxDistance\":1,\"ssrThickness\":0.1}"
@@ -53,7 +53,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "accumFrame",
-      "ms": 3.569999999925494,
+      "ms": 3.5625,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"raysPerPixel\":4,\"stepsPerRay\":32,\"radius\":6,\"thickness\":0.5,\"bias\":0.03,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"maxLuminance\":10,\"giStrength\":1,\"giExposure\":2,\"skyIntensity\":0,\"compareMode\":\"split\",\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -64,7 +64,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "total",
-      "ms": 3.5724999997764826,
+      "ms": 3.5775000005960464,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"raysPerPixel\":4,\"stepsPerRay\":32,\"radius\":6,\"thickness\":0.5,\"bias\":0.03,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"maxLuminance\":10,\"giStrength\":1,\"giExposure\":2,\"skyIntensity\":0,\"compareMode\":\"split\",\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -75,7 +75,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "accumFrame",
-      "ms": 5.4625,
+      "ms": 5.494999999552965,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"raysPerPixel\":4,\"stepsPerRay\":32,\"radius\":6,\"thickness\":0.5,\"bias\":0.03,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"maxLuminance\":10,\"giStrength\":1,\"giExposure\":2,\"skyIntensity\":0,\"compareMode\":\"split\",\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -86,7 +86,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 5.502500000223518,
+      "ms": 5.479999999701977,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"raysPerPixel\":4,\"stepsPerRay\":32,\"radius\":6,\"thickness\":0.5,\"bias\":0.03,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"maxLuminance\":10,\"giStrength\":1,\"giExposure\":2,\"skyIntensity\":0,\"compareMode\":\"split\",\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -97,7 +97,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "total",
-      "ms": 2.1449999999254943,
+      "ms": 2.1149999998509883,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -108,7 +108,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 7.134999999776483,
+      "ms": 7.157499999552965,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":4,\"stepCount\":32,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -119,7 +119,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 4.582499999925494,
+      "ms": 4.3574999995529655,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -130,7 +130,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 9.765000000223518,
+      "ms": 9.564999999850988,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"rotationCount\":4,\"stepCount\":32,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"linearThickness\":false,\"multiBounceAO\":false,\"fallbackEnabled\":false,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackSampleCount\":4,\"fallbackNormalization\":true,\"coneMip\":false,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"ssrt3-ema\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
@@ -141,7 +141,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "march",
-      "ms": 4.364999999850989,
+      "ms": 4.375,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -152,7 +152,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "total",
-      "ms": 4.3675000000745055,
+      "ms": 4.382499999552965,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -163,7 +163,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 25.570000000298023,
+      "ms": 23.7,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -174,7 +174,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 23.970000000298022,
+      "ms": 23.659999999403954,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -185,7 +185,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "march",
-      "ms": 5.475,
+      "ms": 5.479999999701977,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -196,7 +196,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 5.610000000149012,
+      "ms": 5.5800000004470345,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -207,7 +207,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 31.629999999701976,
+      "ms": 29.5,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -218,7 +218,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 32.1,
+      "ms": 30.12000000178814,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"falloff\":0,\"acosApprox\":true,\"importanceSampling\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"diffAmp\":8}"
@@ -229,17 +229,6 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "march",
-      "ms": 5.984999999776482,
-      "bursts": 3,
-      "iters": 40,
-      "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
-    },
-    {
-      "demo": "05",
-      "cell": "C-wide",
-      "scene": "cornell",
-      "cfg": "default",
-      "pass": "total",
       "ms": 6.004999999701977,
       "bursts": 3,
       "iters": 40,
@@ -249,9 +238,20 @@
       "demo": "05",
       "cell": "C-wide",
       "scene": "cornell",
+      "cfg": "default",
+      "pass": "total",
+      "ms": 5.982500000298023,
+      "bursts": 3,
+      "iters": 40,
+      "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "05",
+      "cell": "C-wide",
+      "scene": "cornell",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 33.459999999403955,
+      "ms": 33.26000000238419,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -262,7 +262,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 33.959999999403955,
+      "ms": 32.690000000596044,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -273,7 +273,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "march",
-      "ms": 8.397499999776482,
+      "ms": 7.8925000004470345,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -284,7 +284,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 8.417500000074506,
+      "ms": 7.8900000005960464,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":2,\"stepsPerSlice\":32,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -295,7 +295,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 50.62999999970198,
+      "ms": 45.97999999821186,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -306,7 +306,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 45.730000001192096,
+      "ms": 42.66999999880791,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"variant\":\"bidirectional\",\"slicesPerFrame\":4,\"stepsPerSlice\":64,\"marchWidthPx\":512,\"thickness\":0.5,\"bias\":0.03,\"fireflyClamp\":10,\"giStrength\":1,\"giExposure\":2,\"acosApprox\":true,\"importanceSampling\":true,\"backfaceReject\":true,\"thicknessNormalize\":false,\"accumulate\":true,\"jitterAA\":false,\"maxAccumFrames\":512,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"rgb\",\"diffAmp\":8}"
@@ -317,7 +317,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "source",
-      "ms": 0.0375,
+      "ms": 0.052500000596046446,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -328,7 +328,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "march",
-      "ms": 13.554999999701977,
+      "ms": 10.802499999850989,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -339,7 +339,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "accum",
-      "ms": 0.4549999997019768,
+      "ms": 0.4375,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -350,7 +350,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "gcopy",
-      "ms": 0.04750000014901161,
+      "ms": 0.039999999850988385,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -361,7 +361,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "compose",
-      "ms": 0.04500000029802322,
+      "ms": 0.044999999552965166,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -372,7 +372,7 @@
       "scene": "cornell",
       "cfg": "default",
       "pass": "total",
-      "ms": 13.677499999850989,
+      "ms": 11.107499999552966,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -383,7 +383,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "source",
-      "ms": 2.5974999997764825,
+      "ms": 2.3225000001490117,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -394,7 +394,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 37.730000001192096,
+      "ms": 31.140000000596046,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -405,7 +405,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "accum",
-      "ms": 2.8550000000745057,
+      "ms": 2.442499999701977,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -416,7 +416,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "gcopy",
-      "ms": 2.735000000149012,
+      "ms": 1.7649999998509884,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -427,7 +427,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "compose",
-      "ms": 2.7100000001490114,
+      "ms": 2.3149999998509885,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -438,7 +438,7 @@
       "scene": "cornell",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 37.229999999701974,
+      "ms": 31.77000000178814,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -449,7 +449,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "source",
-      "ms": 2.3099999997764824,
+      "ms": 2.0549999997019768,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -460,7 +460,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "march",
-      "ms": 31.709999999403955,
+      "ms": 27.409999999403954,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -471,7 +471,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "accum",
-      "ms": 2.6599999997764825,
+      "ms": 2.2625,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -482,7 +482,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "gcopy",
-      "ms": 2.4900000002235174,
+      "ms": 1.5575000002980233,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -493,7 +493,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "compose",
-      "ms": 2.444999999925494,
+      "ms": 2.044999999552965,
       "bursts": 3,
       "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -504,7 +504,7 @@
       "scene": "sponza",
       "cfg": "default",
       "pass": "total",
-      "ms": 32.59000000059605,
+      "ms": 27.660000002384187,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":4,\"steps\":32,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -515,9 +515,9 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "source",
-      "ms": 20.240000000596048,
+      "ms": 4.257499999552965,
       "bursts": 3,
-      "iters": 10,
+      "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
     },
     {
@@ -526,7 +526,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "march",
-      "ms": 69.72000000029803,
+      "ms": 58.06999999880791,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -537,7 +537,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "accum",
-      "ms": 21.269999998807908,
+      "ms": 17.159999999403954,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
@@ -548,9 +548,9 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "gcopy",
-      "ms": 21.05,
+      "ms": 4.229999999701977,
       "bursts": 3,
-      "iters": 10,
+      "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
     },
     {
@@ -559,9 +559,9 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "compose",
-      "ms": 21.130000001192094,
+      "ms": 4.275,
       "bursts": 3,
-      "iters": 10,
+      "iters": 40,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"
     },
     {
@@ -570,7 +570,7 @@
       "scene": "sponza",
       "cfg": "heavy",
       "pass": "total",
-      "ms": 78.1,
+      "ms": 57.85,
       "bursts": 3,
       "iters": 10,
       "config": "{\"viewMode\":\"combined\",\"slices\":8,\"steps\":64,\"thickness\":0.06,\"bias\":0.002,\"giStrength\":1,\"maxLuminance\":8,\"stepScale\":0.15,\"thicknessFalloff\":0.07,\"multibounce\":true,\"feedback\":0.5,\"reproject\":\"static\",\"jitterAA\":false,\"bilateralScale\":1,\"countCap\":64,\"depthThresh\":0.1,\"normalThresh\":0.9,\"aoStrength\":0.5,\"giExposure\":2,\"compareMode\":\"split\",\"diffAmp\":8}"

@@ -1,8 +1,8 @@
 {
   "meta": {
-    "commit": "df2e232-dirty",
-    "date": "2026-07-21T09:31:52.192Z",
-    "baseUrl": "http://localhost:5180/",
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T06:55:15.179Z",
+    "baseUrl": "http://localhost:5199/",
     "viewport": "1280x800",
     "bursts": 3,
     "itersPerBurst": 40,
@@ -12,20 +12,20 @@
     "demo03Reference": {
       "source": "bench/results/trackB-budget.json (total ms, default cfg) + trackA-quality.json (combined-vs-oracle MSE)",
       "total_ms": {
-        "C-wide": 2.1449999999254943,
-        "S-hall": 4.582499999925494
+        "C-wide": 2.1149999998509883,
+        "S-hall": 4.3574999995529655
       },
       "mse": {
-        "C-wide": 0.06766196174554742,
-        "C-graze": 0.09652668143493016,
-        "C-contact": 0.06111794819318111,
-        "S-hall": 0.014503088460301641,
-        "S-column": 0.018267136437870563,
-        "Z-zoo": 0.1148677790924217
+        "C-wide": 0.06762909825338172,
+        "C-graze": 0.09633445021511515,
+        "C-contact": 0.06098624997197295,
+        "S-hall": 0.014493316545907802,
+        "S-column": 0.01821604947803201,
+        "Z-zoo": 0.11485168027181311
       },
       "stability_framecount": 0.31,
-      "commitBudget": "df2e232-dirty",
-      "commitQuality": "df2e232-dirty"
+      "commitBudget": "4118871-dirty",
+      "commitQuality": "4118871-dirty"
     },
     "acceptanceTargets": {
       "total": "total(half) ≤ demo 03 total at the same cell",
@@ -40,39 +40,39 @@
     {
       "cell": "C-wide",
       "scene": "cornell",
-      "total_half_ms": 1.2475000001490115,
-      "total_full_ms": 3.1599999997764825,
-      "march_half_ms": 0.6875,
-      "chain_half_ms": 0.875,
-      "demo03_total_ms": 2.1449999999254943,
+      "total_half_ms": 1.2150000005960464,
+      "total_full_ms": 3.120000000298023,
+      "march_half_ms": 0.6625,
+      "chain_half_ms": 0.8575000002980232,
+      "demo03_total_ms": 2.1149999998509883,
       "pass_total": true,
-      "mse_vs_ref": 0.06621340453486478,
-      "demo03_mse": 0.06766196174554742,
+      "mse_vs_ref": 0.06618266920514733,
+      "demo03_mse": 0.06762909825338172,
       "pass_mse": true,
-      "stability": 0.35528852513227516,
-      "demo03_stability": 0.30582919973544975,
+      "stability": 0.3548077876984127,
+      "demo03_stability": 0.3047904265873016,
       "pass_stability": true,
-      "bent_diff_mean255": 140.03943328373015,
-      "bent_diff_deg": 24.712841167717084,
+      "bent_diff_mean255": 137.51719866071429,
+      "bent_diff_deg": 24.26774094012605,
       "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
     },
     {
       "cell": "S-hall",
       "scene": "sponza",
-      "total_half_ms": 1.6525000002235175,
-      "total_full_ms": 4.45,
-      "march_half_ms": 0.8574999999254942,
-      "chain_half_ms": 1.0649999998509885,
-      "demo03_total_ms": 4.582499999925494,
+      "total_half_ms": 1.6174999997019768,
+      "total_full_ms": 4.317499999701977,
+      "march_half_ms": 0.8299999997019768,
+      "chain_half_ms": 1.0475000001490116,
+      "demo03_total_ms": 4.3574999995529655,
       "pass_total": true,
-      "mse_vs_ref": 0.014304411497684239,
-      "demo03_mse": 0.014503088460301641,
+      "mse_vs_ref": 0.014285885992892851,
+      "demo03_mse": 0.014493316545907802,
       "pass_mse": true,
-      "stability": 0.4589918154761905,
-      "demo03_stability": 0.4241604662698413,
+      "stability": 0.4941273974867725,
+      "demo03_stability": 0.41999545304232805,
       "pass_stability": true,
-      "bent_diff_mean255": 184.6892894345238,
-      "bent_diff_deg": 32.592227547268905,
+      "bent_diff_mean255": 185.6995920138889,
+      "bent_diff_deg": 32.7705162377451,
       "config": "{\"viewMode\":\"reference\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":8,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":2,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
     }
   ]

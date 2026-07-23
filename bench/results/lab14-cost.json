@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "commit": "4118871-dirty",
+    "date": "2026-07-23T07:00:48.138Z",
+    "baseUrl": "http://localhost:5199/",
+    "hook": "__svgf14bench (fenced compute-only: producer + guides-if-needed + arm)",
+    "method": "min of 3x40 bursts",
+    "h5": "SVGF-SPEC §3 H5: svgf msPerIter <= ~2x bilateral msPerIter (same cell/config)"
+  },
+  "rows": [
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "bilateral",
+      "config": "default",
+      "msPerIter": 1.145,
+      "msDeltaVsBilateral": 0,
+      "ratioVsBilateral": 1,
+      "exported": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf-lite",
+      "config": "default",
+      "msPerIter": 1.885,
+      "msDeltaVsBilateral": 0.74,
+      "ratioVsBilateral": 1.646,
+      "exported": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf",
+      "config": "default",
+      "msPerIter": 3.2125,
+      "msDeltaVsBilateral": 2.0675,
+      "ratioVsBilateral": 2.806,
+      "exported": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "ssrt3-guides",
+      "config": "default",
+      "msPerIter": 1.345,
+      "msDeltaVsBilateral": 0.2,
+      "ratioVsBilateral": 1.175,
+      "exported": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "bilateral",
+      "config": "K2",
+      "msPerIter": 1.1625,
+      "msDeltaVsBilateral": 0,
+      "ratioVsBilateral": 1,
+      "exported": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf-lite",
+      "config": "K2",
+      "msPerIter": 1.9125,
+      "msDeltaVsBilateral": 0.75,
+      "ratioVsBilateral": 1.645,
+      "exported": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "svgf",
+      "config": "K2",
+      "msPerIter": 2.39,
+      "msDeltaVsBilateral": 1.2275,
+      "ratioVsBilateral": 2.056,
+      "exported": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "C-wide",
+      "stack": "ssrt3-guides",
+      "config": "K2",
+      "msPerIter": 1.35,
+      "msDeltaVsBilateral": 0.1875,
+      "ratioVsBilateral": 1.161,
+      "exported": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "bilateral",
+      "config": "default",
+      "msPerIter": 2.1975,
+      "msDeltaVsBilateral": 0,
+      "ratioVsBilateral": 1,
+      "exported": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf-lite",
+      "config": "default",
+      "msPerIter": 3.1025,
+      "msDeltaVsBilateral": 0.905,
+      "ratioVsBilateral": 1.412,
+      "exported": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf",
+      "config": "default",
+      "msPerIter": 5.2275,
+      "msDeltaVsBilateral": 3.03,
+      "ratioVsBilateral": 2.379,
+      "exported": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "ssrt3-guides",
+      "config": "default",
+      "msPerIter": 2.4125,
+      "msDeltaVsBilateral": 0.215,
+      "ratioVsBilateral": 1.098,
+      "exported": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "bilateral",
+      "config": "K2",
+      "msPerIter": 2.315,
+      "msDeltaVsBilateral": 0,
+      "ratioVsBilateral": 1,
+      "exported": "{\"stack\":\"bilateral\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf-lite",
+      "config": "K2",
+      "msPerIter": 3.0775,
+      "msDeltaVsBilateral": 0.7625,
+      "ratioVsBilateral": 1.329,
+      "exported": "{\"stack\":\"svgf-lite\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "svgf",
+      "config": "K2",
+      "msPerIter": 4,
+      "msDeltaVsBilateral": 1.685,
+      "ratioVsBilateral": 1.728,
+      "exported": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    },
+    {
+      "demo": "14-svgf",
+      "grid": "S-hall",
+      "stack": "ssrt3-guides",
+      "config": "K2",
+      "msPerIter": 2.44,
+      "msDeltaVsBilateral": 0.125,
+      "ratioVsBilateral": 1.054,
+      "exported": "{\"stack\":\"ssrt3-guides\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":2,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    }
+  ]
+}
