@@ -39,9 +39,13 @@ start timing from the reset.
 
 The core experiment behind the demo-03 vs downstream discrepancy.
 
+Load-and-view only — touch NOTHING except the stack/mode selector, for every
+row including demo 03 (the tuned demo-03 reference belongs to H-2, not here).
+The only interaction is the single extreme-knob probe at the END of each
+stack's observation.
+
 For each (demo, stack) in:
-- demo 03 — accumMode `frame-count` (the known-clean reference: tune it clean
-  first, note the settings)
+- demo 03 — accumMode `frame-count` (expected CLEAN reference)
 - demo 03 — accumMode `ssrt3-ema`
 - demo 10 — `ssrt3`, `ssrt3-guides`, `mathis`, `xegtao`
 - demo 17 — `private-guides`, `fsr-guides`
@@ -49,10 +53,14 @@ For each (demo, stack) in:
 - demo 12 — default
 
 Protocol: cornell C-wide pose. Reset history. Sit perfectly still 30 s.
-Watch a mid-tone flat surface (floor center) and a dark corner (under the
-tall box). Verdict per stack: CLEAN / FLOOR / DIVERGES + seconds-to-clean
-(or "never" = FLOOR). Then take the noisiest knob (temporalResponse / alpha /
-alphaMin) to its extreme and record whether the floor MOVES or VANISHES.
+Watch where the indirect share of light is highest — that's where SSGI noise
+lives (Dennis, 2026-07-24): the **shadowed side faces of both boxes** (lit
+almost entirely by wall/floor bounce, with light/dark interplay), and the
+**shadow interiors + penumbrae** on the floor. Do NOT judge by the directly
+lit floor center — direct light masks producer noise there. Verdict per
+stack: CLEAN / FLOOR / DIVERGES + seconds-to-clean (or "never" = FLOOR).
+Then take the noisiest knob (temporalResponse / alpha / alphaMin) to its
+extreme and record whether the floor MOVES or VANISHES.
 
 Expected mechanism (verify, don't assume): count-based accumulators (03
 frame-count, mathis, svgf's 1/N) should reach CLEAN; fixed-EMA stacks should
