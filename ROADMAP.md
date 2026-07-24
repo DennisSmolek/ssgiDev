@@ -45,9 +45,13 @@ worked now.
 
 Decisions only human eyes can make, per the human-over-metrics protocol:
 
-1. **Demo 18 verdict** — does oneOverN + jitter + bluenoise actually
-   converge to visually-zero on stills; do edges anti-alias; is the
-   spatialFallback ramp acceptable after camera moves.
+1. **Demo 18 verdict** — steps: `HUMAN-TESTS.md` Experiment F. Partial
+   (2026-07-24 verbal): still camera CLEAN ("looks amazing"); rotation
+   GHOSTS severely with persistent artifacts — the unclamped-1/N stale-
+   shading trade, which makes the F4 jitterClamp A/B and the
+   variance-clipping experiment (EXPERIMENTS.md A1) the deciding items.
+   **Graduation cannot be bare oneOverN** — ship needs a motion-adaptive
+   history rectifier on top.
 2. **Noise default** — ign vs bluenoise in demo 12 (flip = recorded
    distillation decision + re-baseline).
 3. **Demo 10 `guidesHistoryCap` dead-knob check** (pre-registered

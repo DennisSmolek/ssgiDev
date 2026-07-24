@@ -141,3 +141,51 @@ alphaMin verdict, noiseinject comparison in a sentence.
 ## Anything else
 Free findings section in the log: dead knobs, "this looks broken,"
 surprises. One line each is plenty.
+
+## Experiment F — demo 18: the α=1/N + jitter candidate (added 2026-07-24)
+
+Page: `?demo=18-temporal&cam=0,2.4,8.8,0,2.6,0`. All controls are in the
+**temporal & denoise** group. Defaults = the candidate arm:
+[accumulation] `oneOverN`, [AA] `jitter`, bluenoise, [denoising] OFF.
+
+Your 2026-07-24 verbal report already answered F1 (still: "looks amazing")
+and half of F4 (rotation: heavy ghosting, artifacts persist). The
+remaining steps below are the ones that still change decisions.
+
+**Why the ghosting happens (so F4 makes sense):** `oneOverN` keeps
+UNCLAMPED history with uncapped age — that's exactly why stills converge
+to zero. But GI is screen-space and view-dependent: when you rotate, the
+bounce lighting *itself* changes, and a pixel with age N=1000 blends the
+new correct shading in at 1/1000 per frame. Nothing rejects the stale
+history because the *geometry* still reprojects correctly — only the
+shading is wrong. Ghosts that "stay visible" are stale history draining
+at 1/N. This is the known, measured trade of the unclamped arm, not a
+broken build — and the A/B in F4 exists to see the other side of the
+trade.
+
+1. **F1 — still convergence (done, formalize the row):** defaults, hands
+   off, 60 s. Verdict word + secs-to-clean in the log.
+2. **F2 — edge AA:** after it settles, look at the box top edges and
+   corners (the "terrible aliasing" you flagged in 12). Smooth now? Then
+   set [AA] `off`, wait ~10 s — edges should re-alias while noise stays
+   converged. Back to `jitter`. Write: does jitter visibly fix the edges?
+3. **F3 — see the old floor (the root-cause A/B):** [accumulation]
+   `capped`, wait 30 s — this is demo 12's shipped behavior; the grain
+   should crawl forever (FLOOR-live). Back to `oneOverN` — the grain
+   should drain away completely. This one A/B is the whole diagnosis.
+4. **F4 — the motion trade (MOST NEEDED):** rotate the camera the same
+   way that ghosted, then set [AA] `jitterClamp` and rotate the SAME way.
+   Expected: ghost trails mostly gone (the clamp forcibly evicts stale
+   history), but live grain returns in the shadowed faces — measured at
+   ~2× the capped floor. Write TWO lines: (a) does jitterClamp kill the
+   ghosting in motion? (b) how bad is its standing grain on stills vs
+   `oneOverN`? This decides whether ship needs a motion-adaptive clamp
+   (the variance-clipping experiment, EXPERIMENTS.md A1).
+5. **F5 — recovery ramp:** from defaults, rotate then stop dead. Count
+   seconds until the shadowed faces look clean. Then [spatial fallback]
+   OFF and repeat — is the ramp visibly uglier (raw boil) without it?
+   Then try [fallback nMin] 8 → 32 — does the hand-off get smoother?
+6. **F6 (optional) — capped ladder:** [accumulation] `capped`,
+   [accumFrameCap] 64 → 256 → 1024, ~20 s each. Does the standing grain
+   visibly drop as the cap rises (it should — floor ~ 1/√cap), and is
+   1024 "clean enough" to your eye?

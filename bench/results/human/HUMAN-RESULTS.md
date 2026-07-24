@@ -77,3 +77,10 @@ Session header: `date "+%Y-%m-%d" && git rev-parse --short HEAD`
 ---
 
 <!-- Sessions append below this line -->
+
+## Session 2 — 2026-07-24 (verbal report, logged by Claude; formal rows pending)
+
+| demo | mode | cam | verdict | note |
+| ---- | ---- | --- | ------- | ---- |
+| 18 | oneOverN+jitter, still | (Dennis's pose) | CLEAN (verbal) | "When loaded or when turning temporal on/off it looks amazing." Formal row + secs-to-clean pending (HUMAN-TESTS Experiment F1). |
+| 18 | oneOverN+jitter, rotating | box interior pose | GHOSTS (severe) | "Ghosts like crazy and the artifacts stay visible." Screenshot saved in session. Expected trade of unclamped 1/N history (stale view-dependent GI drains at 1/N); the F4 jitterClamp A/B is the follow-up. |

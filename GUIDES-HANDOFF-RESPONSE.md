@@ -239,36 +239,48 @@ edge pixels every frame → exactly the observed `Disocclusion`-view
 silhouette flicker and rolling `AccumulationAge`, at every ratio including
 NativeAA. That's where we'd look first.
 
-### Research package (2026-07-24) — FSR2 reference material for the depth suspect
+### Research package (2026-07-24) — FSR2 reference material, for cross-reference only
 
-A temporal/TAA research pass just landed in our repo at
-`research/sources/temporal/` (index: `00-INDEX.md`, summary: `HANDOFF.md`).
-Three files are directly relevant to your side and quote the upstream FSR2
-source verbatim:
+A temporal/TAA research pass landed in our repo at
+`research/sources/temporal/` (index: `00-INDEX.md`). Topics `02`/`05`/`08`
+quote upstream `ffx_fsr2` depth-clip / reconstruct-dilate / accumulate-lock
+source verbatim. We initially flagged these as a debugging lead for Report
+3; having since read your `PARITY.md` §1 and `reconstruct.ts` directly, we
+withdraw that as a *lead* — your fused-gather depth path is a documented,
+deliberate perf trade (+30%/+22% saved vs the source-style scatter) with
+explicit jitter-delta compensation (`reconstruct.ts:111`), and you already
+work from the full FSR research base. The extracts stand only as a
+convenient cross-reference (e.g. the still-open A/B question your own
+`PAPER-NOTES.md:57-59` records: does the repaired gather match the
+scatter's mask exactly, or only its stability?).
 
-- **`02-disocclusion-history-rejection.md`** — FSR2's depth-clip test from
-  `ffx_fsr2_depth_clip.h`, verbatim: the view-space required-separation
-  test (`Ksep = 1.37e-05`, FOV-compensated, resolution-scaled `pow`),
-  evaluated against **reconstructed previous depth**, producing a soft
-  `depthClipFactor ∈ [0,1]` rather than a hard reject. This is upstream
-  FSR2's answer to exactly the jittered-depth problem named above: it
-  never compares raw current-vs-previous depth.
-- **`05-velocity-dilation.md`** — the "reconstruct & dilate" pass
-  (`ffx_fsr2_reconstruct_previous_depth.h`): 3×3 closest-depth
-  depth/MV dilation + atomic forward reprojection of depth. Caveat flagged
-  in the file: the pass body is manual-sourced (the raw mirror wouldn't
-  render), so check the GitHub blob for the byte-exact loop.
-- **`08-taa-upscaling-rectification.md`** — `ffx_fsr2_accumulate.h` /
-  `ffx_fsr2_lock.h` verbatim: `RectifyHistory` box scaling (disocclusion/
-  velocity/reactivity tighten, locks/luma-instability loosen),
-  thin-feature locks, 4-frame luma-instability history, base accumulation
-  weights.
+### Consumer re-verification of your Report-3 fix (2026-07-24, after fsr3 `a9d9bcf`)
 
-The concrete debugging lead this gives: if your disocclusion path
-simplified or skipped the reconstructed-previous-depth stage (or feeds it
-non-dilated depth/velocity), the depth comparison degenerates to raw
-jittered depths at silhouettes — which reproduces your Report-3 symptom
-set (silhouette `Disocclusion` flicker, rolling `AccumulationAge`,
-non-convergence at every ratio including NativeAA). Comparing your
-depth-clip stage against the `02`/`05` extracts is probably the fastest
-route to the defect.
+We re-probed demo 16 from our side against your "CONFIRMED, RESOLVED"
+response (your `GUIDES-HANDOFF-RESPONSE.md:218-252`), consuming your
+source live via the vite alias. Method: still camera (cornell C-wide),
+churn = mean abs diff of consecutive 1 s screenshots over 12 s — same
+probe as our demo-18 measurements. Unrecorded verification, quiet GPU.
+
+- **Confirmed improved:** interval lows now reach **0.13–0.15** at ratio 2
+  and **0.135** at NativeAA — below your pre-fix sustained 0.19–0.76 band.
+  The disocclusion-driven floor is visibly gone at the lows.
+- **Not yet converged:** both arms show recurring **whole-image spikes to
+  ~0.66–1.29** on a perfectly still camera, no periodicity we could pin at
+  1 s sampling:
+  - `temporal ratio 2`: `1.251 1.289 0.159 0.222 1.281 1.263 1.263 0.875 0.135 0.131 0.664 0.151`
+  - `temporal ratio 1 (NativeAA)`: `0.894 0.308 0.686 0.822 0.317 0.358 1.263 0.202 0.662 0.135 0.749 0.213`
+- **Control (same machine, same minute, same probe):** demo 18
+  `oneOverN+jitter` fell monotonically
+  `0.651 → 0.088` with zero spikes — so this is not GPU contention or
+  probe noise.
+
+The spike magnitude (~1.2 ≈ our raw-producer churn scale, image-wide)
+suggests a *global* periodic event rather than per-pixel residue. First
+suspect from our read of your code: **auto-exposure** — `autoExposure`
+defaults `true` (`Upscaler.ts:118`) and our demo 16 never pins it, and our
+SSGI producer's residual noise feeding the luminance pyramid could
+plausibly oscillate it. Other candidates: lock lifetime expiry waves,
+luma-instability re-injection. A one-line `autoExposure: false` A/B on
+your side (or tell us to pin it consumer-side) would isolate the first
+suspect fast. Repro: `?demo=16&path=temporal&ratio=2`, still camera.

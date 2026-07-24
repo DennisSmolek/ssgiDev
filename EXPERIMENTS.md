@@ -12,13 +12,23 @@ Companion to `ROADMAP.md` (phases/ordering live there; this is the
 experiment catalog). FSR-boundary analysis at the bottom decides which of
 these belong to us vs the FSR3 library team.
 
+**Bench discipline (Dennis, 2026-07-24): one question per demo.** No
+super-benches accumulating features and tests. Each experiment below gets
+its **own demo, forked from the simplest relevant parent**, answering one
+question; when answered, it freezes and keeps its history/thread. Demo 18
+stays as-built (accumulation-mode question) — new arms below do NOT get
+piled into it. Demo numbers are assigned at build time; "home" below names
+the parent to fork.
+
 ---
 
-## Track A — demo 18 arms (temporal lab, extends `18-temporal`)
+## Track A — temporal mechanics (each its own fork of demo 18's skeleton)
 
 ### A1. Variance clipping (research 01) — PRIORITY 1
 
-- **Build:** new clamp mode alongside `jitterClamp`: 3×3 moments in YCoCg
+- **Home:** own demo, forked from 18 stripped to two arms (`oneOverN` vs
+  `varianceClip`).
+- **Build:** 3×3 moments in YCoCg
   (`μ = m1/9`, `σ = sqrt(max(m2/9 − μ², 0))` — the `max(,0)` is a hard NaN
   guard, a NaN poisons the accumulator forever), box `μ ± 1.0·σ` clamped
   against the raw min/max box (Salvi), history **clamp-then-clip-toward-
@@ -40,7 +50,8 @@ these belong to us vs the FSR3 library team.
 
 ### A2. Jitter-aware disocclusion (research 02) — PRIORITY 1
 
-- **Build:** replace demo 18's ad-hoc widened world-delta threshold (0.35)
+- **Home:** own demo, forked from 18's `oneOverN+jitter` arm only.
+- **Build:** replace the ad-hoc widened world-delta threshold (0.35)
   with SVGF's gradient-scaled depth weight:
   `w_z = exp(−|z(p)−z(q)| / (σ_z·|∇z(p)·(p−q)| + ε))`, σ_z ≈ 1, ∇z via
   finite differences in compute. Optionally a second arm with FSR2's
@@ -55,6 +66,8 @@ these belong to us vs the FSR3 library team.
 
 ### A3. Catmull-Rom history resampling (research 04) — PRIORITY 2
 
+- **Home:** folds into A1's demo if built together (both are history-fetch
+  concerns), else its own fork.
 - **Build:** toggle on the history fetch: 5-tap corner-skipped Catmull-Rom
   (MJP weights `w0..w3`, `w12`, `offset12`; Bevy has the WGSL). Needs a
   linear sampler for history taps, nearest for everything else.
@@ -87,9 +100,10 @@ these belong to us vs the FSR3 library team.
 - **Build:** grab NVIDIA-RTX/STBN pregenerated textures
   (`Assets/STBN.zip`, 128×128×64), load as `texture_2d_array`, sample
   **`textureLoad` nearest only** (linear filtering destroys the spectrum),
-  `layer = frame % 64`. Third noise mode in demo 18 (or a small
-  lab-11-successor battery): independent-BN vs our golden-ratio tile cycle
-  vs true STBN.
+  `layer = frame % 64`. **Home:** own demo — a small lab-11-successor
+  battery forked from 12's producer path: independent-BN vs our
+  golden-ratio tile cycle vs true STBN. (Not a demo-18 arm — one question
+  per demo.)
 - **Hypothesis:** deliberately none on magnitude — the literature is
   qualitative ("substantially faster"), and the research pass explicitly
   flags: **do not cite a convergence multiplier, measure it**. Direction:
@@ -168,19 +182,23 @@ their experiments.
 
 ## Track F — settle-time denoiser (research 11)
 
-### F1. OIDN-on-WebGPU settle pass — PRIORITY 3, fun
+### F1. Single U-Net settle pass — PRIORITY 3, testbench candidate
 
-- **Fact check from the research:** the "OIDN port is very slow" premise
-  is out of date — **DennisSmolek/Denoiser** (yes, yours) is now
-  WebGPU + onnxruntime-web, zero-copy, fp16: ~14 ms at 512², ~104 ms warm
-  at 1080p. Not per-frame material, but exactly right as a
-  **settle pass**: temporal stack in motion, one U-Net pass (albedo+normal
-  guided) when the camera stops, cross-fade as 1/N catches up.
-- **Build:** experiment demo (`20-settle` or a demo-18 toggle): detect
-  settle → run Denoiser once → display denoised frame while accumulation
-  converges beneath → fade back.
-- **Judge:** eyes only — does the stop-moment transition read as "snaps
-  clean" or as a visible filter pop.
+- **Correction from Dennis (2026-07-24, supersedes research topic 11's
+  read):** the current state of the art here is **pmndrs/denoiser** (his
+  work, vastly improved from the personal DennisSmolek/Denoiser repo the
+  research cited). Two caveats from him: it tends to prefer **fully
+  path-traced input** (our SSGI single-bounce output is off its expected
+  distribution), and even at best speed it takes **multiple ms for
+  moderate quality** — so per-frame is out, and even settle-pass quality
+  on SSGI input is an open question, not an assumption.
+- **Build (per Dennis: "worth building a testbench for"):** own small
+  demo: detect settle → run one U-Net pass (albedo+normal guided) on the
+  accumulated-but-young frame → display while 1/N converges beneath →
+  fade back. First question the testbench must answer: does the net do
+  anything useful on SSGI-distribution input at all.
+- **Judge:** eyes — does the stop-moment transition read as "snaps clean"
+  or as a visible filter pop / hallucinated detail.
 - The 512-weight N8AO-style micro-net stays parked (P4): research verdict
   is that small-neural has lower ROI than SVGF/A-SVGF/OIDN on a
   no-tensor-core target until WebGPU ships cooperative-matrix.
@@ -208,27 +226,36 @@ So the split:
 
 | Ours (bench) | Theirs (FSR3 lib) |
 |---|---|
-| A1 variance clipping, A2 disocclusion, A3 resampling, A4 firefly, B1 STBN, C1 A-SVGF, D1 dilation, E1/E2 metrics, F1 settle | Report-3 defect fix; their own rectification/locks/dilated-velocity internals (research 02/05/08 hand them the FSR2 reference verbatim) |
+| A1 variance clipping, A2 disocclusion, A3 resampling, A4 firefly, B1 STBN, C1 A-SVGF, D1 dilation, E1/E2 metrics, F1 settle | Their depth/rectification internals — Report-3 residue included |
 
-Two boundary consequences:
+Status update (2026-07-24, from reading their repo directly + our probe):
 
-1. **We keep building our own accumulator** (demo 18 line) even though FSR
+1. **Their Report-3 fix landed** (fsr3 `a9d9bcf`, "max-vote" disocclusion
+   aggregation; their side marks it CONFIRMED/RESOLVED). Our consumer
+   re-probe of demo 16 partially confirms: interval lows dropped to
+   0.13–0.15 (below the old 0.19–0.76 band), but **recurring whole-image
+   spikes ~0.66–1.29 remain on a still camera** at both ratio 2 and
+   NativeAA, against a clean demo-18 control. Top suspect: unpinned
+   auto-exposure (their default `autoExposure: true`). Findings + curves
+   recorded in `GUIDES-HANDOFF-RESPONSE.md`. **Demo 16 non-convergence
+   stays on the open-issues list** until the spikes are explained.
+2. **The FSR2 research extracts are cross-reference, not a lead** —
+   their model works from the full FSR research base, and their fused
+   gather-instead-of-atomic-scatter depth path is a documented perf trade
+   (their `PARITY.md` §1: +30%/+22% saved) with explicit jitter-delta
+   compensation. Withdrawn as a debugging lead in the handoff doc.
+3. **We keep building our own accumulator** (demo 18 line) even though FSR
    overlaps it: ours is the no-upscale/still-camera champion (true 1/N
-   convergence, which rectifying accumulators structurally can't do), it's
-   our testbed for A1–A4, and it's the fallback while their Report-3
-   defect stands. Re-judge "our accumulator vs their NativeAA as the ship
-   TAA" only **after** their fix, on E1 stress scenes.
-2. **The research package materially helps their defect hunt** — FSR2's
-   own answer to "depth is jittered" is the reconstructed-previous-depth
-   pass + view-space separation test (research 02/05). If their port
-   simplified or skipped that pass, disocclusion compares raw jittered
-   depths → exactly the Report-3 symptoms. Pointer added to
-   `GUIDES-HANDOFF-RESPONSE.md`.
+   convergence, which rectifying accumulators structurally can't do), and
+   it's the testbed for A1–A4. Re-judge "our accumulator vs their
+   NativeAA as the ship TAA" on E1 stress scenes once their still-camera
+   spikes are resolved.
 
 ## Suggested order
 
 1. **B1 STBN** (cheapest, upgrades every stack) and **A1 variance
-   clipping** (the named successor arm) — both in demo 18, one battery.
+   clipping** (the named successor arm) — separate forked demos, can share
+   one quiet-GPU battery.
 2. **A2 disocclusion** (principled test replaces two hacks; also
    cross-checks the FSR defect theory from our side).
 3. **A4 + D1** as P1 graduation prerequisites once P0 eyes confirm.
