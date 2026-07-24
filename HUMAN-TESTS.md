@@ -21,6 +21,18 @@ Reset discipline: before every convergence observation, force a history reset
 (teleport via camera bookmark restore, or toggle the stack away and back) and
 start timing from the reset.
 
+**Two modes — always in this order:**
+1. **Observe at defaults.** Every experiment starts with a verdict at
+   as-shipped settings. This is the row comparable across stacks and against
+   the recorded battery (which ran at defaults). Never skip it to go tuning.
+2. **Tune (only where the experiment says so).** H-2 is full free-tuning
+   ("what CAN this stack look like"); H-1's tuning is a single diagnostic
+   probe (knob to extreme: does the floor MOVE or VANISH — one bit); H-5 is
+   a structured one-knob sweep. H-3/H-4/H-6/H-7 stay at defaults.
+   When tuning, record the config JSON for EVERY row where you touched
+   anything — including failed attempts. "Swept knob X end to end, no visible
+   change" is a dead-knob finding (and a likely wiring bug); write it down.
+
 ---
 
 ## H-1 — Still-camera convergence ladder (the "does noise go away" question)
