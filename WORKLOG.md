@@ -1821,3 +1821,26 @@ C-wide):
   human pass.
 Program note: demo 12 is the "best"/ship-track demo; 13 is the optimization
 instrument on top of it and is exonerated.
+
+## 2026-07-24 — demo 12/13 structured-noise root cause: IGN temporal advance was a coherent translation (Dennis)
+
+Dennis showed demo 12 temporal-off/on: raw noise is horizontally-banded
+(woven) and temporal only fades it — vs demo 03 whose noise averages away.
+Root cause in the distilled chain's noise (adopted from lab 11's "IGN when
+denoising" verdict): `ignTemporal` advanced the pattern by a SCALAR diagonal
+translation (5.588238·frame, the Salm/Jimenez recipe). A coherently
+translating striped pattern does not temporally average to flat — the
+accumulated mean keeps row-coherent bands (IGN's gradient y-coeff is tiny →
+near-horizontal stripes), amplified by the half-res march and 4 channels
+sharing one IGN plane. Lab 11's MSE metric was structurally blind to it
+(low-amplitude coherent structure ≈ no MSE, very visible).
+FIX (ssrt12-main.wgsl + ssrt13-main.wgsl kept byte-matched): per-frame
+hashed 2D Cranley-Patterson offset — IGN's in-frame stratification stays
+(the lab-11 win), each pixel's temporal sequence becomes white, accumulation
+converges. Verified headed at C-graze: banding gone, console clean, residual
+motion unchanged in amplitude (now isotropic; cap raise addresses amplitude).
+NOTE: demo 11's own sampling.wgsl still uses the scalar advance — frozen
+instrument, untouched; lab 11's "IGN best" post-denoise ranking deserves a
+re-check under the fixed advance at a future battery.
+RE-BASELINE FLAG: demo 12 + 13 rows (acceptance, trackA/B/C, demo13-alu) —
+the ship chain's sampling changed; next recorded battery re-records them.

@@ -104,10 +104,18 @@ fn hasFlag(f : u32) -> bool { return (params.flags & f) != 0u; }
 fn ign(p : vec2<f32>) -> f32 {
   return fract(52.9829189 * fract(dot(p, vec2<f32>(0.06711056, 0.00583715))));
 }
-// Temporal advance per Salm/Jimenez: shift uv by 5.588238 * (frame % 64).
+// Temporal advance: hashed per-frame 2D Cranley-Patterson offset.
+// The original scalar-diagonal advance (5.588238 * frame, per Salm/Jimenez)
+// TRANSLATES the IGN pattern coherently; a translating striped pattern does
+// not temporally average to flat — its accumulated mean keeps row-coherent
+// bands (IGN's gradient y-coefficient is tiny → near-horizontal stripes;
+// Dennis spotted the surviving bands 2026-07-24). A white 2D offset per
+// frame keeps IGN's in-frame stratification (the lab-11 win) while making
+// each pixel's temporal sequence white, so accumulation converges it.
 fn ignTemporal(p : vec2<f32>, n : u32) -> f32 {
-  let f = f32(n % 64u);
-  return ign(p + 5.588238 * f);
+  let h = pcg(n * 0x9E3779B9u);
+  let off = vec2<f32>(f32(h & 0xFFFFu), f32(h >> 16u)) * (512.0 / 65536.0);
+  return ign(p + off);
 }
 // white-noise control (PCG hash).
 fn pcg(x : u32) -> u32 {

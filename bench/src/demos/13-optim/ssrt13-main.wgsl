@@ -104,10 +104,15 @@ fn hasFlag(f : u32) -> bool { return (params.flags & f) != 0u; }
 fn ign(p : vec2<f32>) -> f32 {
   return fract(52.9829189 * fract(dot(p, vec2<f32>(0.06711056, 0.00583715))));
 }
-// Temporal advance per Salm/Jimenez: shift uv by 5.588238 * (frame % 64).
+// Temporal advance: hashed per-frame 2D Cranley-Patterson offset — mirrors
+// the demo-12 fix (the scalar-diagonal advance translated the pattern
+// coherently; its accumulated mean kept row-coherent bands). Keep this fork
+// byte-matched to ssrt12-main.wgsl's noise block: variant comparisons must
+// run on the ship chain's actual sampling.
 fn ignTemporal(p : vec2<f32>, n : u32) -> f32 {
-  let f = f32(n % 64u);
-  return ign(p + 5.588238 * f);
+  let h = pcg(n * 0x9E3779B9u);
+  let off = vec2<f32>(f32(h & 0xFFFFu), f32(h >> 16u)) * (512.0 / 65536.0);
+  return ign(p + off);
 }
 // white-noise control (PCG hash).
 fn pcg(x : u32) -> u32 {
