@@ -35,22 +35,28 @@ Get the date+commit for a session header with:
 
 #### H-1 — Still convergence ladder
 
+Column meanings: **verdict** = at defaults, touching nothing.
+**secs-to-clean** = only if that verdict is CLEAN; else "never".
+**probes** = one-at-a-time knob results, written `knob → effect`
+(e.g. `frameCap 4→16 improves, 16→60 negligible, boil never stops`).
+No config column here — probes are transient; if a tuned state is worth
+reproducing exactly, that's an H-2 row (paste its JSON there).
 
-| demo | stack/mode     | cam    | verdict | secs-to-clean | knob probe (moved/vanished) | config   | note |
-| ---- | -------------- | ------ | ------- | ------------- | --------------------------- | -------- | ---- |
-| 03   | frame-count    | C-wide |         |               |                             | defaults |      |
-| 03   | ssrt3-ema      | C-wide |         |               |                             | defaults |      |
-| 10   | ssrt3          | C-wide |         |               |                             | defaults |      |
-| 10   | ssrt3-guides   | C-wide |         |               |                             | defaults |      |
-| 10   | mathis         | C-wide |         |               |                             | defaults |      |
-| 10   | xegtao         | C-wide |         |               |                             | defaults |      |
-| 17   | private-guides | C-wide |         |               |                             | defaults |      |
-| 17   | fsr-guides     | C-wide |         |               |                             | defaults |      |
-| 14   | bilateral      | C-wide |         |               |                             | defaults |      |
-| 14   | svgf-lite      | C-wide |         |               |                             | defaults |      |
-| 14   | svgf           | C-wide |         |               |                             | defaults |      |
-| 14   | ssrt3-guides   | C-wide |         |               |                             | defaults |      |
-| 12   | default        | C-wide |         |               |                             | defaults |      |
+| demo | stack/mode     | cam    | verdict (defaults) | secs-to-clean | probes: knob → effect | note |
+| ---- | -------------- | ------ | ------------------ | ------------- | --------------------- | ---- |
+| 03   | frame-count    | C-wide |                    |               |                       |      |
+| 03   | ssrt3-ema      | C-wide |                    |               |                       |      |
+| 10   | ssrt3          | C-wide |                    |               |                       |      |
+| 10   | ssrt3-guides   | C-wide |                    |               |                       |      |
+| 10   | mathis         | C-wide |                    |               |                       |      |
+| 10   | xegtao         | C-wide |                    |               |                       |      |
+| 17   | private-guides | C-wide |                    |               |                       |      |
+| 17   | fsr-guides     | C-wide |                    |               |                       |      |
+| 14   | bilateral      | C-wide |                    |               |                       |      |
+| 14   | svgf-lite      | C-wide |                    |               |                       |      |
+| 14   | svgf           | C-wide |                    |               |                       |      |
+| 14   | ssrt3-guides   | C-wide |                    |               |                       |      |
+| 12   | default        | C-wide |                    |               |                       |      |
 
 
 
@@ -128,30 +134,24 @@ looks broken", ideas.
 
 ---
 
-
-
 First test:  
 
-
-  
 Session 2026-07-24 @ 8c064c8
-
-
 
 #### H-1 — Still convergence ladder
 
 
-| demo | stack/mode     | cam    | verdict | secs-to-clean | knob probe (moved/vanished) | config   | note |
-| ---- | -------------- | ------ | ------- | ------------- | --------------------------- | -------- | ---- |
-| 03   | frame-count    | C-wide |         |               |                             | defaults |      |
-| 03   | ssrt3-ema      | C-wide |         |               |                             | defaults |      |
-| 10   | ssrt3          | C-wide |         |               |                             | defaults |      |
-| 10   | ssrt3-guides   | C-wide |         |               |                             | defaults |      |
-| 10   | mathis         | C-wide |         |               |                             | defaults |      |
-| 10   | xegtao         | C-wide |         |               |                             | defaults |      |
-| 17   | private-guides | C-wide |         |               |                             | defaults |      |
-| 17   | fsr-guides     | C-wide |         |               |                             | defaults |      |
-| 14   | bilateral      | C-wide |         |               |                             | defaults |      |
-| 14   |                |        |         |               |                             |          |      |
+| demo | stack/mode     | cam    | verdict    | secs-to-clean | knob probe (moved/vanished)         | config   | note                                                                                                                                                                                                                                                                     |
+| ---- | -------------- | ------ | ---------- | ------------- | ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 03   | frame-count    | C-wide | FLOOR-live | Never         | accum-frameCap, denoisingRadius     | defaults | FrameCap had measurable quality changes from 4-16 but 16-60 the differnces were neglegable. The denoising radius had some improvement but even when slight the boiling effect could still be percieved. MUST NOTE: its very high quality visibly. It just never settles. |
+| 03   | ssrt3-ema      | C-wide | FLOOR-Live | Never         | temporalAccumulation, denoiseRadius | defaults | fro 0-0.1 give the most stable response but some motion is always visible. again the radius helps. Similar quality to the other mode.                                                                                                                                    |
+| 10   | ssrt3          | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 10   | ssrt3-guides   | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 10   | mathis         | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 10   | xegtao         | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 17   | private-guides | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 17   | fsr-guides     | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 14   | bilateral      | C-wide |            |               |                                     | defaults |                                                                                                                                                                                                                                                                          |
+| 14   |                |        |            |               |                                     |          |                                                                                                                                                                                                                                                                          |
 
 
