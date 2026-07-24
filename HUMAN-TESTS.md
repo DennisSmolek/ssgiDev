@@ -21,11 +21,23 @@ Reset discipline: before every convergence observation, force a history reset
 (teleport via camera bookmark restore, or toggle the stack away and back) and
 start timing from the reset.
 
-**Verdicts, plain language** (judge after ~30 s of settling, still camera):
+**Verdicts, plain language** (judge after ~30 s of settling, still camera).
+"Settles" = the AMOUNT of noise stops changing; then classify what remains by
+whether it moves:
 - **CLEAN** — you can't see noise anymore; it converged away.
-- **FLOOR** — noise settles to a constant visible level and stays; waiting
-  never helps. Stable but noisy.
-- **DIVERGES** — never settles: boils, flickers, or worsens over time.
+- **FLOOR-static** — visible grain, frozen in place: a screenshot now and one
+  ten seconds later would be identical. Wrong pixels, no motion.
+- **FLOOR-live** — the noise *level* is constant ("solid quality level") but
+  the pattern visibly re-rolls/crawls/shimmers in the region. The fixed-α EMA
+  signature: steady variance, fresh draw every frame.
+- **DIVERGES** — the amount itself never settles: region-scale flicker,
+  boiling, oscillation, worsening.
+
+Metric blind spots this taxonomy covers: the automated stability metric
+(frame diff) sees ONLY FLOOR-live — frozen grain scores a perfect stability
+while looking noisy; MSE sees ONLY static error and is blind to shimmer.
+Eyes are the one instrument that sees both, which is why FLOOR must be
+split in the log.
 
 **Two modes — always in this order:**
 1. **Observe at defaults.** Every experiment starts with a verdict at
