@@ -1,163 +1,143 @@
-# HUMAN-TESTS.md — structured perceptual test protocol
+# HUMAN-TESTS — the perceptual test process (rewrite 2026-07-24)
 
-Why this exists: the automated battery measures stability (2-s screenshot
-diff) and MSE-vs-oracle. MSE is numerically blind to temporal shimmer (~1.5/255
-of noise contributes ~3e-5 to an MSE dominated by ~0.06 of shared bias), and a
-single stability number can't distinguish "noise floor" from "converging
-slowly." Human eyes are the instrument for: does noise actually *go away*,
-does motion shimmer, do textures flicker, does history ghost. This protocol
-makes those observations reproducible and recordable instead of anecdotal.
+Two passes, done separately. Pass 1 you touch nothing. Pass 2 is a guided
+list of specific controls with plain-language explanations. Log rows go in
+[bench/results/human/HUMAN-RESULTS.md](bench/results/human/HUMAN-RESULTS.md).
 
-**Recording convention:** every observation row = (experiment id, demo, scene,
-cam string, exported config JSON via the pane's copy / `__benchParams`, verdict,
-free-text note, date, commit). Append rows to
-`bench/results/human/HUMAN-RESULTS.md`. A verdict is one of:
-**CLEAN** (defect not visible), **FLOOR** (defect visible, stable — doesn't
-grow or shrink), **DIVERGES** (defect grows / flickers), plus optional
-seconds-to-clean for convergence tests. Use the GRID_CAMS poses (TESTING.md)
-so rows line up with the recorded battery cells.
+**Where to look (always):** the shadowed side faces of the two boxes (lit
+only by bounced light — noise shows at full strength there) and the shadow
+edges on the floor. NOT the brightly lit floor center.
 
-Reset discipline: before every convergence observation, force a history reset
-(teleport via camera bookmark restore, or toggle the stack away and back) and
-start timing from the reset.
+**Verdict words:**
+- **CLEAN** — no visible noise after settling.
+- **FLOOR-static** — visible grain but frozen: nothing moves.
+- **FLOOR-live** — quality stops improving but the grain visibly
+  crawls/boils forever.
+- **DIVERGES** — never settles; flickers or worsens.
 
-**Verdicts, plain language** (judge after ~30 s of settling, still camera).
-"Settles" = the AMOUNT of noise stops changing; then classify what remains by
-whether it moves:
-
-- **CLEAN** — you can't see noise anymore; it converged away.
-- **FLOOR-static** — visible grain, frozen in place: a screenshot now and one
-ten seconds later would be identical. Wrong pixels, no motion.
-- **FLOOR-live** — the noise *level* is constant ("solid quality level") but
-the pattern visibly re-rolls/crawls/shimmers in the region. The fixed-α EMA
-signature: steady variance, fresh draw every frame.
-- **DIVERGES** — the amount itself never settles: region-scale flicker,
-boiling, oscillation, worsening.
-
-Metric blind spots this taxonomy covers: the automated stability metric
-(frame diff) sees ONLY FLOOR-live — frozen grain scores a perfect stability
-while looking noisy; MSE sees ONLY static error and is blind to shimmer.
-Eyes are the one instrument that sees both, which is why FLOOR must be
-split in the log.
-
-**The whole process, per stack (simplified 2026-07-24 — the old H-1/H-2
-probe-vs-tune mode split is retired; it confused more than it protected):**
-
-1. Load it. Wait ~30 s. Write the verdict for what you see UNTOUCHED.
-2. Then change anything you want, freely — try to make it look good. In the
-   note: what helped, what did nothing (dead knobs are findings), and
-   whether it EVER fully stopped boiling.
-3. If you land on settings worth keeping, paste the pane's config JSON into
-   the "best configs" table (H-2 section of the log). Only best-states need
-   JSON.
-
-H-5's K-ladder and H-6's σ-ladder are the only places with a prescribed
-sweep order; everywhere else, your judgment.
-
-**Pre-registered prediction (2026-07-24, test in H-1):** demo 10
-`ssrt3-guides` — sweeping `guidesHistoryCap` should change NOTHING visible,
-because the guides' history length N is computed but never consumed by the
-blend (debug-view only, per the code map). Confirming this dead knob proves
-the wiring gap behind the EMA noise floor from a second direction.
+**Reset before judging:** switch the stack away and back (or reload the
+page). Then wait ~30 s before writing the verdict.
 
 ---
 
+# PASS 1 — Look only (~20 min, touch nothing but the URL)
 
+Load each link, wait 30 s, write ONE verdict + one sentence in the Pass-1
+table. The dropdown named in [brackets] is the only thing you may change,
+and only to select the row's stack.
 
-## H-1 — Still-camera convergence ladder (the "does noise go away" question)
+Base URL: `http://localhost:5199/`  (all links use the same wide cornell pose)
 
-The core experiment behind the demo-03 vs downstream discrepancy.
+| # | open | then set [dropdown] to | 
+|---|---|---|
+| 1 | `?demo=03-ssrt3&cam=0,2.4,8.8,0,2.6,0` | [accumulation] `ssrt3-ema` |
+| 2 | same page | [accumulation] `frame-count` |
+| 3 | `?demo=10-denoise&cam=0,2.4,8.8,0,2.6,0` | [denoiser stack] `ssrt3` |
+| 4 | same page | [denoiser stack] `ssrt3-guides` |
+| 5 | same page | [denoiser stack] `mathis` |
+| 6 | same page | [denoiser stack] `xegtao` |
+| 7 | `?demo=17-guides-ab&cam=0,2.4,8.8,0,2.6,0` | [guide source] `private-guides` |
+| 8 | same page | [guide source] `fsr-guides` |
+| 9 | `?demo=14-svgf&cam=0,2.4,8.8,0,2.6,0` | [denoiser arm] `bilateral` |
+| 10 | same page | [denoiser arm] `svgf-lite` |
+| 11 | same page | [denoiser arm] `svgf` |
+| 12 | same page | [denoiser arm] `ssrt3-guides` |
+| 13 | `?demo=12-distilled&cam=0,2.4,8.8,0,2.6,0` | (nothing — as loaded) |
 
-Load-and-view only — touch NOTHING except the stack/mode selector, for every
-row including demo 03 (the tuned demo-03 reference belongs to H-2, not here).
-The only interaction is the single extreme-knob probe at the END of each
-stack's observation.
-
-For each (demo, stack) in:
-
-- demo 03 — accumMode `frame-count` (expected CLEAN reference)
-- demo 03 — accumMode `ssrt3-ema`
-- demo 10 — `ssrt3`, `ssrt3-guides`, `mathis`, `xegtao`
-- demo 17 — `private-guides`, `fsr-guides`
-- demo 14 — `bilateral`, `svgf-lite`, `svgf`, `ssrt3-guides`, `mathis`
-- demo 12 — default
-
-Protocol: cornell C-wide pose. Reset history. Sit perfectly still 30 s.
-Watch where the indirect share of light is highest — that's where SSGI noise
-lives (Dennis, 2026-07-24): the **shadowed side faces of both boxes** (lit
-almost entirely by wall/floor bounce, with light/dark interplay), and the
-**shadow interiors + penumbrae** on the floor. Do NOT judge by the directly
-lit floor center — direct light masks producer noise there. Verdict per
-stack: CLEAN / FLOOR / DIVERGES + seconds-to-clean (or "never" = FLOOR).
-Then take the noisiest knob (temporalResponse / alpha / alphaMin) to its
-extreme and record whether the floor MOVES or VANISHES.
-
-Expected mechanism (verify, don't assume): count-based accumulators (03
-frame-count, mathis, svgf's 1/N) should reach CLEAN; fixed-EMA stacks should
-plateau at FLOOR no matter the knob. If an EMA stack reaches CLEAN, or a
-count-based stack doesn't, that's a finding — write it down with the config.
-
-## H-2 — Best configs worth keeping
-
-Not a separate procedure anymore — whenever step 2's free tuning (any demo,
-any stack) lands somewhere good enough that you'd want it back, paste the
-pane's config JSON here with a note on what residual defect remains
-(shimmer? blur? both?). Comparing your best downstream config against your
-best demo-03 config is what bounds "is the gap tunable or structural."
-
-## H-3 — Motion shimmer grade
-
-Slow orbit (drag, ~5 s/rev) at C-wide and S-hall per stack. Grade 0–3 at
-three surface classes: flat mid-tone, grazing-angle floor, high-contrast
-texture (sponza banners). 0 = stable, 1 = faint shimmer only if you look for
-it, 2 = obvious shimmer, 3 = boiling. Stop the orbit: note seconds until the
-image stops changing.
-
-## H-4 — Teleport ghosting
-
-Save two camera bookmarks far apart (C-wide and C-graze work). Restore one
-from the other while watching: ghost trails? how long until clean? Grade the
-*character* of the recovery (fade = EMA-ish, fill-in-from-noisy = count reset,
-smear = reprojection failure). Do per stack in demos 10 / 17 / 14. The
-recorded reconvergeSeconds only measures WHEN diffs settle — this measures
-WHAT it looks like on the way.
-
-## H-5 — Texture flicker (the svgf-lite S-column finding)
-
-S-column pose. Arms: svgf-lite, svgf at K=1..5 (atrousIterations knob),
-ssrt3-guides. Watch the banner edges 15 s still + 5 s micro-orbit. Automated
-result to check against: svgf-lite is unstable there (stability 0.9–2.7
-across repeats), svgf@K=4 is the most stable arm; K=2 collapses on sponza.
-Question for eyes only: is svgf-lite's instability a *flicker you'd notice in
-use*, or a metric artifact? Is K=3 visually sufficient (cost midpoint)?
-
-## H-6 — Noise-stress ladder (demo 14 noiseinject)
-
-noiseInject on; σ ∈ {0.1, 0.3, 0.6}; fireflies on at 0.3. Per arm: does the
-injected noise clean up, and — against the `reference` view — is the svgf
-result softer (over-blur) at high σ? This is the human check on the spec §6
-"à-trous over-blur" risk that our biased oracle cannot measure.
-
-## H-7 — Real shading change (sponza torches)
-
-Sponza, torch flicker toggle ON (deterministic sin). Per stack in demo 10/17:
-do the bounce-lit surfaces track the flicker (good), lag it (EMA lag), or
-ghost/boil (temporal failure)? This is the one scenario where LOW history is
-correct — count-based accumulation that never forgets would smear here.
-Note which stacks get it right; this is the counterweight to H-1 (any
-accum-mode fix must not break this).
+That's the whole pass. Don't fix anything, don't explore.
 
 ---
 
+# PASS 2 — Guided experiments (exact controls, plain words)
 
+Each experiment says: which page, which control (by its on-screen label),
+what that control actually does, what to do with it, and what to write
+down. Do them in order; reset (stack away/back) between experiments.
 
-## Order of operations
+## Mini-glossary (read once)
 
-H-1 and H-2 first — they directly test the EMA-floor hypothesis and decide
-whether the α=1/N accum-mode fix is the answer. H-7 is the safety check on
-that same fix. H-5/H-6 refine the SVGF verdict. H-3/H-4 round out motion.
+- **History / temporal accumulation** — the denoiser blends each new frame
+  with an average of past frames. More history = calmer image, but slower to
+  react when things change.
+- **temporalResponse** — how much of each NEW frame gets mixed in (0–1).
+  0.35 means 35% new. LOWER = calmer but laggier. Because it always mixes in
+  a fixed slice of fresh noise, it can reduce the boil but never stop it.
+- **accumFrameCap / history cap** — how many frames the running average is
+  allowed to build up. The leftover boil shrinks as the cap grows (1/cap).
+- **Disocclusion** ("disocc") — when the camera or an object moves, some
+  pixels reveal surfaces that were hidden last frame. Those pixels have no
+  valid history, and the detector marks them so stale color isn't smeared
+  on. On a STILL camera this machinery should be doing nothing at all.
+  - **disocc lo / hi** — how touchy the detector is (lo = ignore below,
+    hi = fully flag above). Matters at edges during motion only.
+  - **N-reset disocc** — how flagged a pixel must be before its history
+    counter restarts from zero.
+- **Bilateral / denoisingRadius** — a smart blur that avoids crossing
+  edges. Radius = how wide it reaches. Kills leftover specks, adds softness.
+- **à-trous K (atrousIterations)** — SVGF's blur applied K times with
+  doubling reach. More K = wider cleanup, more cost.
+- **sigmaLum** — how strongly a brightness difference blocks SVGF's blur.
+  LOW = preserves detail, keeps more noise. HIGH = blurs across more.
+- **alphaMin** — SVGF's floor on "how slow can accumulation get." LOWER =
+  allowed to average longer = calmer. This is the closest thing to "let it
+  fully converge."
+- **noiseinject** — replaces the live noisy input with the clean reference
+  plus KNOWN fake noise (noiseSigma = amount, fireflyRate = bright sparkle
+  pixels). Lets you judge pure denoiser skill.
 
-When rows disagree with recorded battery numbers, the row wins for UX
-decisions and triggers a metric review (what was the metric blind to?) — the
-same way the shadow-bias episode was resolved by Dennis's observation
-overruling the aliasing diagnosis.
+## Experiment A — demo 03: can the boil ever fully stop?
+Page: `?demo=03-ssrt3&cam=0,2.4,8.8,0,2.6,0`
+1. [accumulation] = `frame-count`. Drag **accumFrameCap** slowly 4 → 64.
+   The boil should get quieter as you go up. Question: at 64, with 30 s of
+   stillness, is it CLEAN or still FLOOR-live?
+2. [accumulation] = `ssrt3-ema`. Drag **temporalResponse** down to ~0.02.
+   Same question. (Expected: calmer, never CLEAN.)
+3. Either mode: drag **denoisingRadius** 0 → 1. What does it trade?
+   (Expected: specks vanish, image softens, boil dampens but survives.)
+Write: the closest-to-CLEAN combo you found and whether ANY setting made
+motion fully stop.
+
+## Experiment B — demo 10: the dead-knob test (the one I most need)
+Page: `?demo=10-denoise&cam=0,2.4,8.8,0,2.6,0`, [denoiser stack] = `ssrt3-guides`
+1. Drag **guides history cap** end to end, 4 → 256, slowly, watching the
+   boxes' shadowed faces. MY PREDICTION: absolutely nothing changes. Write
+   down whether you see ANY difference (if yes, at what value).
+2. Now drag **ssrt temporalResponse** down to ~0.05. (Expected: this one
+   DOES calm it — it's the knob that actually reaches the blend.)
+3. Still camera: drag **guides disocc lo/hi** anywhere. (Expected: no
+   visible change while still — this machinery only acts under motion.)
+Write: dead or alive for each of the three, one line each.
+
+## Experiment C — demo 10 vs 03: the rotation-noise gap you found
+1. In demo 10, stack `ssrt3`, defaults: rotate the camera slowly (drag).
+   Note the noise level DURING rotation.
+2. Toggle **subpixel AA jitter (off under TRAA)** on and off while
+   rotating — difference?
+3. Toggle **TRAA after (combined)** on — difference?
+4. Same rotation in demo 03 (defaults). Is 03 really calmer during motion
+   at the same settings? Write what you see — this is a suspected real bug.
+
+## Experiment D — demo 17: the two guide sources must be twins
+Page: `?demo=17-guides-ab&cam=0,2.4,8.8,0,2.6,0`
+1. Flip [guide source] `private-guides` ↔ `fsr-guides` several times, still
+   camera, then during slow rotation. They should be indistinguishable.
+   ANY visible difference (noise, lag, edges) = finding, write it down.
+
+## Experiment E — demo 14: SVGF's knobs, one at a time
+Page: `?demo=14-svgf&cam=0,2.4,8.8,0,2.6,0`, [denoiser arm] = `svgf`
+1. **atrousIterations K (svgf only)**: step 1→2→3→4→5. At which K does the
+   image stop visibly improving?
+2. **alphaMin**: drag 0.05 → 0.01. Does the remaining boil quiet further /
+   stop? Then drag to 1.0 (accumulation off) to see the raw noise for
+   contrast.
+3. **sigmaLum**: 0.5 vs 4 vs 15. LOW should look crisper but noisier;
+   HIGH softer but cleaner. Which is the best tradeoff to your eye?
+4. Turn **noiseinject enabled** ON, **noiseSigma** 0.3, **fireflyRate**
+   0.01. Compare arms [denoiser arm]: `bilateral` vs `svgf` under identical
+   fake noise. Which cleans it, which leaves residue, does svgf over-soften?
+Write: best-looking svgf settings (paste config JSON — keeper), K verdict,
+alphaMin verdict, noiseinject comparison in a sentence.
+
+## Anything else
+Free findings section in the log: dead knobs, "this looks broken,"
+surprises. One line each is plenty.
