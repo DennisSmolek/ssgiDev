@@ -181,3 +181,34 @@ Req 2; jitterAA default-on plans) is BLOCKED on this. **M6/guides are NOT
 implicated** — demo 17 consumes the guides-only path (no upscale
 accumulation), its A/B numbers stand, and report 2's drop-`@experimental`
 verdict for the guides API is unaffected.
+
+## Report 3 addendum (2026-07-24) — converging counter-example + likely mechanism
+
+We have since built our own sub-pixel-jittered temporal accumulator (demo
+`18-temporal`, commit `67e924c`) over the same scenes, camera poses, and
+churn meter. It **converges**: still-camera consecutive-frame meanAbsDiff
+0.447 → 0.242 over 12 s and still falling (α = 1/N arm), teleport recovery
+0.57 → 0.18 over 10 s, no ghosting. So jitter + temporal accumulation over
+this exact content is convergent — the demo-16 churn is not something our
+scenes force.
+
+Two implementation facts were REQUIRED to get there; offered as debugging
+hints because the failure mode without them reproduces demo 16's symptom set
+exactly (rolling `AccumulationAge`, silhouette `Disocclusion` flicker,
+permanent output shimmer):
+
+1. **Velocity includes the jitter delta** (three's velocity node tracks the
+   previous *projection* matrix). True per-pixel motion is
+   `velocityUV − jitterDeltaUV`; any disocclusion/rectification test that
+   consumes raw velocity sees every pixel "moving" every frame.
+2. **Sub-pixel-motion pixels must accept same-texel history unconditionally.**
+   At geometry edges the per-frame depth flip under jitter IS the coverage
+   being integrated; running a depth/world-delta reject there resets history
+   age every frame. We also had to widen the reject threshold for genuinely
+   moving pixels under jitter (nearest-texel prev-depth carries up to a texel
+   of sub-pixel reconstruction error).
+
+If the upscaler's rectification or disocclusion logic under-compensates
+jitter in either of these two ways, that would produce precisely the
+observed non-convergence, including at NativeAA ratio 1. Converging repro
+for comparison: `?demo=18-temporal`, defaults, still camera.
