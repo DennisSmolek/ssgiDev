@@ -21,17 +21,38 @@ Reset discipline: before every convergence observation, force a history reset
 (teleport via camera bookmark restore, or toggle the stack away and back) and
 start timing from the reset.
 
+**Verdicts, plain language** (judge after ~30 s of settling, still camera):
+- **CLEAN** — you can't see noise anymore; it converged away.
+- **FLOOR** — noise settles to a constant visible level and stays; waiting
+  never helps. Stable but noisy.
+- **DIVERGES** — never settles: boils, flickers, or worsens over time.
+
 **Two modes — always in this order:**
 1. **Observe at defaults.** Every experiment starts with a verdict at
    as-shipped settings. This is the row comparable across stacks and against
    the recorded battery (which ran at defaults). Never skip it to go tuning.
-2. **Tune (only where the experiment says so).** H-2 is full free-tuning
-   ("what CAN this stack look like"); H-1's tuning is a single diagnostic
-   probe (knob to extreme: does the floor MOVE or VANISH — one bit); H-5 is
-   a structured one-knob sweep. H-3/H-4/H-6/H-7 stay at defaults.
-   When tuning, record the config JSON for EVERY row where you touched
-   anything — including failed attempts. "Swept knob X end to end, no visible
-   change" is a dead-knob finding (and a likely wiring bug); write it down.
+2. **Probe / tune, per the experiment:**
+   - **H-1 probing = one knob at a time, ANY knob.** Change one thing from
+     defaults, reset history, observe, revert before the next probe. Record
+     which knob changes the verdict and at what value (e.g. "accum-frameCap
+     raised → VANISHES") — and which knobs do nothing ("temporalResponse in
+     frame-count mode: floor moves slightly, never vanishes" is a
+     near-dead-knob finding). One-knob probes are still H-1, however many
+     knobs you probe in sequence.
+   - **H-2 = multi-knob free tuning** toward the best overall LOOK (noise vs
+     blur vs lag traded together), judged against the tuned demo-03
+     reference. The moment you're combining knobs for aesthetics, you're in
+     H-2.
+   - H-5 is a structured one-knob sweep. H-3/H-4/H-6/H-7 stay at defaults.
+   Record the config JSON for EVERY row where you touched anything —
+   including failed attempts; dead knobs are findings (and likely wiring
+   bugs).
+
+**Pre-registered prediction (2026-07-24, test in H-1):** demo 10
+`ssrt3-guides` — sweeping `guidesHistoryCap` should change NOTHING visible,
+because the guides' history length N is computed but never consumed by the
+blend (debug-view only, per the code map). Confirming this dead knob proves
+the wiring gap behind the EMA noise floor from a second direction.
 
 ---
 
