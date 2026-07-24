@@ -1795,3 +1795,29 @@ Follow-ups to Dennis's demo sweep (same session as the demo-14 jitter fix):
   the 'freeze noise cycle' toggle should freeze the pattern (if it does not,
   THAT is a bug — Dennis to verify by eye). Recorded demo-13 numbers measure
   the accumulated chain, not raw views; correctness gates passed unchanged.
+
+## 2026-07-24 — demo 12/13 banding + convergence floor (Dennis): display dither landed, cap ceiling raised
+
+Dennis: structured radial banding + crawling noise in demo 13's FINAL image
+with accumulation on; then clarified demo 12 shows it too. Diagnosis (headed,
+C-wide):
+- freezeNoise in 13 → residual motion 0.000 exactly: demo 13 introduces NO
+  animation of its own; 13 ≈ 12 residual (0.34 vs 0.37). The instrument is
+  clean; the artifacts are inherited from the shared chain.
+- The RADIAL RINGS are display-side: 8-bit canvas quantization of smooth HDR
+  light-falloff gradients (present in every demo; most visible on cornell's
+  big walls). No denoiser can remove them. FIX: static (non-animated) IGN
+  dither, ±0.5 LSB, added at the display node of demos 12+13. Rings gone at
+  capture scale; residual motion unchanged (0.362 vs 0.367) — static by
+  design so it can't pollute FLOOR-live judgments. If banding survives on a
+  large display to the eye, next suspect is upstream target precision — not
+  yet indicated.
+- The CRAWLING FLOOR accumulation "doesn't eat": accumFrameCap defaults to
+  16 in 12/13 (residual ≈ 18% of producer σ; scales 1/√cap). Slider max
+  raised 64 → 256 in demos 03/12/13 (defaults untouched → no recorded row
+  moves; 03's range widening is a UI-only change to a frozen instrument, no
+  behavior change at any previously reachable setting). True fix (uncapped +
+  disocclusion-driven resets, α=1/N in the guides stacks) queued behind the
+  human pass.
+Program note: demo 12 is the "best"/ship-track demo; 13 is the optimization
+instrument on top of it and is exonerated.

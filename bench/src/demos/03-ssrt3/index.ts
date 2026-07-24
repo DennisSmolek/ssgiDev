@@ -857,7 +857,7 @@ const schema = {
     hint: 'History blend rate (ssrt3-ema mode only): LOWER = longer memory = smoother/less boil but more ghosting in motion. 0.35 ~ 3-frame memory; try 0.05-0.1 for stills.' },
   accumMode: { type: 'enum', value: 'ssrt3-ema' as AccumMode, options: ACCUM_MODES, label: 'accumulation', group: 'temporal & denoise',
     hint: 'ssrt3-ema (default, SSRT3-faithful) = fixed temporalResponse EMA (~3-frame memory); cannot fully converge SSRT3\'s 12-frame noise cycle -> residual boil on stills. frame-count (our improvement) = per-pixel 1/N accumulation that keeps averaging a static pixel up to accumFrameCap frames (converges the cycle), resetting N on disocclusion. Tradeoff: smoother stills vs more potential motion ghosting.' },
-  accumFrameCap: { type: 'number', value: 16, min: 4, max: 64, step: 1, label: 'accumFrameCap', group: 'temporal & denoise',
+  accumFrameCap: { type: 'number', value: 16, min: 4, max: 256, step: 1, label: 'accumFrameCap', group: 'temporal & denoise',
     hint: 'frame-count mode only: max effective history length N. Higher = smoother stills, but more motion ghosting (a moved pixel takes longer to forget stale history when reprojection fails to flag it).' },
   denoising: { type: 'boolean', value: true, label: 'denoising (d)', group: 'temporal & denoise',
     hint: 'Depth/normal-aware bilateral spatial blur after temporal (stage d).' },

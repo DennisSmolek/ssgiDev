@@ -36,6 +36,7 @@ import {
   pow,
   reflect,
   saturate,
+  screenCoordinate,
   screenUV,
   step,
   texture,
@@ -45,6 +46,7 @@ import {
   vec4,
   velocity,
 } from 'three/tsl';
+import { fract } from 'three/tsl';
 import type { Material, Scene } from 'three/webgpu';
 import type { AnyPixelFormat, DepthTexture, PerspectiveCamera, Texture, TextureDataType, WebGPURenderer } from 'three/webgpu';
 import type { Demo, DemoDef, HarnessContext } from '../../harness/types';
@@ -474,8 +476,24 @@ class DistilledDemo implements Demo {
     return blockForScale(this.params.values.marchScale) > 1 ? this.giaoFull : this.marchOut;
   }
 
+  // Static (non-animated) IGN dither, ±0.5 LSB at 8-bit, added to the final
+  // rgb before the canvas quantizes. Smooth HDR gradients (the light-falloff
+  // rings Dennis flagged 2026-07-24) band at 8 bits no matter how clean the
+  // GI is — sub-LSB dither breaks the bands. Static by design: an animated
+  // dither would re-introduce exactly the FLOOR-live crawl the human tests
+  // are hunting.
+  private withDisplayDither(node: ReturnType<typeof vec4>) {
+    const c = screenCoordinate;
+    const ign = fract(
+      float(52.9829189).mul(fract(c.x.mul(0.06711056).add(c.y.mul(0.00583715)))),
+    );
+    return vec4(node.rgb.add(ign.sub(0.5).mul(1 / 255)), node.a);
+  }
+
   private updateOutputNode(): void {
-    this.displayPipeline.outputNode = this.buildViewNode(this.params.values.viewMode);
+    this.displayPipeline.outputNode = this.withDisplayDither(
+      this.buildViewNode(this.params.values.viewMode),
+    );
     this.displayPipeline.needsUpdate = true;
   }
 
@@ -1100,7 +1118,7 @@ const schema = {
     hint: 'History blend rate (ssrt3-ema mode only). Lower = smoother, more ghosting.' },
   accumMode: { type: 'enum', value: 'frame-count' as AccumMode, options: ACCUM_MODES, label: 'accumulation', group: 'temporal & denoise',
     hint: 'trackC verdict: frame-count (DEFAULT here) = per-pixel 1/N accumulation that converges the noise cycle on stills (stability 0.31 vs ema 1.06). ssrt3-ema kept as toggle.' },
-  accumFrameCap: { type: 'number', value: 16, min: 4, max: 64, step: 1, label: 'accumFrameCap', group: 'temporal & denoise',
+  accumFrameCap: { type: 'number', value: 16, min: 4, max: 256, step: 1, label: 'accumFrameCap', group: 'temporal & denoise',
     hint: 'frame-count mode: max effective history length N.' },
   denoising: { type: 'boolean', value: true, label: 'denoising', group: 'temporal & denoise',
     hint: 'Depth/normal-aware bilateral spatial blur after temporal.' },
