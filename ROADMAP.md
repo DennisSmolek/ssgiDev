@@ -7,15 +7,30 @@ phase closes or a decision lands.
 
 ## Where we are
 
-The bench proved out the full stack (producer → temporal → denoise →
-guides/upscale) and the recorded battery at `4118871` settled the M6 and
-SVGF verdicts. Dennis's human-eye defect sweep then found the structural
-truth the metrics missed: **the shipped accumulator is a capped EMA and
-mathematically cannot converge** — every downstream demo inherited that
-noise floor, which is why no amount of tuning ever made the noise go away.
-Demo 18 (`67e924c`) isolates and fixes it: α = 1/N accumulation + sub-pixel
-jitter AA converges (0.447 → 0.242 and falling) where the capped control
-holds flat at 0.58, and the same pass anti-aliases geometry edges.
+**The noise program is OPEN, not solved.** We are still resolving critical
+issues through the demo chain (12 → 13 → 18); nothing below treats them as
+done. The recorded battery at `4118871` settled M6 and the SVGF cost/
+stability comparison, but Dennis's human-eye defect sweep then showed the
+metrics had missed the structural problem: **the shipped accumulator is a
+capped EMA and mathematically cannot converge** — every downstream demo
+inherits that noise floor, which is why no tuning ever made the noise go
+away. Demo 18 (`67e924c`) is the **candidate** fix: α = 1/N accumulation +
+sub-pixel jitter AA converges in the churn metric (0.447 → 0.242 and
+falling vs the capped control flat at 0.58) — but the same metrics also
+called earlier states "fine," so it is not considered resolved until it
+passes eyes.
+
+Still open, critical:
+
+- demo 18 human validation (does it *look* converged, not just measure it)
+- residual noise under motion / young history — everywhere, all stacks
+  (spatialFallback is a first attempt, not a verdict)
+- ign-vs-bluenoise sampling default (banding vs floor trade, eye call)
+- demo 16 / FSR upscale-path non-convergence (external, under their
+  investigation — Report 3 + addendum)
+- SVGF motion boil; aliasing in every demo except 18's jitter arms
+- lab-11 sampling ranking is suspect (measured under the broken IGN
+  temporal advance) — re-rank pending
 
 **Dependency direction, stated once:** the accumulator sits UPSTREAM of
 everything (denoisers, guides, upscaler, display). No later phase could

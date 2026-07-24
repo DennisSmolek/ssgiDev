@@ -212,3 +212,29 @@ If the upscaler's rectification or disocclusion logic under-compensates
 jitter in either of these two ways, that would produce precisely the
 observed non-convergence, including at NativeAA ratio 1. Converging repro
 for comparison: `?demo=18-temporal`, defaults, still camera.
+
+### Verification note (2026-07-24, in response to your "jitter-free velocity" suspect)
+
+We re-audited the consumer side against that suspect. **Demo 16's velocity
+IS jitter-free per contract** — all three links verified:
+
+- Demo 16 calls `velocity.setProjectionMatrix(upscaler.unjitteredProjectionMatrix)`
+  at init (`16-fsr/index.ts:105`), per GUIDES-HANDOFF.md:85, cleared in dispose.
+- `unjitteredProjectionMatrix` is a stable `Matrix4` instance
+  (`Upscaler.ts:129`) mutated in place, and `beginFrame` snapshots it
+  BEFORE applying the jitter view offset (`Upscaler.ts:580–595`), with
+  `endFrame` clearing the offset each frame — so init-once wiring stays
+  live and the snapshot is clean.
+- three's `VelocityNode` applies the override to BOTH current and previous
+  projection (`VelocityNode.js:127,137`), so previous-frame reprojection is
+  unjittered too.
+
+That eliminates hint 1 and narrows to hint 2, now locatable concretely: on
+a still camera with jitter-free velocity, reprojection is same-texel — the
+only per-frame-varying input left is the **jittered depth buffer**, which
+flips at silhouettes every frame by construction. Any disocclusion /
+rectification test that compares current vs previous depth (or
+depth-reconstructed position) without jitter compensation will re-flag
+edge pixels every frame → exactly the observed `Disocclusion`-view
+silhouette flicker and rolling `AccumulationAge`, at every ratio including
+NativeAA. That's where we'd look first.
