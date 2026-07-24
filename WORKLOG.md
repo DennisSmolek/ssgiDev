@@ -1779,3 +1779,19 @@ CONSEQUENCE: lab14-svgf stability rows were recorded WITH the bug — all
 arms shared it (ranking direction likely stands; svgf still won by 7–88×)
 but absolute values are inflated. run-14 re-record queued for the next
 quiet-GPU window; treat current absolute stability numbers as upper bounds.
+
+## 2026-07-24 — FSR upscale-path convergence defect quantified; demo 13 flicker explained
+
+Follow-ups to Dennis's demo sweep (same session as the demo-14 jitter fix):
+- **Demo 16 / FSR temporal path never converges on a still camera** —
+  sustained 0.15–0.76 consecutive-frame diff (vs 0.039 for fixed demo 14),
+  AccumulationAge rolls forever, and none of shading-change/autoExposure/
+  RCAS/locks/NativeAA-ratio-1 stops it. Cornell worse than sponza (IGN
+  shadow dither under jitter is an aggravator, not the cause). Reported to
+  the FSR agent as GUIDES-HANDOFF-RESPONSE report 3 with repro; upscale+AA
+  acceptance (Req 2) blocked on it. M6/guides unaffected (guides-only path).
+- **Demo 13 raw-view flicker (crossband + radial)**: this is the animated
+  IGN/spiral sampling cycle — the noise temporal accumulation exists to eat;
+  the 'freeze noise cycle' toggle should freeze the pattern (if it does not,
+  THAT is a bug — Dennis to verify by eye). Recorded demo-13 numbers measure
+  the accumulated chain, not raw views; correctness gates passed unchanged.

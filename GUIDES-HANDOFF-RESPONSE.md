@@ -138,3 +138,46 @@ control; new consumers here will bind `upscaler.guides`.
 turn the MSE tie into a real quality ranking. No asks on your side. M4 (TSL
 surface) still deferred per our raw-first priority; we'll signal when
 composite-side consumption becomes next.
+
+---
+
+# Report 3 — upscale-path convergence defect (human-observed, then quantified)
+
+Dennis observed the demo-16 output visibly jittering on a STILL camera, the
+`Disocclusion` debug view flickering silhouette outlines, and `AccumulationAge`
+never resolving (rolling ring/moiré patterns forever). We quantified:
+
+- **Still-camera output never converges.** Consecutive-frame meanAbsDiff
+  (0–255 scale, 250 ms apart, after 6–8 s settle), cornell C-wide pose:
+  sustained **0.19–0.76** at defaults. Reference point: our SVGF demo after
+  its own jitter fix sits at **0.039** flat on the same pose. Sponza S-hall:
+  steady 0.15–0.18 — better, still far from converged.
+- **AccumulationAge drifts ~5.5–6.2** meanAbsDiff over any 5 s window — the
+  age pattern rolls forever; history is being continuously re-aged.
+- **No exposed knob stops it**: `detectShadingChanges` off (no change — and
+  output slightly worse), `autoExposure` off (no change), `sharpness=0`
+  (RCAS off — no improvement), `lockThinFeatures` off (no change),
+  **ratio 1 NativeAA** (no upscaling at all): still 0.15–0.42.
+- **Scene-dependent aggravator, not cause**: cornell is worse than sponza.
+  Our cornell point light uses three's IGN-dithered Vogel shadow filter,
+  which is screen-anchored — under your camera jitter the penumbra dither
+  re-rolls every frame, i.e. we feed genuinely unstable luminance in
+  penumbrae. That explains cornell>sponza but not the sponza floor, nor
+  NativeAA churn on flat walls.
+
+Repro on our side: demo 16, `?demo=16-fsr&scene=cornell&cam=0,2.4,8.8,0,2.6,0`,
+any consecutive-frame differ (our meter script is
+`scratchpad/jitter-meter.mjs` pattern — 5 grabs at 250 ms, meanAbsDiff).
+
+Expectation check: FSR2/3-class temporal accumulation on a static scene +
+still camera should converge to a supersampled stable image (frame diff
+→ ~0). If your reference example shows the same on a frozen camera, this is
+in the accumulation/rectification core; if not, tell us what input contract
+we're violating — depth/velocity/deltaTime all follow GUIDES-HANDOFF.md and
+demo 16 passed its M2 field verification for image quality (report 1).
+
+**Program impact on our side**: the upscale+AA acceptance work (FSR3-BRIEF
+Req 2; jitterAA default-on plans) is BLOCKED on this. **M6/guides are NOT
+implicated** — demo 17 consumes the guides-only path (no upscale
+accumulation), its A/B numbers stand, and report 2's drop-`@experimental`
+verdict for the guides API is unaffected.
