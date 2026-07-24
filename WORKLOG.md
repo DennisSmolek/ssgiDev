@@ -1844,3 +1844,30 @@ instrument, untouched; lab 11's "IGN best" post-denoise ranking deserves a
 re-check under the fixed advance at a future battery.
 RE-BASELINE FLAG: demo 12 + 13 rows (acceptance, trackA/B/C, demo13-alu) —
 the ship chain's sampling changed; next recorded battery re-records them.
+
+## 2026-07-24 — demo 12 gains 'bluenoise' noise mode (Dennis's frozen-noise banding analysis)
+
+Dennis froze the noise and characterized the raw sampling: two band systems
+(march-step distance quantization iso-lines — vertical on walls, stair-rings
+on floor, crosshatch at high stepCount as two slice directions overlay) that
+no rc/sc setting clears, dithered by a STRIPED jitter instead of clean
+randomness. Cause: all four noise4 dimensions are offsets of ONE IGN plane —
+striped jitter × step quantization = banded dither that survives.
+Not precision/clamping; a sampling-structure defect.
+
+Demo 12's `noise` enum (the designed distillation A/B surface — his "corrupt
+12 or new demo?" call: neither, extend the existing lab) now has
+`bluenoise`: demo 11's committed stbn-atlas (4x4×128² tiles, RG independent
+fields) read-only reused; four INDEPENDENT channels (tile t RG + transposed
+fetch of tile t+7); STBN tile cycling per temporal index + golden-ratio
+value-jitter per 16-cycle (lab 11's plateau note). Atlas loads async behind
+a 1×1 placeholder; 'ign' never reads the binding.
+
+Verified headed at C-graze: frozen raw ign = woven stripes on every surface;
+frozen raw bluenoise = pure isotropic grain, no structure. Accumulated
+residual amplitude identical (0.27 vs 0.28 — mode changes STRUCTURE not
+amplitude; amplitude is the cap story). DEFAULT stays 'ign' pending Dennis's
+eye verdict + a measured re-rank; flipping it is a recorded distillation
+decision (re-baseline). Demo 13's fork deliberately does NOT get the mode
+yet — divergence noted in its header comment's spirit; port if/when the
+default flips. Demo 11 itself untouched (frozen).

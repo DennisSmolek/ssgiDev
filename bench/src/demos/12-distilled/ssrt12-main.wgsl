@@ -61,7 +61,7 @@ struct Params {
   pad1 : f32,
 
   // --- demo 12 additions ---
-  noiseMode : u32,            // 0 ign (default), 1 white
+  noiseMode : u32,            // 0 ign (default), 1 white, 2 bluenoise
   thicknessHeuristic : u32,   // 0 constant, 1 linear-over-dist, 2 ottosson (default)
   distantLightMode : u32,     // 0 off (default), 1 ssrt-fallback (§3.2), 2 salm-caps
   capsBits : u32,             // salm-caps bits per cap (1/2/4/8 -> 32/16/8/4 caps)
@@ -96,6 +96,7 @@ const F_BENT_NORMALS : u32 = 2048u; // P4: accumulate bent normal + cone into be
 @group(0) @binding(7) var outTex : texture_storage_2d<rgba16float, write>;
 @group(0) @binding(8) var bentOut : texture_storage_2d<rgba16float, write>; // P4: xyz = std view-space bent normal, w = visibleCone. Only written when F_BENT_NORMALS.
 @group(0) @binding(9) var<uniform> params : Params;
+@group(0) @binding(10) var noiseAtlas : texture_2d<f32>; // stbn-atlas.png (bluenoise mode only; 1x1 placeholder until loaded)
 
 fn hasFlag(f : u32) -> bool { return (params.flags & f) != 0u; }
 
@@ -130,7 +131,31 @@ fn nextRand(seed : ptr<function, u32>) -> f32 {
 // Four decorrelated uniform randoms for a pixel at temporal index n:
 //   x -> slice rotation jitter   y -> march-start offset
 //   z -> march-start jitter      w -> Ottosson occluder-scale jitter
+// stbn-atlas.png: 512x512 = 4x4 grid of 128x128 tiles, RG = two independent
+// blue-noise fields per tile (bench/scripts/gen-bluenoise.mjs).
+fn atlasFetch(coord : vec2<i32>, tile : u32) -> vec2<f32> {
+  let tcol = i32(tile) % 4;
+  let trow = i32(tile) / 4;
+  let lx = coord.x & 127;
+  let ly = coord.y & 127;
+  return textureLoad(noiseAtlas, vec2<i32>(tcol * 128 + lx, trow * 128 + ly), 0).rg;
+}
+
 fn noise4(coord : vec2<i32>, n : u32) -> vec4<f32> {
+  if (params.noiseMode == 2u) {
+    // Blue-noise (2026-07-24, Dennis's banding session): four INDEPENDENT
+    // channels — two from tile t, two from a transposed fetch of a different
+    // tile — where the ign path below feeds all four dimensions from ONE
+    // striped plane (march-jitter dimensions inherit the stripes and the
+    // step-quantization bands never dither cleanly). STBN-style tile cycling
+    // per temporal index; golden-ratio value-jitter each full 16-cycle so
+    // deep accumulation keeps decorrelating (lab 11: raw cycling plateaus).
+    let tile = n % 16u;
+    let rg = atlasFetch(coord, tile);
+    let ba = atlasFetch(vec2<i32>(coord.y, coord.x), (tile + 7u) % 16u);
+    let shift = fract(0.6180339887 * f32(n / 16u));
+    return fract(vec4<f32>(rg.x, rg.y, ba.x, ba.y) + shift);
+  }
   if (params.noiseMode == 1u) {
     var seed = pcg(
       (u32(coord.x) * 3266489917u) ^

@@ -9,6 +9,7 @@ import {
   Matrix3,
   Matrix4,
   MeshBasicNodeMaterial,
+  NearestFilter,
   NoColorSpace,
   RedFormat,
   RGBAFormat,
@@ -16,8 +17,12 @@ import {
   RenderTarget,
   RepeatWrapping,
   StorageTexture,
+  TextureLoader,
   UnsignedByteType,
 } from 'three/webgpu';
+// Blue-noise atlas is demo 11's committed asset (read-only reuse — the
+// generator is bench/scripts/gen-bluenoise.mjs; demo 11 stays frozen).
+import atlasUrl from '../11-sampling/stbn-atlas.png?url';
 import {
   acos,
   atan,
@@ -98,7 +103,7 @@ function blockForScale(s: MarchScale): number {
 }
 
 // Noise source (lab 11 verdict — IGN with per-frame temporal advance).
-const NOISE_MODES = ['ign', 'white'] as const;
+const NOISE_MODES = ['ign', 'white', 'bluenoise'] as const;
 type NoiseMode = (typeof NOISE_MODES)[number];
 
 // Thickness heuristic (lab 08 verdict — Ottosson occluder-adaptive wins the zoo).
@@ -256,6 +261,10 @@ class DistilledDemo implements Demo {
   private upsample!: RawComputePass;
   private envSampler!: GPUSampler;
   private envTex!: DataTexture;
+  // Blue-noise atlas (noiseMode 'bluenoise'). Starts as a 1x1 placeholder so
+  // init stays synchronous and the binding is always valid; the loaded PNG
+  // swaps in via the per-frame execute() resource array. 'ign' never reads it.
+  private atlasTex!: Texture;
 
   private mainData = new Float32Array(U_FLOATS);
   private mainU32 = new Uint32Array(this.mainData.buffer);
@@ -345,6 +354,26 @@ class DistilledDemo implements Demo {
       addressModeU: 'repeat', addressModeV: 'clamp-to-edge',
     });
     this.envTex = makeEnv(this.sceneId);
+
+    // Blue-noise atlas: placeholder now, PNG swap-in when loaded (demo 11's
+    // committed asset; nearest/no-mips/no-flip exactly as its lab binds it).
+    const ph = new DataTexture(new Uint8Array([128, 128, 0, 255]), 1, 1, RGBAFormat, UnsignedByteType);
+    ph.colorSpace = NoColorSpace;
+    ph.needsUpdate = true;
+    this.atlasTex = ph;
+    ensureTexture(ctx.renderer, ph);
+    new TextureLoader().load(atlasUrl, (tex) => {
+      tex.colorSpace = NoColorSpace;
+      tex.format = RGBAFormat;
+      tex.type = UnsignedByteType;
+      tex.magFilter = NearestFilter;
+      tex.minFilter = NearestFilter;
+      tex.generateMipmaps = false;
+      tex.flipY = false;
+      tex.needsUpdate = true;
+      ensureTexture(ctx.renderer, tex);
+      this.atlasTex = tex;
+    });
     ensureTexture(ctx.renderer, this.envTex);
 
     // Lightmask (full res): beauty + reproject(prev denoised GI) -> light source.
@@ -372,6 +401,7 @@ class DistilledDemo implements Demo {
         { kind: 'tex' }, { kind: 'tex' }, { kind: 'tex' }, { kind: 'sampledTex' }, { kind: 'sampler', filtering: true },
         { kind: 'tex' }, { kind: 'depth' },
         { kind: 'storage', format: 'rgba16float' }, { kind: 'storage', format: 'rgba16float' }, { kind: 'uniform' },
+        { kind: 'tex' }, // noise atlas (bluenoise mode)
       ],
     });
     // Joint bilateral upsample (march -> full res, lab 09).
@@ -687,7 +717,7 @@ class DistilledDemo implements Demo {
     u[70] = ENV_MIPS;
     d[71] = 0;
     // demo 12 block.
-    u[72] = v.noiseMode === 'white' ? 1 : 0;
+    u[72] = v.noiseMode === 'bluenoise' ? 2 : v.noiseMode === 'white' ? 1 : 0;
     u[73] = v.thicknessHeuristic === 'two-sided' ? 3 : v.thicknessHeuristic === 'ottosson' ? 2 : v.thicknessHeuristic === 'linear' ? 1 : 0;
     u[74] = v.distantLight === 'salm-caps' ? 2 : v.distantLight === 'ssrt-fallback' ? 1 : 0;
     u[75] = v.capsBits;
@@ -764,7 +794,7 @@ class DistilledDemo implements Demo {
 
     this.fillMainUniform(cam);
     this.main.execute(
-      [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, backTex, this.marchOut, this.marchBent, this.mainData],
+      [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, backTex, this.marchOut, this.marchBent, this.mainData, this.atlasTex],
       this.marchW, this.marchH,
     );
 
@@ -921,7 +951,7 @@ class DistilledDemo implements Demo {
     this.prime(cam, this.fullW, this.fullH);
     return this.fence(() => {
       this.main.execute(
-        [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.depthTex, this.marchOut, this.marchBent, this.mainData],
+        [this.marchDepth, this.marchNormal, this.marchLight, this.envTex, this.envSampler, this.depthPyramid, this.depthTex, this.marchOut, this.marchBent, this.mainData, this.atlasTex],
         this.marchW, this.marchH,
       );
     }, n);
