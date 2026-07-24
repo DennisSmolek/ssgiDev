@@ -187,16 +187,19 @@ their experiments.
 - **Correction from Dennis (2026-07-24, supersedes research topic 11's
   read):** the current state of the art here is **pmndrs/denoiser** (his
   work, vastly improved from the personal DennisSmolek/Denoiser repo the
-  research cited). Two caveats from him: it tends to prefer **fully
-  path-traced input** (our SSGI single-bounce output is off its expected
-  distribution), and even at best speed it takes **multiple ms for
-  moderate quality** — so per-frame is out, and even settle-pass quality
-  on SSGI input is an open question, not an assumption.
+  research cited). Known tendencies — documented, NOT constraints on the
+  experiment (per Dennis: the path-traced preference is just what it has
+  been *tested* with, so it must not pre-narrow what we try here): it has
+  tended to do best on fully path-traced input, and even at best speed it
+  takes multiple ms for moderate quality — which rules out per-frame use
+  but decides nothing about settle-pass quality on SSGI input. That's an
+  open empirical question for the testbench, in both directions.
 - **Build (per Dennis: "worth building a testbench for"):** own small
   demo: detect settle → run one U-Net pass (albedo+normal guided) on the
   accumulated-but-young frame → display while 1/N converges beneath →
-  fade back. First question the testbench must answer: does the net do
-  anything useful on SSGI-distribution input at all.
+  fade back. First question for the testbench: what does the net actually
+  do on SSGI-distribution input — try it, don't presume the answer from
+  its testing history.
 - **Judge:** eyes — does the stop-moment transition read as "snaps clean"
   or as a visible filter pop / hallucinated detail.
 - The 512-weight N8AO-style micro-net stays parked (P4): research verdict
