@@ -24,14 +24,15 @@ start timing from the reset.
 **Verdicts, plain language** (judge after ~30 s of settling, still camera).
 "Settles" = the AMOUNT of noise stops changing; then classify what remains by
 whether it moves:
+
 - **CLEAN** — you can't see noise anymore; it converged away.
 - **FLOOR-static** — visible grain, frozen in place: a screenshot now and one
-  ten seconds later would be identical. Wrong pixels, no motion.
+ten seconds later would be identical. Wrong pixels, no motion.
 - **FLOOR-live** — the noise *level* is constant ("solid quality level") but
-  the pattern visibly re-rolls/crawls/shimmers in the region. The fixed-α EMA
-  signature: steady variance, fresh draw every frame.
+the pattern visibly re-rolls/crawls/shimmers in the region. The fixed-α EMA
+signature: steady variance, fresh draw every frame.
 - **DIVERGES** — the amount itself never settles: region-scale flicker,
-  boiling, oscillation, worsening.
+boiling, oscillation, worsening.
 
 Metric blind spots this taxonomy covers: the automated stability metric
 (frame diff) sees ONLY FLOOR-live — frozen grain scores a perfect stability
@@ -39,26 +40,19 @@ while looking noisy; MSE sees ONLY static error and is blind to shimmer.
 Eyes are the one instrument that sees both, which is why FLOOR must be
 split in the log.
 
-**Two modes — always in this order:**
-1. **Observe at defaults.** Every experiment starts with a verdict at
-   as-shipped settings. This is the row comparable across stacks and against
-   the recorded battery (which ran at defaults). Never skip it to go tuning.
-2. **Probe / tune, per the experiment:**
-   - **H-1 probing = one knob at a time, ANY knob.** Change one thing from
-     defaults, reset history, observe, revert before the next probe. Record
-     which knob changes the verdict and at what value (e.g. "accum-frameCap
-     raised → VANISHES") — and which knobs do nothing ("temporalResponse in
-     frame-count mode: floor moves slightly, never vanishes" is a
-     near-dead-knob finding). One-knob probes are still H-1, however many
-     knobs you probe in sequence.
-   - **H-2 = multi-knob free tuning** toward the best overall LOOK (noise vs
-     blur vs lag traded together), judged against the tuned demo-03
-     reference. The moment you're combining knobs for aesthetics, you're in
-     H-2.
-   - H-5 is a structured one-knob sweep. H-3/H-4/H-6/H-7 stay at defaults.
-   Record the config JSON for EVERY row where you touched anything —
-   including failed attempts; dead knobs are findings (and likely wiring
-   bugs).
+**The whole process, per stack (simplified 2026-07-24 — the old H-1/H-2
+probe-vs-tune mode split is retired; it confused more than it protected):**
+
+1. Load it. Wait ~30 s. Write the verdict for what you see UNTOUCHED.
+2. Then change anything you want, freely — try to make it look good. In the
+   note: what helped, what did nothing (dead knobs are findings), and
+   whether it EVER fully stopped boiling.
+3. If you land on settings worth keeping, paste the pane's config JSON into
+   the "best configs" table (H-2 section of the log). Only best-states need
+   JSON.
+
+H-5's K-ladder and H-6's σ-ladder are the only places with a prescribed
+sweep order; everywhere else, your judgment.
 
 **Pre-registered prediction (2026-07-24, test in H-1):** demo 10
 `ssrt3-guides` — sweeping `guidesHistoryCap` should change NOTHING visible,
@@ -67,6 +61,8 @@ blend (debug-view only, per the code map). Confirming this dead knob proves
 the wiring gap behind the EMA noise floor from a second direction.
 
 ---
+
+
 
 ## H-1 — Still-camera convergence ladder (the "does noise go away" question)
 
@@ -78,6 +74,7 @@ The only interaction is the single extreme-knob probe at the END of each
 stack's observation.
 
 For each (demo, stack) in:
+
 - demo 03 — accumMode `frame-count` (expected CLEAN reference)
 - demo 03 — accumMode `ssrt3-ema`
 - demo 10 — `ssrt3`, `ssrt3-guides`, `mathis`, `xegtao`
@@ -100,14 +97,13 @@ frame-count, mathis, svgf's 1/N) should reach CLEAN; fixed-EMA stacks should
 plateau at FLOOR no matter the knob. If an EMA stack reaches CLEAN, or a
 count-based stack doesn't, that's a finding — write it down with the config.
 
-## H-2 — Cross-demo parity hunt
+## H-2 — Best configs worth keeping
 
-Tune demo 03 frame-count to your best-looking cornell still. Copy the pose +
-settings. Now spend up to 10 min in demo 10 (any stack) trying to match that
-look by knobs alone. Record the closest config + what residual defect remains
-(shimmer? blur? both?). Repeat in demo 17 and demo 14. This bounds "is the
-downstream gap tunable or structural" — the answer feeds the accum-mode fix
-decision.
+Not a separate procedure anymore — whenever step 2's free tuning (any demo,
+any stack) lands somewhere good enough that you'd want it back, paste the
+pane's config JSON here with a note on what residual defect remains
+(shimmer? blur? both?). Comparing your best downstream config against your
+best demo-03 config is what bounds "is the gap tunable or structural."
 
 ## H-3 — Motion shimmer grade
 
@@ -152,6 +148,8 @@ Note which stacks get it right; this is the counterweight to H-1 (any
 accum-mode fix must not break this).
 
 ---
+
+
 
 ## Order of operations
 
