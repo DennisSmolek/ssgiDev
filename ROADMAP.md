@@ -94,12 +94,16 @@ One battery, coordinated with Dennis being off the GPU:
 
 ## P4 — Research arms (optional, Dennis's call)
 
+- **TAA literature: DELIVERED** (2026-07-24, `research/sources/temporal/`,
+  11 topics, summary in its `HANDOFF.md`). Mapped to concrete bench
+  experiments in **`EXPERIMENTS.md`** (the experiment catalog — variance
+  clipping, jitter-aware disocclusion, STBN measurement, A-SVGF, velocity
+  dilation, firefly guard, stress scenes, OIDN settle pass, and the
+  us-vs-FSR3 work split). FSR-relevant extracts (topics 02/05/08, verbatim
+  FSR2 source) pointed to from `GUIDES-HANDOFF-RESPONSE.md` for their
+  Report-3 hunt.
 - **15-ptref**: unbiased PT ground truth — the only way to break the SVGF
   MSE tie and get a real quality ranking.
-- **TAA literature** (Dennis gathering → `research/`): variance clipping vs
-  the hard neighborhood clamp — demo 18's jitterClamp arm measured the hard
-  clamp's floor at ~2× capped (1.28 flat); variance clipping is the obvious
-  next arm.
 - **Tiny-neural spatial denoiser** (ref: N8AO NeuralDenoise.js — 512-weight
   int8 attention net over 4–16 taps, shader-codegenned, AO-only): assessed
   as a possible *spatial fallback / young-history* filter, not a SVGF

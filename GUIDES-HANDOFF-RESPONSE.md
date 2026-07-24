@@ -238,3 +238,37 @@ depth-reconstructed position) without jitter compensation will re-flag
 edge pixels every frame → exactly the observed `Disocclusion`-view
 silhouette flicker and rolling `AccumulationAge`, at every ratio including
 NativeAA. That's where we'd look first.
+
+### Research package (2026-07-24) — FSR2 reference material for the depth suspect
+
+A temporal/TAA research pass just landed in our repo at
+`research/sources/temporal/` (index: `00-INDEX.md`, summary: `HANDOFF.md`).
+Three files are directly relevant to your side and quote the upstream FSR2
+source verbatim:
+
+- **`02-disocclusion-history-rejection.md`** — FSR2's depth-clip test from
+  `ffx_fsr2_depth_clip.h`, verbatim: the view-space required-separation
+  test (`Ksep = 1.37e-05`, FOV-compensated, resolution-scaled `pow`),
+  evaluated against **reconstructed previous depth**, producing a soft
+  `depthClipFactor ∈ [0,1]` rather than a hard reject. This is upstream
+  FSR2's answer to exactly the jittered-depth problem named above: it
+  never compares raw current-vs-previous depth.
+- **`05-velocity-dilation.md`** — the "reconstruct & dilate" pass
+  (`ffx_fsr2_reconstruct_previous_depth.h`): 3×3 closest-depth
+  depth/MV dilation + atomic forward reprojection of depth. Caveat flagged
+  in the file: the pass body is manual-sourced (the raw mirror wouldn't
+  render), so check the GitHub blob for the byte-exact loop.
+- **`08-taa-upscaling-rectification.md`** — `ffx_fsr2_accumulate.h` /
+  `ffx_fsr2_lock.h` verbatim: `RectifyHistory` box scaling (disocclusion/
+  velocity/reactivity tighten, locks/luma-instability loosen),
+  thin-feature locks, 4-frame luma-instability history, base accumulation
+  weights.
+
+The concrete debugging lead this gives: if your disocclusion path
+simplified or skipped the reconstructed-previous-depth stage (or feeds it
+non-dilated depth/velocity), the depth comparison degenerates to raw
+jittered depths at silhouettes — which reproduces your Report-3 symptom
+set (silhouette `Disocclusion` flicker, rolling `AccumulationAge`,
+non-convergence at every ratio including NativeAA). Comparing your
+depth-clip stage against the `02`/`05` extracts is probably the fastest
+route to the defect.
