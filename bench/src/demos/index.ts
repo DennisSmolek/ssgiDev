@@ -19,6 +19,7 @@ import { svgfLabDemo } from './14-svgf/index';
 // noiseinject verdict — see 14-svgf/README.md); 16 is the FSR link-up.
 import { fsrDemo } from './16-fsr/index';
 import { guidesAbLabDemo } from './17-guides-ab/index';
+import { temporalLabDemo } from './18-temporal/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -38,3 +39,4 @@ demoRegistry.register(optimDemo);
 demoRegistry.register(svgfLabDemo);
 demoRegistry.register(fsrDemo);
 demoRegistry.register(guidesAbLabDemo);
+demoRegistry.register(temporalLabDemo);

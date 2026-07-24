@@ -1871,3 +1871,63 @@ eye verdict + a measured re-rank; flipping it is a recorded distillation
 decision (re-baseline). Demo 13's fork deliberately does NOT get the mode
 yet — divergence noted in its header comment's spirit; port if/when the
 default flips. Demo 11 itself untouched (frozen).
+
+## 2026-07-24 — demo 18: temporal lab (capped-EMA floor diagnosed, alpha=1/N + jitter AA + spatial fallback); demo 14 display dither
+
+New demo 18 (`bench/src/demos/18-temporal`, registered + harness id '18'):
+a FORK of demo 12 (12 stays the frozen ship-track control) that opens up the
+accumulation strategy the 2026-07-24 crawling-floor entry queued:
+- **accumMode 'capped' vs 'oneOverN'** (default oneOverN). capped = demo
+  12's shipped frame-count-with-cap: blend 1/min(N,cap) -> an EMA floor,
+  residual ~ sigma/sqrt(cap), and the soft 4-tap history clamp re-injects
+  per-frame noise on top. oneOverN = true alpha=1/N: age uncapped (counter
+  moved r16float -> r32float — half-float integer increments stall at 2048),
+  NO history clamp, disocclusion/off-screen/reset restarts N=1 exactly like
+  the capped path. accumFrameCap slider (capped only) range to 1024.
+- **aaMode 'off' | 'jitter' (default) | 'jitterClamp'**: Halton(2,3)
+  16-cycle sub-pixel camera jitter (harness applyCameraJitter). The demo-14
+  jitter trap is handled: three's velocity node includes the jitter delta
+  (it tracks prev PROJECTION), so the temporal pass receives jitterDeltaUV
+  (= -(jCur-jPrev)/size) and recovers TRUE per-pixel motion; sub-pixel-true-
+  motion pixels take a STILL path (history at same texel, accepted
+  unconditionally — at edges the depth flip IS the coverage being
+  integrated; world-delta rejecting there = rolling accumAge shimmer). The
+  moving path keeps demo 12's world-delta reject (threshold 0.5 -> 0.35
+  under jitter). Beauty+albedo are accumulated alongside (same N; 0.5
+  response floor on moving pixels) and the composite reads the accumulated
+  pair — otherwise raw G-buffer edge shimmer swamps the converged GI/AO.
+  jitterClamp adds the classic TAA 3x3 min/max clamp: INTENTIONAL noise
+  floor, kept to measure that trade-off (schema hint + WGSL comment).
+- **spatialFallback (default on) + nMin (8)**: age-faded bilateral (folded
+  into the existing denoise pass: t = clamp(N/nMin,0,1), mix(filtered,
+  unfiltered, t)) hides the raw-noise boil during the post-move ramp, zero
+  effect once converged. Demo 12's always-on `denoising` kept but default
+  OFF here so the arms are measured bare. noiseMode default 'bluenoise'.
+  temporalResponse/ssrt3-ema dropped (the capped arm IS demo 12's shipped
+  frame-count default; ema was already the losing toggle).
+
+Verified headed (run-18.mjs, committed; C-wide cornell, combined view,
+consecutive-1s-screenshot churn, mean of first/last 3 over 12 s):
+- capped@64+jitter: 0.580 -> 0.578 (FLAT — the floor, as diagnosed).
+- oneOverN+jitter: 0.447 -> 0.242 and still falling (1/N tail); passes
+  "decreasing AND < 0.5x capped floor". oneOverN+off: 0.414 -> 0.224 (jitter
+  costs ~nothing in convergence — the still-path/unjitter logic works).
+- oneOverN+jitterClamp: 1.278 -> 1.285 (flat, ~2x the capped floor — the
+  documented clamp trade-off, now a measured number).
+- Edge AA: box-top crops t1 vs t10 + final-frame zoom A/B: aa=off = hard
+  1-px stair steps; jitter = blended coverage steps. Geometric AA real.
+- Teleport (C-wide -> C-graze) reconverges 0.57@1.3s -> 0.18@10s; 20-step
+  drift then settle -> 0.145, no freeze/ghost trail (faint 1-2 px beauty-
+  blend fringe at silhouettes during re-settle — the 0.5 response floor;
+  acceptable, noted for a future resolve pass).
+- All three aa modes boot clean (no WGSL/console errors); demo 12/13/14
+  untouched by the fork (registry + harness id only).
+Results: bench/results/lab18-temporal.{json,md}.
+
+Also: demo 12's static IGN display dither (2026-07-24 banding fix) PORTED to
+demo 14 (`withDisplayDither` wrapping every display outputNode) — minimal
+change, verified rendering headed.
+
+**Validated:** run-18.mjs assertions green at 12 s window. **Open bugs:**
+none known; watch the beauty-accumulation silhouette fringe under sustained
+motion and the jitterClamp floor if that arm ever becomes a default.

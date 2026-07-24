@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "commit": "cdbb280-dirty",
+    "date": "2026-07-24T05:57:56.006Z",
+    "baseUrl": "http://localhost:5299/",
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell",
+    "settleMs": 2000,
+    "windowMs": 12000,
+    "stepMs": 1000,
+    "shots": "/private/tmp/claude-502/-Users-dex-Developer-ssgiDev/cc139dca-96ca-4dec-8943-dd5e876817c1/scratchpad/lab18",
+    "rule": "churnEarly/churnLate = mean of first/last 3 consecutive-frame meanAbsDiffs (1 s apart). Pass: oneOverN-jitter late < early AND late < 0.5 * capped64 late.",
+    "failures": []
+  },
+  "rows": [
+    {
+      "demo": "18-temporal",
+      "arm": "capped64-jitter",
+      "view": "combined",
+      "churnEarly": 0.5800216324955908,
+      "churnLate": 0.5781911375661375,
+      "diffsJson": "[{\"t\":1.16,\"churn\":0.5802},{\"t\":2.31,\"churn\":0.5848},{\"t\":3.46,\"churn\":0.5751},{\"t\":4.61,\"churn\":0.5802},{\"t\":5.75,\"churn\":0.5836},{\"t\":6.92,\"churn\":0.5999},{\"t\":8.06,\"churn\":0.6045},{\"t\":9.21,\"churn\":0.5758},{\"t\":10.37,\"churn\":0.5735},{\"t\":11.54,\"churn\":0.5852}]",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"capped\",\"accumFrameCap\":64,\"aaMode\":\"jitter\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "18-temporal",
+      "arm": "oneOverN-jitter",
+      "view": "combined",
+      "churnEarly": 0.44707065696649034,
+      "churnLate": 0.24190558862433864,
+      "diffsJson": "[{\"t\":1.2,\"churn\":0.4784},{\"t\":2.35,\"churn\":0.4458},{\"t\":3.48,\"churn\":0.417},{\"t\":4.61,\"churn\":0.3568},{\"t\":5.74,\"churn\":0.3286},{\"t\":6.88,\"churn\":0.3012},{\"t\":8.03,\"churn\":0.29},{\"t\":9.17,\"churn\":0.274},{\"t\":10.31,\"churn\":0.2313},{\"t\":11.44,\"churn\":0.2204}]",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"oneOverN\",\"accumFrameCap\":64,\"aaMode\":\"jitter\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "18-temporal",
+      "arm": "oneOverN-off",
+      "view": "combined",
+      "churnEarly": 0.4135316082451499,
+      "churnLate": 0.22365354938271606,
+      "diffsJson": "[{\"t\":1.13,\"churn\":0.4434},{\"t\":2.27,\"churn\":0.4149},{\"t\":3.43,\"churn\":0.3823},{\"t\":4.57,\"churn\":0.3472},{\"t\":5.7,\"churn\":0.3158},{\"t\":6.83,\"churn\":0.2853},{\"t\":7.98,\"churn\":0.2591},{\"t\":9.12,\"churn\":0.2433},{\"t\":10.27,\"churn\":0.2212},{\"t\":11.4,\"churn\":0.2064}]",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"oneOverN\",\"accumFrameCap\":64,\"aaMode\":\"off\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "demo": "18-temporal",
+      "arm": "oneOverN-jitterClamp",
+      "view": "combined",
+      "churnEarly": 1.2779562114197531,
+      "churnLate": 1.2849198082010582,
+      "diffsJson": "[{\"t\":1.16,\"churn\":1.2733},{\"t\":2.31,\"churn\":1.2845},{\"t\":3.46,\"churn\":1.2761},{\"t\":4.61,\"churn\":1.2831},{\"t\":5.75,\"churn\":1.2885},{\"t\":6.91,\"churn\":1.3002},{\"t\":8.05,\"churn\":1.3082},{\"t\":9.21,\"churn\":1.2792},{\"t\":10.36,\"churn\":1.2807},{\"t\":11.5,\"churn\":1.2948}]",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"oneOverN\",\"accumFrameCap\":64,\"aaMode\":\"jitterClamp\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    }
+  ]
+}

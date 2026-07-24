@@ -18,10 +18,12 @@ import {
 import {
   diffuseColor,
   float,
+  fract,
   mrt,
   normalView,
   output,
   pass,
+  screenCoordinate,
   screenUV,
   texture,
   uniform,
@@ -542,27 +544,41 @@ class SvgfLabDemo implements Demo {
     }
   }
 
+  // Static (non-animated) IGN dither, ±0.5 LSB at 8-bit, added to the final
+  // rgb before the canvas quantizes — ported from demo 12 (withDisplayDither,
+  // Dennis's 2026-07-24 banding session). Smooth HDR gradients band at 8 bits
+  // no matter how clean the denoised GI is; sub-LSB dither breaks the bands.
+  // Static by design: an animated dither would re-introduce exactly the
+  // FLOOR-live crawl the human tests are hunting.
+  private withDisplayDither(node: ReturnType<typeof vec4>) {
+    const c = screenCoordinate;
+    const ign = fract(
+      float(52.9829189).mul(fract(c.x.mul(0.06711056).add(c.y.mul(0.00583715)))),
+    );
+    return vec4(node.rgb.add(ign.sub(0.5).mul(1 / 255)), node.a);
+  }
+
   private updateOutputNode(): void {
     const v = this.params.values;
     const uv = screenUV;
     this.displayPipeline.needsUpdate = true;
 
     if (v.viewMode === 'split' || v.viewMode === 'diff') {
-      this.displayPipeline.outputNode = vec4(texture(this.compareRT.texture, uv).rgb, float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(texture(this.compareRT.texture, uv).rgb, float(1)));
       return;
     }
     if (v.viewMode === 'reference') {
-      this.displayPipeline.outputNode = vec4(texture(this.refOut, uv).rgb.mul(this.uGiExposure), float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(texture(this.refOut, uv).rgb.mul(this.uGiExposure), float(1)));
       return;
     }
     if (v.viewMode === 'raw-gi') {
       const rawSrc = v.noiseInject ? this.noisyTex : this.giAoTex;
-      this.displayPipeline.outputNode = vec4(texture(rawSrc, uv).rgb.mul(this.uGiExposure), float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(texture(rawSrc, uv).rgb.mul(this.uGiExposure), float(1)));
       return;
     }
     if (v.viewMode === 'variance') {
       const sig = texture(this.varianceTex, uv).r.max(0).sqrt().mul(this.uVarianceAmp).clamp(0, 1);
-      this.displayPipeline.outputNode = vec4(vec3(sig), float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(vec3(sig), float(1)));
       return;
     }
     if (v.viewMode === 'moments') {
@@ -573,7 +589,7 @@ class SvgfLabDemo implements Demo {
       const meanE = texture(tmMomentsCur, uv).r.clamp(0, 1);
       const sig = texture(this.varianceTex, uv).r.max(0).sqrt().mul(this.uVarianceAmp).clamp(0, 1);
       const histN = texture(this.guides.historyLengthTexture, uv).r.div(64).clamp(0, 1);
-      this.displayPipeline.outputNode = vec4(meanE, sig, histN, float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(meanE, sig, histN, float(1)));
       return;
     }
 
@@ -581,13 +597,13 @@ class SvgfLabDemo implements Demo {
     const ao = giao.a;
     const gi = giao.rgb.mul(this.uGiExposure);
     if (v.viewMode === 'gi') {
-      this.displayPipeline.outputNode = vec4(gi, float(1));
+      this.displayPipeline.outputNode = this.withDisplayDither(vec4(gi, float(1)));
       return;
     }
     // combined: beauty * AO + albedo * GI (demo-03/10 composite convention).
     const beauty = texture(this.beautyTex, uv).rgb;
     const albedo = texture(this.albedoTex, uv).rgb;
-    this.displayPipeline.outputNode = vec4(beauty.mul(vec3(ao)).add(albedo.mul(gi)), float(1));
+    this.displayPipeline.outputNode = this.withDisplayDither(vec4(beauty.mul(vec3(ao)).add(albedo.mul(gi)), float(1)));
   }
 
   private applyJitter(w: number, h: number): void {
