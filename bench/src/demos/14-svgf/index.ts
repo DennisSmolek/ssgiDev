@@ -182,6 +182,13 @@ const schema = {
   demodEpsilon: { type: 'number', value: 0.05, min: 0.001, max: 0.5, step: 0.001, label: 'demodEpsilon', group: 'svgf' },
   historyRejectThresh: { type: 'number', value: 0.5, min: 0.05, max: 1, step: 0.01, label: 'historyRejectThresh', group: 'svgf' },
   // --- noiseinject mode (SVGF-SPEC §5 pre-validator) ---
+  cameraJitter: {
+    type: 'boolean',
+    value: false,
+    group: 'producer',
+    label: 'camera sub-pixel jitter',
+    hint: 'Halton view-offset jitter with NO resolve step — shakes the whole image. OFF matches demo 10\'s control (the spec\'s "jitter on" is the producer NOISE cycle, F_JITTER). Only useful once an FSR-style resolve consumes this demo.',
+  },
   noiseInject: { type: 'boolean', value: false, group: 'noiseinject', label: 'noiseinject enabled' },
   noiseSigma: { type: 'number', value: 0.15, min: 0, max: 2, step: 0.01, group: 'noiseinject', label: 'noiseSigma' },
   fireflyRate: { type: 'number', value: 0, min: 0, max: 0.05, step: 0.001, group: 'noiseinject', label: 'fireflyRate' },
@@ -611,9 +618,15 @@ class SvgfLabDemo implements Demo {
     const { width, height } = ctx.renderSize();
     const v = this.params.values;
 
-    // 0. Sub-pixel jitter before the G-buffer rasterizes (producer FIXED-on,
-    // per PRODUCER_FLAGS — matches demo 10's control).
-    this.applyJitter(width, height);
+    // 0. Optional camera sub-pixel jitter. DEFAULT OFF (bug fix 2026-07-24):
+    // this was hard-enabled by a misreading of the spec's "jitter on" (which
+    // means the producer NOISE cycle, F_JITTER — demo 10's control does not
+    // jitter the camera). With no TAA/upscaler resolve in this demo, camera
+    // jitter just shakes every edge, and — because the velocity node is NOT
+    // unjittered here — feeds phantom sub-pixel motion into the guides'
+    // reprojection (disocclusion/history churn at all depth edges).
+    if (v.cameraJitter) this.applyJitter(width, height);
+    else this.camera.clearViewOffset();
 
     // 1. G-buffer.
     this.gbufferPipeline.render();

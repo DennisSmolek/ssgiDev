@@ -1763,3 +1763,19 @@ flagCorrection provenance note); writeResults md table now renders the UNION
 of row keys (first-row-only keys silently dropped lab14's whole mse column);
 lab14/lab17 mds regenerated from their JSONs. New recorded runner:
 run-14-cost.mjs (H5 fenced-burst cost).
+
+## 2026-07-24 — demo 14 camera-jitter bug (Dennis's catch): fixed, verdicts flagged
+
+Dennis reported demo 14 "SUPER jittery, like subpixel AA jitter but worse,
+no setting to adjust it." Root cause: the builder hard-enabled Halton
+camera view-offset jitter every frame (misread of the spec's "jitter on",
+which means the producer NOISE cycle F_JITTER — demo 10's control never
+jitters the camera), with NO resolve step and NO velocity unjittering →
+whole-image shake + phantom sub-pixel motion into the guides' reprojection
+(edge disocclusion/history churn). Now a `camera sub-pixel jitter` toggle,
+DEFAULT OFF. Measured frame-to-frame meanAbsDiff (svgf arm, C-wide, still):
+0.13–0.39 before → 0.039 flat after.
+CONSEQUENCE: lab14-svgf stability rows were recorded WITH the bug — all
+arms shared it (ranking direction likely stands; svgf still won by 7–88×)
+but absolute values are inflated. run-14 re-record queued for the next
+quiet-GPU window; treat current absolute stability numbers as upper bounds.
