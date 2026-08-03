@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World-Space GI Landscape Explorer</title>
+<style>
+  :root{
+    --bg:#0d0f14; --panel:#161a22; --panel2:#1d222c; --border:#2a3140;
+    --text:#e6e9ef; --dim:#9aa4b5; --accent:#5db4ff; --accent2:#b98bff;
+    --good:#4ec9a4; --mid:#e8c069; --bad:#ef7676;
+    --probe:#5db4ff; --voxel:#e8a25d; --sdf:#8ad35a; --surfel:#b98bff;
+    --screen:#ef7676; --many:#f08fc0; --baked:#6fd0d6; --none:#9aa4b5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:28px 20px 80px}
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--dim);margin:0 0 22px;font-size:14px}
+  .sub a{color:var(--accent);text-decoration:none}
+  .controls{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px}
+  .ctl-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  .ctl-label{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.06em;width:120px;flex-shrink:0}
+  .chip{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:5px 12px;border-radius:20px;cursor:pointer;font-size:13px;transition:.15s;user-select:none}
+  .chip:hover{border-color:var(--accent)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#04121f;font-weight:600}
+  .chip.fam.on{color:#04121f}
+  input#search{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:8px 12px;border-radius:8px;font-size:14px;flex:1;min-width:200px}
+  .count{color:var(--dim);font-size:13px;margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 16px 14px;
+    display:flex;flex-direction:column;transition:.15s;position:relative;overflow:hidden}
+  .card:hover{border-color:#3a465c}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--fam)}
+  .card h3{margin:0 0 2px;font-size:17px;letter-spacing:-.01em;padding-left:6px}
+  .fam-tag{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;padding-left:6px;margin-bottom:10px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding-left:6px}
+  .badge{font-size:11.5px;padding:3px 8px;border-radius:6px;background:var(--panel2);border:1px solid var(--border);color:var(--dim)}
+  .badge b{color:var(--text);font-weight:600}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+  .g{background:var(--good)}.m{background:var(--mid)}.b{background:var(--bad)}
+  .how{color:var(--dim);font-size:13.5px;margin:0 0 10px;padding-left:6px}
+  .pc{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-left:6px;margin-bottom:10px}
+  .pc h4{margin:0 0 3px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .pc .pro h4{color:var(--good)} .pc .con h4{color:var(--bad)}
+  .pc ul{margin:0;padding-left:15px;font-size:12.5px;color:var(--dim)}
+  .pc li{margin-bottom:2px}
+  .webgpu{padding-left:6px;font-size:12.5px;margin-bottom:10px;border-top:1px solid var(--border);padding-top:9px}
+  .webgpu b{color:var(--accent)}
+  .links{padding-left:6px;display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:6px}
+  .links a{font-size:12px;color:var(--accent);text-decoration:none;background:var(--panel2);
+    border:1px solid var(--border);padding:3px 9px;border-radius:14px}
+  .links a:hover{border-color:var(--accent)}
+  .stars{color:var(--mid);font-size:13px}
+  .diff-pips{letter-spacing:1px}
+  footer{color:var(--dim);font-size:12px;margin-top:30px;border-top:1px solid var(--border);padding-top:14px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--dim)}
+  .legend span{display:flex;align-items:center;gap:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>World-Space GI Landscape Explorer</h1>
+  <p class="sub">Real-time global illumination techniques, tagged for browser/WebGPU viability. Companion to <em>worldspace-gi-landscape.md</em>. Filter by family, WebGPU fit, or search. Star rating = build-from-scratch difficulty in WGSL (1 easy – 5 research-grade).</p>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-label">Family</span>
+      <span class="chip fam on" data-fam="all">All</span>
+      <span class="chip fam" data-fam="Probe" style="--c:var(--probe)">Probe</span>
+      <span class="chip fam" data-fam="Voxel">Voxel</span>
+      <span class="chip fam" data-fam="SDF">Distance field</span>
+      <span class="chip fam" data-fam="Surfel/Cache">Surfel / cache</span>
+      <span class="chip fam" data-fam="Screen-space">Screen-space</span>
+      <span class="chip fam" data-fam="Many-light">Many-light</span>
+      <span class="chip fam" data-fam="Baked">Baked</span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">WebGPU fit</span>
+      <span class="chip fit on" data-fit="all">All</span>
+      <span class="chip fit" data-fit="proven">Proven on web</span>
+      <span class="chip fit" data-fit="feasible">Feasible</span>
+      <span class="chip fit" data-fit="hard">Hard / reference-only</span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Max difficulty</span>
+      <span class="chip diff on" data-diff="5">Any</span>
+      <span class="chip diff" data-diff="2">≤2</span>
+      <span class="chip diff" data-diff="3">≤3</span>
+      <span class="chip diff" data-diff="4">≤4</span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Search</span>
+      <input id="search" placeholder="e.g. leak, radiance cache, id tech, ddgi, clipmap…">
+    </div>
+  </div>
+
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <b>The through-line:</b> five structural ideas — probes, voxels, distance fields, surfels/caches, screen-space — plus baked radiosity and (not-actually-GI) clustered culling. WebGPU has <b>no hardware ray tracing</b>, so every "fast" number assumes RT cores; on the web you trace an SDF/voxel/BVH in compute. Recommended path: fix near-field noise with SSILVB → keep DDGI as far-field base → add an id-Tech-8-style spatial-hash radiance cache with a screen→world→probe fallback chain.
+    <div class="legend">
+      <span><span class="dot g"></span>low leak / good</span>
+      <span><span class="dot m"></span>medium</span>
+      <span><span class="dot b"></span>high leak / weak</span>
+      <span>★ = difficulty (1–5)</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+const FAMCOLOR={Probe:'var(--probe)',Voxel:'var(--voxel)',SDF:'var(--sdf)','Surfel/Cache':'var(--surfel)','Screen-space':'var(--screen)','Many-light':'var(--many)',Baked:'var(--baked)'};
+const L=(t,u)=>({t,u});
+const DATA=[
+ {name:'SH light probes',fam:'Probe',diff:1,dyn:'Static',leak:'b',spec:'Diffuse',fit:'proven',
+  how:'Grid of points storing directional irradiance as low-order spherical harmonics; interpolate the 8 nearest at shading time. The cheap, leaky, baked baseline everything else improves on.',
+  pro:['Essentially free at runtime','Tiny memory','Trivial to ship, exists in three.js'],
+  con:['No visibility → leaks through walls','Baked / static lighting','Diffuse only, blurry'],
+  wg:'Trivial. Official three.js WebGPU example exists.',
+  links:[L('three.js WebGPU example','https://threejs.org/examples/webgpu_lightprobe.html'),L('Irradiance Volume (1998)','https://www.researchgate.net/publication/3208677_The_Irradiance_Volume')]},
+
+ {name:'DDGI',fam:'Probe',diff:4,dyn:'Dynamic',leak:'g',spec:'Diffuse',fit:'proven',
+  how:'Ray-trace a stochastic spray of rays per probe each frame; blend into irradiance + visibility octahedral atlases. Chebyshev (variance-shadow) visibility test weights out probes on the far side of a wall — the anti-leak core. Relocation + classification keep probes out of geometry.',
+  pro:['Fully dynamic diffuse + multi-bounce','Per-probe visibility fixes most leaking','No bake, in-editor real-time','Tunable rays/probe & cadence'],
+  con:['Low-frequency, no glossy (pair with SSR)','Temporal lag on sudden light change','Needs a ray-tracing backend','Still leaks when wall ≈ probe spacing'],
+  wg:'Viable but you supply the tracer (SDF/voxel/BVH) since WebGPU has no HW RT. Proven: Orillusion ships DDGI on WebGPU.',
+  links:[L('JCGT paper','https://www.jcgt.org/published/0008/02/01/paper-lowres.pdf'),L('McGuire overview','https://morgan3d.github.io/articles/2019-04-01-ddgi/overview.html'),L('NVIDIA RTXGI','https://github.com/NVIDIAGameWorks/RTXGI-DDGI'),L('Vulkan impl','https://github.com/helenl9098/Dynamic-Diffuse-Global-Illumination-Minecraft'),L('Orillusion (WebGPU)','https://www.orillusion.com/en/guide/')]},
+
+ {name:'Radiance Cascades',fam:'Probe',diff:3,dyn:'Dynamic',leak:'g',spec:'Both',fit:'feasible',
+  how:'Sannikov / PoE2. Penumbra hypothesis: high spatial resolution near, high angular resolution far. Cascade hierarchy halves probe density but doubles ray count each level; merge coarse→fine. In 2D: noise-free with no temporal accumulation, geometry-agnostic cost.',
+  pro:['Noise-free in 2D, no temporal needed','Cost independent of scene complexity','Soft penumbrae; great compute fit','No RT hardware required'],
+  con:['3D is an open research problem','Ring artifacts need the ~4× bilinear fix','Cascade stack memory non-trivial','Sannikov upscaler not licensable'],
+  wg:'Excellent fit in 2D/2.5D. 3D web demos fall back to screen-space probes. Budget for the bilinear fix.',
+  links:[L('radiance.wiki hub','https://radiance.wiki/'),L('jason.today tutorial','https://jason.today/rc'),L('bilinear fix explainer','https://mini.gmshaders.com/p/radiance-cascades'),L('tmpvar WebGPU','https://tmpvar.com/poc/radiance-cascades/'),L('three-rc (3D)','https://github.com/CodyJasonBennett/three-rc')]},
+
+ {name:'Voxel Cone Tracing / VXGI',fam:'Voxel',diff:4,dyn:'Dynamic',leak:'b',spec:'Both',fit:'feasible',
+  how:'Crassin 2011. Voxelize the scene into a mipmapped radiance+opacity volume (use a camera-centered clipmap, not an octree). Shade by marching ~5–9 widening cones over the hemisphere, sampling the mip level matching each cone’s radius. Cheap approximation of integrating many rays.',
+  pro:['Diffuse + glossy + AO from one structure','Fully dynamic, no bake','No RT hardware needed','Cone tracing far cheaper than per-ray'],
+  con:['Signature light leaking through thin walls','Revoxelization cost + memory','Boundary flicker / blocky up close','Practically 1–2 bounces'],
+  wg:'Feasible; port a clipmap impl to WGSL compute. WebGL2 reference exists (gi-voxels). No mature WebGPU one found.',
+  links:[L('Crassin paper','https://maverick.inria.fr/Publications/2011/CNSGE11/I3D2011_Poster_web.pdf'),L('Godot VoxelGI docs','https://docs.godotengine.org/en/stable/tutorials/3d/global_illumination/using_voxel_gi.html'),L('WebGL2: gi-voxels','https://github.com/novalain/gi-voxels'),L('clipmap ref (compix)','https://github.com/compix/VoxelConeTracingGI')]},
+
+ {name:'SDFGI (Godot-style)',fam:'SDF',diff:4,dyn:'Partial',leak:'m',spec:'Both',fit:'feasible',
+  how:'Store distance-to-surface in cascaded SDF volumes; sphere-trace rays (step by stored distance). SDF has no color, so light comes from a decoupled irradiance-probe grid with an occlusion term. Key difference from VCT: distance ≠ radiance, and lighting is a separate structure — which is why it leaks less.',
+  pro:['Mostly leak-free vs VCT','Scales to large/open worlds via cascades','No lightmap unwrap or bake','Sharp + rough reflections + emissive'],
+  con:['Dynamic objects receive but don’t contribute GI (Godot)','Among the heaviest GI modes','Thin walls < cell still leak','Slight temporal settling'],
+  wg:'Sphere-trace is trivial in WGSL; SDF baking + probe system is the work. Note: Godot SDFGI does NOT run on web exports (needs Forward+).',
+  links:[L('Godot SDFGI docs','https://docs.godotengine.org/en/stable/tutorials/3d/global_illumination/using_sdfgi.html'),L('Godot announcement','https://godotengine.org/article/godot-40-gets-sdf-based-real-time-global-illumination/'),L('SDFGI study repo','https://github.com/carlos-lopez-garces/SDFGI')]},
+
+ {name:'Lumen (software path)',fam:'SDF',diff:5,dyn:'Dynamic',leak:'m',spec:'Both',fit:'hard',
+  how:'Unreal’s hybrid system. Screen traces first (cheapest), then sphere-trace Mesh Distance Fields merged into a Global Distance Field; lighting at hits is read from the Surface Cache (per-mesh card atlas), amortized over frames. The reference for layering screen → world tracing.',
+  pro:['Highest quality here; open-world scale','Multi-bounce, many dynamic lights','Decouples geometry from lighting','Artist-friendly, fully dynamic'],
+  con:['Heavy (targets high-end PC/consoles)','Needs modular geometry, walls ≥10 cm','Surface-cache coverage gaps','A full research system, not a technique'],
+  wg:'Reference architecture, not a clone target. The transferable idea: screen traces → world traces + decoupled lighting cache.',
+  links:[L('Lumen technical details','https://dev.epicgames.com/documentation/en-us/unreal-engine/lumen-technical-details-in-unreal-engine')]},
+
+ {name:'Light Propagation Volumes',fam:'Voxel',diff:2,dyn:'Dynamic',leak:'b',spec:'Diffuse',fit:'feasible',
+  how:'Crytek. Inject radiance from a reflective shadow map into a coarse 3D grid of SH cells, then iteratively flood-propagate cell-to-cell (a diffusion step, no tracing), gated by an occlusion grid. One blurry diffuse bounce. Ran on Xbox 360 / PS3.',
+  pro:['Very cheap, fully dynamic','No voxelization of full scene, no tracing','Simple, well-documented','Compact SH grid memory'],
+  con:['Leaks badly (worst of the group)','Low-frequency ~single bounce only','Blurry, light smears across cells','No useful specular'],
+  wg:'Excellent — a directly-portable WebGL reference exists. Accept the leaking.',
+  links:[L('Cascaded LPV paper','https://cg.ivd.kit.edu/publications/p2010/CLPVFRII_Kaplanyan_2010/CLPVFRII_Kaplanyan_2010.pdf'),L('WebGL impl','https://github.com/Global-Illuminati/Light-Propagation-Volumes'),L('writeup','https://ericpolman.com/2016/06/28/light-propagation-volumes/')]},
+
+ {name:'Surfel GI (EA GIBS)',fam:'Surfel/Cache',diff:5,dyn:'Dynamic',leak:'m',spec:'Diffuse',fit:'proven',
+  how:'Surfels (oriented discs) decouple lighting from screen resolution. Spawn from the g-buffer on the fly, store in a hash grid, ray-trace a few rays per surfel (with ray guiding), temporally integrate irradiance, interpolate onto pixels. No bake, no UVs. Shipped in College Football 25.',
+  pro:['No bake / no special UVs','Bounded, scene-size-independent cost','Amortized RT → low ray budget','Handles skinned meshes + transparency'],
+  con:['Requires hardware RT (natively)','Diffuse only','Temporal lag / ghosting','Substantial engineering complexity'],
+  wg:'PROVEN on WebGPU: webgiya (~3000 lines TS/WGSL) emulates RT via three-mesh-bvh and documents every WebGPU blocker (no RT, 10-storage-buffer limit, no bindless).',
+  links:[L('EA SEED GIBS slides','https://www.ea.com/seed/news/siggraph21-global-illumination-surfels'),L('★ webgiya (WebGPU)','https://github.com/jure/webgiya'),L('webgiya writeup','https://juretriglav.si/surfel-based-global-illumination-on-the-web/'),L('three-mesh-bvh','https://github.com/gkjohnson/three-mesh-bvh')]},
+
+ {name:'AMD GI-1.0',fam:'Surfel/Cache',diff:5,dyn:'Dynamic',leak:'m',spec:'Both',fit:'hard',
+  how:'Two-level radiance cache (screen-probe + coarser world cache) using hardware RT but caching radiance to slash ray counts. Open source in AMD’s Capsaicin framework with a reference path tracer. GI-1.1 adds glossy.',
+  pro:['Open source + paper + reference PT','Fewer rays via two-level cache','High-fidelity, scalable','GI-1.1 adds glossy'],
+  con:['Needs hardware RT','D3D12-only reference','Cache blur / lag','Tuning complexity'],
+  wg:'Hard: would need BVH emulation on web. Study the two-level caching idea.',
+  links:[L('GI-1.0 paper','https://gpuopen.com/download/publications/GPUOpen2022_GI1_0.pdf'),L('Capsaicin','https://gpuopen.com/capsaicin/')]},
+
+ {name:'id Tech 8 ("Fast as Hell")',fam:'Surfel/Cache',diff:5,dyn:'Dynamic',leak:'g',spec:'Both',fit:'hard',
+  how:'Doom: The Dark Ages, Tiago Sousa SIGGRAPH 2025. HW-ray-traced probe + radiance-cache pipeline — NOT surface cache, NOT voxel, NOT path tracing. DDGI-style cascaded irradiance volumes + a spatial-hash world radiance cache (~14 MB). Final gather = 1 ray/px, zero shading, 3-level fallback: screen cache → world cache → irradiance volumes → SH output. Whole stack ~1.7–2.1 ms.',
+  pro:['0 GB baked, instant art iteration','~1.7–2.1 ms across all platforms','Clean fallback-chain architecture','Storage explicitly "similar to DDGI"'],
+  con:['Built entirely on hardware RT','First id engine to require RT GPUs','Path tracing is a separate later update','No 1:1 web port possible'],
+  wg:'RT primitive is a hard blocker, but the ARCHITECTURE is a super-set of what you have — DDGI probes + spatial-hash cache + SH final gather with screen→world→probe fallback. The blueprint to build toward.',
+  links:[L('★ SOUSA slides (PDF)','https://advances.realtimerendering.com/s2025/content/SOUSA_SIGGRAPH_2025_Final.pdf'),L('Talk video','https://www.youtube.com/watch?v=VTrdeqMMMK0'),L('Digital Foundry × Khan','https://www.youtube.com/watch?v=Ed4vNNQwCDU'),L('PT update interview','https://developer.nvidia.com/blog/how-id-software-used-neural-rendering-and-path-tracing-in-doom-the-dark-ages')]},
+
+ {name:'Reflective Shadow Maps',fam:'Many-light',diff:2,dyn:'Dynamic',leak:'b',spec:'Diffuse',fit:'proven',
+  how:'Dachsbacher 2005. Extend a light’s shadow map so each texel stores world pos + normal + flux — every texel becomes a tiny indirect light (VPL). Sample a neighborhood per pixel for single-bounce indirect diffuse. Base method ignores indirect occlusion.',
+  pro:['Cheapest real GI to stand up','Cost ~independent of scene complexity','Fully dynamic, rebuilt each frame','Bolts onto existing shadow pipeline'],
+  con:['No indirect occlusion → leaks/over-bright','Single bounce only','Many samples/pixel gets noisy','Quality tied to shadow-map res'],
+  wg:'Excellent, and already shipping in Babylon.js 8 as GIRSM.',
+  links:[L('RSM paper','https://users.soe.ucsc.edu/~pang/160/s13/proposal/mijallen/proposal/media/p203-dachsbacher.pdf'),L('Babylon.js GIRSM','https://doc.babylonjs.com/features/featuresDeepDive/lights/rsmgi')]},
+
+ {name:'Instant Radiosity / VPLs',fam:'Many-light',diff:4,dyn:'Partial',leak:'m',spec:'Diffuse',fit:'feasible',
+  how:'Keller 1997. Shoot particles from lights; deposit a virtual point light at each hit; light the scene with lights + VPLs. Naturally multi-bounce; the last bounce is the composite radiance of the VPL set. Pairs with clustered culling since thousands of VPLs are a many-light problem.',
+  pro:['Conceptually simple','Reuses your many-light shading path','Naturally multi-bounce','Interactive with enough culling'],
+  con:['Poor at glossy transport','Spike artifacts near VPLs (needs clamp)','Flickers as VPLs re-sample','Per-VPL visibility is expensive'],
+  wg:'Feasible; pairs naturally with a clustered light setup you probably want anyway.',
+  links:[L('Instant Radiosity survey','https://www.cg.tuwien.ac.at/research/publications/2008/radax-2008-ir/radax-2008-ir-paper.pdf'),L('Forward+ impl','https://github.com/rohith10/ForwardPlus-InstantRadiosity')]},
+
+ {name:'Radiosity / Lightmaps / PRT',fam:'Baked',diff:4,dyn:'Static geo',leak:'g',spec:'Diffuse',fit:'proven',
+  how:'Precompute the expensive visibility/form-factor part offline. Runtime: either progressively solve radiosity (Enlighten — allows runtime light-color changes) or dot SH environment lighting against precomputed transfer (PRT). Extremely cheap at runtime, but static geometry only.',
+  pro:['Very cheap at runtime (fetch / SH dot)','Smooth, leak-controlled multi-bounce','Enlighten allows time-of-day relight','No RT hardware needed'],
+  con:['Slow bake step, blocks iteration','Static geometry only','Lightmap memory + UV overhead','Low-frequency diffuse'],
+  wg:'Excellent runtime fit (2 to consume). Best leak-free diffuse base for architectural/static scenes.',
+  links:[L('Enlighten tech','https://www.siliconstudio.co.jp/middleware/enlighten/en/techinfo/'),L('Unity Realtime GI','https://docs.unity3d.com/Manual/realtime-gi-using-enlighten.html'),L('PRT overview','https://en.wikipedia.org/wiki/Precomputed_Radiance_Transfer')]},
+
+ {name:'SSGI — ray-marched',fam:'Screen-space',diff:4,dyn:'Dynamic',leak:'m',spec:'Both',fit:'feasible',
+  how:'Trace a few stochastic rays into the Hi-Z depth buffer per pixel; on a hit, read that pixel’s shaded color as one radiance sample. Mechanically = SSR with cosine-hemisphere directions. Monte Carlo integration of a full hemisphere with 1–4 samples/px — noisy by construction. THIS IS LIKELY YOUR NOISE SOURCE.',
+  pro:['Pixel-perfect contact GI + AO','Zero precompute, fully dynamic','Cost independent of scene complexity','Works on any geometry'],
+  con:['Inherently noisy (undersampled hemisphere)','Denoiser brings ghosting/disocclusion trails','No off-screen / behind-surface light','View-dependent popping'],
+  wg:'Cheap but the noise fight is largely algorithmic — switch families (below) rather than tuning denoisers forever.',
+  links:[L('SSSR Hi-Z + denoiser notes','https://interplayoflight.wordpress.com/2022/09/28/notes-on-screenspace-reflections-with-fidelityfx-sssr/'),L('SVGF paper','https://cg.ivd.kit.edu/publications/2017/svgf/svgf_preprint.pdf'),L('0beqz realism-effects (WebGL)','https://github.com/0beqz/realism-effects')]},
+
+ {name:'SSILVB / HBIL — horizon',fam:'Screen-space',diff:3,dyn:'Dynamic',leak:'g',spec:'Diffuse',fit:'proven',
+  how:'Horizon family (HBAO→GTAO→HBIL→SSILVB). Treat the depth buffer as a height-field; sweep azimuthal slices and analytically integrate visibility + radiance between samples instead of stochastically sampling. SSILVB packs a 32-sector hemisphere into one u32 bitmask (shift-and-mask per sample) — dramatically less noise at equal samples, and fixes thin-surface over-darkening.',
+  pro:['Far less noise — attacks it at the source','Correct thin-surface + behind-surface handling','One compute pass + cheap bilateral','Native WGSL countOneBits() fits perfectly'],
+  con:['Diffuse only','Still screen-space (no off-screen light)','Needs decent depth thickness handling','Half-res still blurs'],
+  wg:'PROVEN + recommended. three.js’s official WebGPU SSGI (SSGINode) is built on SSILVB. Your highest-leverage, lowest-effort fix.',
+  links:[L('★ SSILVB paper','https://arxiv.org/pdf/2301.11376'),L('three.js WebGPU SSGI','https://threejs.org/examples/webgpu_postprocessing_ssgi.html'),L('GTAO paper','https://research.activision.com/publications/archives/atvi-tr-16-01practical-realtime-strategies-for-accurate-indirect-occlusion'),L('XeGTAO','https://github.com/GameTechDev/XeGTAO'),L('SSRT3 (SSGI+probe fallback)','https://github.com/cdrinmatane/SSRT3')]},
+
+ {name:'Clustered / tiled culling',fam:'Many-light',diff:3,dyn:'Dynamic',leak:'g',spec:'—',fit:'proven',
+  how:'NOT global illumination — this is the "cluster light" you saw. Subdivide the frustum into a 3D grid, assign lights to clusters, look up per-cluster light lists so you can shade thousands of DIRECT lights cheaply. Becomes GI-relevant only as the delivery mechanism for VPL/RSM many-light GI.',
+  pro:['Handles 10²–10⁶ direct lights','Decouples light count from shader cost','Works deferred and forward (+transparency)','Maps cleanly to WebGPU compute'],
+  con:['Not GI — no indirect bounce by itself','Cluster build + light-list memory','List sizing / overflow to manage','Direct lighting only'],
+  wg:'Excellent WebGPU fit, and you likely want it in your renderer regardless of GI choice.',
+  links:[L('Clustered Shading (Olsson)','https://www.highperformancegraphics.org/previous/www_2012/media/Papers/HPG2012_Papers_Olsson.pdf')]},
+];
+
+const state={fam:'all',fit:'all',diff:5,q:''};
+const grid=document.getElementById('grid');
+const countEl=document.getElementById('count');
+
+function pips(n){return '★'.repeat(n)+'☆'.repeat(5-n);}
+function leakLabel(c){return c==='g'?'low':c==='m'?'med':'high';}
+
+function render(){
+  const q=state.q.toLowerCase();
+  const items=DATA.filter(d=>{
+    if(state.fam!=='all' && d.fam!==state.fam) return false;
+    if(state.fit!=='all' && d.fit!==state.fit) return false;
+    if(d.diff>state.diff) return false;
+    if(q){
+      const hay=(d.name+' '+d.fam+' '+d.how+' '+d.pro.join(' ')+' '+d.con.join(' ')+' '+d.wg).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  countEl.textContent=`${items.length} technique${items.length!==1?'s':''} shown`;
+  grid.innerHTML=items.map(d=>`
+    <div class="card" style="--fam:${FAMCOLOR[d.fam]}">
+      <h3>${d.name}</h3>
+      <div class="fam-tag">${d.fam==='Many-light'&&d.name.includes('luster')?'Not GI · light culling':d.fam}</div>
+      <div class="meta">
+        <span class="badge"><b class="diff-pips">${pips(d.diff)}</b></span>
+        <span class="badge">${d.dyn}</span>
+        <span class="badge"><span class="dot ${d.leak}"></span>leak ${leakLabel(d.leak)}</span>
+        <span class="badge"><b>${d.spec}</b></span>
+      </div>
+      <div class="how">${d.how}</div>
+      <div class="pc">
+        <div class="pro"><h4>Pros</h4><ul>${d.pro.map(p=>`<li>${p}</li>`).join('')}</ul></div>
+        <div class="con"><h4>Cons</h4><ul>${d.con.map(c=>`<li>${c}</li>`).join('')}</ul></div>
+      </div>
+      <div class="webgpu"><b>WebGPU:</b> ${d.wg}</div>
+      <div class="links">${d.links.map(l=>`<a href="${l.u}" target="_blank" rel="noopener">${l.t} ↗</a>`).join('')}</div>
+    </div>`).join('');
+}
+
+document.querySelectorAll('.chip.fam').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip.fam').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); state.fam=c.dataset.fam; render();
+});
+document.querySelectorAll('.chip.fit').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip.fit').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); state.fit=c.dataset.fit; render();
+});
+document.querySelectorAll('.chip.diff').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.chip.diff').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); state.diff=+c.dataset.diff; render();
+});
+document.getElementById('search').oninput=e=>{state.q=e.target.value; render();};
+render();
+</script>
+</body>
+</html>

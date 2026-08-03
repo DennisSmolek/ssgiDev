@@ -202,6 +202,186 @@ export async function minOfBursts(run, { bursts = 3, iters = 40 } = {}) {
 
 // ---------------------------------------------------------------- results ---
 
+// ---------------------------------------------------------------- Phase α ---
+// Testing infrastructure: convergence curves, ghosting detection, edge metrics,
+// temporal heatmaps.
+
+/**
+ * Convergence curve: generalized from run-18.
+ * Opens demo, measures per-frame churn over duration, returns diff array + stats.
+ */
+export async function convergenceCurve(page, demoParams, { duration = 12000, sampleMs = 1000 } = {}) {
+  await openDemo(page, demoParams);
+  await settle(2000); // settle before measuring
+
+  const frames = [];
+  const t0 = Date.now();
+  while (Date.now() - t0 <= duration) {
+    const t = (Date.now() - t0) / 1000;
+    const img = await grabContent(page);
+    frames.push({ t, img });
+    await settle(sampleMs);
+  }
+
+  // Per-frame churn (mean abs diff between consecutive frames)
+  const diffs = [];
+  for (let i = 0; i < frames.length - 1; i++) {
+    const churn = meanAbsDiff(frames[i].img, frames[i + 1].img);
+    diffs.push({ t: frames[i + 1].t, churn });
+  }
+
+  // Early (first 3 frames) and late (last 3 frames) averages
+  const early = diffs.slice(0, 3).reduce((s, d) => s + d.churn, 0) / Math.min(3, diffs.length);
+  const late = diffs.slice(-3).reduce((s, d) => s + d.churn, 0) / Math.min(3, diffs.length);
+
+  return { diffs, early, late, frames: frames.map(f => f.img) };
+}
+
+/**
+ * Geometric ghosting detector: per-pixel temporal variance as a ghosting proxy.
+ * High-variance clusters = stale GI in wrong locations.
+ * Returns score in [0, 1] where 0 = no ghosting, 1 = severe.
+ */
+export function geometricGhostingDetector(frames) {
+  if (frames.length < 2) return 0;
+
+  const width = frames[0].width;
+  const height = frames[0].height;
+  const pixelCount = width * height;
+
+  // Sample every 4th pixel to avoid stack overflow on large images
+  let highChurnCount = 0;
+  const sampleRate = 4;
+
+  for (let i = 0; i < pixelCount; i += sampleRate) {
+    const idx = i * 4;
+    let sum = 0;
+    let sumSq = 0;
+
+    for (const frame of frames) {
+      const lum = (frame.data[idx] + frame.data[idx + 1] + frame.data[idx + 2]) / 3;
+      sum += lum;
+      sumSq += lum * lum;
+    }
+
+    const n = frames.length;
+    const mean = sum / n;
+    const variance = (sumSq / n) - (mean * mean);
+    const stddev = Math.sqrt(Math.max(0, variance));
+
+    // Threshold: stale GI shows luminance variance > 20 units
+    if (stddev > 20) highChurnCount++;
+  }
+
+  const sampledPixels = Math.ceil(pixelCount / sampleRate);
+  const ratio = highChurnCount / sampledPixels;
+
+  // Normalize: >10% of sampled pixels = ghosting signal
+  return Math.min(1, ratio * 10);
+}
+
+/**
+ * Edge sharpness: Laplacian-based high-frequency energy.
+ * High values = sharp edges, low = blurry/jagged.
+ * Returns scalar in [0, 1].
+ */
+export function edgeSharpness(frame) {
+  const width = frame.width;
+  const height = frame.height;
+  let edgeEnergy = 0;
+  let count = 0;
+
+  // 3×3 Laplacian: high response on edges
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = (y * width + x) * 4;
+      const center = frame.data[idx];
+
+      const neighbors = [
+        frame.data[((y - 1) * width + (x - 1)) * 4],
+        frame.data[((y - 1) * width + x) * 4],
+        frame.data[((y - 1) * width + (x + 1)) * 4],
+        frame.data[(y * width + (x - 1)) * 4],
+        frame.data[(y * width + (x + 1)) * 4],
+        frame.data[((y + 1) * width + (x - 1)) * 4],
+        frame.data[((y + 1) * width + x) * 4],
+        frame.data[((y + 1) * width + (x + 1)) * 4],
+      ];
+
+      const lap = 8 * center - neighbors.reduce((a, b) => a + b, 0);
+      edgeEnergy += Math.abs(lap);
+      count++;
+    }
+  }
+
+  const avgEdgeEnergy = edgeEnergy / count;
+  // Normalize: typical edge ~600 max
+  return Math.min(1, avgEdgeEnergy / 600);
+}
+
+/**
+ * Temporal churn heatmap: per-pixel mean diff over frame sequence.
+ * Red = high churn (artifacts), blue = low (converged).
+ * Writes PNG, returns path.
+ */
+export async function churnHeatmap(frames, savePath) {
+  if (frames.length < 2) throw new Error('need ≥2 frames for heatmap');
+
+  const width = frames[0].width;
+  const height = frames[0].height;
+  const pixelCount = width * height;
+
+  // Sample down to 64×64 to avoid memory overhead
+  const heatWidth = 64;
+  const heatHeight = 64;
+  const heatmap = new PNG({ width: heatWidth, height: heatHeight });
+  const xStep = width / heatWidth;
+  const yStep = height / heatHeight;
+
+  let maxChurn = 0;
+  const churnData = new Uint8Array(heatWidth * heatHeight);
+
+  // Sample-based heatmap
+  for (let hy = 0; hy < heatHeight; hy++) {
+    for (let hx = 0; hx < heatWidth; hx++) {
+      const y = Math.floor(hy * yStep);
+      const x = Math.floor(hx * xStep);
+      const idx = (y * width + x) * 4;
+
+      let totalChurn = 0;
+      for (let i = 0; i < frames.length - 1; i++) {
+        const a = frames[i];
+        const b = frames[i + 1];
+        const diff =
+          (Math.abs(a.data[idx] - b.data[idx]) +
+            Math.abs(a.data[idx + 1] - b.data[idx + 1]) +
+            Math.abs(a.data[idx + 2] - b.data[idx + 2])) / 3;
+        totalChurn += diff;
+      }
+
+      const churn = totalChurn / (frames.length - 1);
+      churnData[hy * heatWidth + hx] = churn;
+      maxChurn = Math.max(maxChurn, churn);
+    }
+  }
+
+  // Render false-color: red = high, blue = low
+  for (let i = 0; i < heatWidth * heatHeight; i++) {
+    const normalized = churnData[i] / Math.max(1, maxChurn);
+    const idx = i * 4;
+
+    heatmap.data[idx] = Math.floor(normalized * 255); // R
+    heatmap.data[idx + 1] = 0; // G
+    heatmap.data[idx + 2] = Math.floor((1 - normalized) * 255); // B
+    heatmap.data[idx + 3] = 255; // A
+  }
+
+  mkdirSync(dirname(savePath), { recursive: true });
+  writeFileSync(savePath, PNG.sync.write(heatmap));
+
+  return savePath;
+}
+
 export function gitInfo() {
   const commit = execSync('git rev-parse --short HEAD', { cwd: REPO_ROOT }).toString().trim();
   const dirty = execSync('git status --porcelain', { cwd: REPO_ROOT }).toString().trim().length > 0;

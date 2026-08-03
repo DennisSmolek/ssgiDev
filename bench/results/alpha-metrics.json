@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "commit": "9d21307-dirty",
+    "date": "2026-08-03T04:16:44.515Z",
+    "baseUrl": "http://localhost:5182/",
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell",
+    "settleMs": 500,
+    "windowMs": 6000,
+    "shots": "/Users/dex/Developer/ssgiDev/bench/results/shots/alpha",
+    "rule": "convergenceCurve = per-frame churn; ghosting = luminance variance detector; sharpness = Laplacian energy; heatmap = false-color churn.",
+    "failures": [
+      "[SOFT] ghosting metric did not differentiate: demo12=0.0000 should be > demo14=0.0000",
+      "[SOFT] demo-14 edge sharpness is low: 0.0146 (SVGF should smooth, but not to 0)"
+    ],
+    "note": "quick smoke run — not a recorded number"
+  },
+  "rows": [
+    {
+      "testCase": "demo-12-capped-baseline",
+      "verdict": "fail",
+      "description": "Capped EMA (baseline bug): forever boiling, no convergence",
+      "churnEarly": 0.3541764495149911,
+      "churnLate": 0.3634303350970018,
+      "ghostingScore": 0,
+      "edgeSharpness": 0.014714119211215581,
+      "heatmapPath": "/Users/dex/Developer/ssgiDev/bench/results/shots/alpha/demo-12-capped-baseline-heatmap.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}",
+      "diffsJson": "[{\"t\":1.14,\"churn\":0.3764},{\"t\":2.29,\"churn\":0.3381},{\"t\":3.44,\"churn\":0.348},{\"t\":4.59,\"churn\":0.3839},{\"t\":5.74,\"churn\":0.3583}]"
+    },
+    {
+      "testCase": "demo-14-svgf-clean",
+      "verdict": "pass",
+      "description": "SVGF + EMA: converges clean at rest",
+      "churnEarly": 0.04078290343915344,
+      "churnLate": 0.0405979938271605,
+      "ghostingScore": 0,
+      "edgeSharpness": 0.014634129226312966,
+      "heatmapPath": "/Users/dex/Developer/ssgiDev/bench/results/shots/alpha/demo-14-svgf-clean-heatmap.png",
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"cameraJitter\":false,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}",
+      "diffsJson": "[{\"t\":1.11,\"churn\":0.0415},{\"t\":2.24,\"churn\":0.0407},{\"t\":3.35,\"churn\":0.0402},{\"t\":4.46,\"churn\":0.041},{\"t\":5.58,\"churn\":0.0406}]"
+    },
+    {
+      "testCase": "demo-18-oneOverN-jitter",
+      "verdict": "pass",
+      "description": "1/N + jitter AA: converges, should measure well below capped",
+      "churnEarly": 0.43686907517636686,
+      "churnLate": 0.3744954254850088,
+      "ghostingScore": 0.0034226190476190476,
+      "edgeSharpness": 0.013660819128669918,
+      "heatmapPath": "/Users/dex/Developer/ssgiDev/bench/results/shots/alpha/demo-18-oneOverN-jitter-heatmap.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"oneOverN\",\"accumFrameCap\":64,\"aaMode\":\"jitter\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}",
+      "diffsJson": "[{\"t\":1.15,\"churn\":0.4672},{\"t\":2.28,\"churn\":0.4287},{\"t\":3.42,\"churn\":0.4147},{\"t\":4.55,\"churn\":0.3833},{\"t\":5.68,\"churn\":0.3255}]"
+    }
+  ]
+}
