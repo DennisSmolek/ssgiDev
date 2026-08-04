@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "commit": "be65721-dirty",
+    "date": "2026-08-03T05:21:24.208Z",
+    "baseUrl": "http://localhost:5182/",
+    "cam": "0,2.4,8.8,0,2.6,0",
+    "scene": "cornell",
+    "settleMs": 1000,
+    "windowMs": 6000,
+    "shots": "/Users/dex/Developer/ssgiDev/bench/results/shots/phase-beta",
+    "rule": "v1 gates: (1) convergence decline, (2) beats capped baseline, (3) low still-camera ghosting",
+    "candidate": "demo 18 oneOverN + jitter",
+    "nextStep": "Human eyes + motion test → Phase γ (v2 motion tuning) if pass",
+    "failures": [
+      "[GATE 2 SOFT] v1 late churn (0.4860) should be better than demo-12 baseline (0.3676)"
+    ],
+    "note": "quick validation run"
+  },
+  "rows": [
+    {
+      "testCase": "v1-candidate-demo18-oneOverN",
+      "purpose": "Core v1 stack (temporal foundation + jitter AA)",
+      "churnEarly": 0.6913989473104056,
+      "churnLate": 0.4859961970899471,
+      "convergenceTrend": "declining ✓",
+      "ghostingScore": 0.00248015873015873,
+      "edgeSharpness": 0.013996823154639414,
+      "heatmapPath": "/Users/dex/Developer/ssgiDev/bench/results/shots/phase-beta/v1-candidate-heatmap.png",
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"bluenoise\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"accumMode\":\"oneOverN\",\"accumFrameCap\":64,\"aaMode\":\"jitter\",\"spatialFallback\":true,\"nMin\":8,\"denoising\":false,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}",
+      "diffsJson": "[{\"t\":1.13,\"churn\":0.8362},{\"t\":2.24,\"churn\":0.6705},{\"t\":3.34,\"churn\":0.5675},{\"t\":4.46,\"churn\":0.4775},{\"t\":5.57,\"churn\":0.413}]"
+    },
+    {
+      "testCase": "demo-12-capped-baseline",
+      "purpose": "Baseline (non-shippable, perpetual boiling)",
+      "churnEarly": 0.37555693342151675,
+      "churnLate": 0.36759851741622573,
+      "convergenceTrend": "declining ✓",
+      "ghostingScore": 0,
+      "edgeSharpness": 0.014779375127680036,
+      "config": "{\"viewMode\":\"combined\",\"giExposure\":1,\"marchScale\":\"half\",\"noiseMode\":\"ign\",\"thicknessHeuristic\":\"ottosson\",\"distantLight\":\"off\",\"rotationCount\":2,\"stepCount\":12,\"radius\":5,\"expFactor\":1,\"jitterSamples\":true,\"screenSpaceSampling\":false,\"mipOptimization\":true,\"upsampleNormalPhi\":32,\"upsampleDepthPhi\":0.05,\"gatherGI\":true,\"giIntensity\":10,\"multiBounceGI\":0,\"mbDamping\":0.5,\"normalApproximation\":false,\"backfaceLighting\":0,\"maxLuminance\":7,\"useBitmask\":true,\"sectorRemap\":true,\"freezeNoise\":false,\"aoIntensity\":1,\"thickness\":0.5,\"occluderThicknessScale\":0.5,\"occluderCosLimit\":0.1,\"linearThickK\":0.05,\"multiBounceAO\":false,\"capsBits\":4,\"distantIntensity\":1,\"fallbackSampleCount\":4,\"fallbackPower\":1,\"fallbackIntensity\":1,\"fallbackNormalization\":true,\"coneMip\":false,\"bentNormals\":true,\"specOcclusion\":false,\"specRoughness\":1,\"specIntensity\":1,\"ambientIntensity\":1,\"temporalAccumulation\":true,\"temporalResponse\":0.35,\"accumMode\":\"frame-count\",\"accumFrameCap\":16,\"denoising\":true,\"denoisingRadius\":0.5,\"refRays\":4,\"refSteps\":32,\"refRadius\":6,\"compareChannel\":\"alpha\",\"diffAmp\":8}"
+    },
+    {
+      "testCase": "demo-14-svgf",
+      "purpose": "Denoiser quality (SVGF converges, but different temporal path)",
+      "churnEarly": 0.037376405423280426,
+      "churnLate": 0.03802662037037038,
+      "convergenceTrend": "flat/rising ✗",
+      "ghostingScore": 0,
+      "edgeSharpness": 0.014632381151686372,
+      "config": "{\"stack\":\"svgf\",\"viewMode\":\"combined\",\"giExposure\":1,\"varianceAmp\":20,\"atrousIterations\":4,\"sigmaLum\":4,\"sigmaDepth\":0.05,\"sigmaNormal\":32,\"alphaMin\":0.05,\"nMinForTemporalVar\":4,\"varianceBoostFromReactive\":0,\"momentsSpace\":\"ycocg\",\"atrousFeedback\":true,\"demodEpsilon\":0.05,\"historyRejectThresh\":0.5,\"cameraJitter\":false,\"noiseInject\":false,\"noiseSigma\":0.15,\"fireflyRate\":0,\"guidesDisoccLo\":0.02,\"guidesDisoccHi\":0.1,\"guidesResetThresh\":0.5,\"guidesHistoryCap\":64,\"denoisingRadius\":0.5,\"temporalResponse\":0.35,\"mathisCap\":64,\"mathisBilateral\":1,\"mathisDepthThresh\":0.1,\"diffAmp\":8}"
+    }
+  ]
+}

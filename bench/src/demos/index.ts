@@ -20,6 +20,7 @@ import { svgfLabDemo } from './14-svgf/index';
 import { fsrDemo } from './16-fsr/index';
 import { guidesAbLabDemo } from './17-guides-ab/index';
 import { temporalLabDemo } from './18-temporal/index';
+import { shipStackDemo } from './19-ship/index';
 
 export const demoRegistry = new Registry<DemoDef>();
 demoRegistry.register(gbufferDemo);
@@ -40,3 +41,4 @@ demoRegistry.register(svgfLabDemo);
 demoRegistry.register(fsrDemo);
 demoRegistry.register(guidesAbLabDemo);
 demoRegistry.register(temporalLabDemo);
+demoRegistry.register(shipStackDemo);
