@@ -5,10 +5,11 @@ Assets live in `bench/assets/` (gitignored) and decoders in
 
 ```
 pnpm assets              # from repo root
-# or: bench/scripts/fetch-assets.sh
+# or: node bench/scripts/fetch-assets.mjs
 ```
 
-`scripts/fetch-assets.sh` is idempotent (skips anything already present) and:
+`scripts/fetch-assets.mjs` (cross-platform, Node 18+ only — no bash/curl) is
+idempotent (skips anything already present) and:
 
 1. Downloads toji/sponza-optimized **`Sponza-KTX-Draco.glb`** (~9.3 MB, standard
    glTF: `KHR_draco_mesh_compression` + `KHR_texture_basisu`/KTX2) into

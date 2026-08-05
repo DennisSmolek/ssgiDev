@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "assets": "bash scripts/fetch-assets.sh"
+    "assets": "node scripts/fetch-assets.mjs"
   },
   "dependencies": {
     "three": "0.185.1",
